@@ -6,33 +6,17 @@ cmake_minimum_required (VERSION 3.10)
 
 ## Define a name for the backend library wrappers/implementations used in this build, Currently implemented only with CuCuBLAS(==CUDA+CUBLAS)
 set(BACKEND "CuCuBLAS")
-message("PARALiA-Framework - BACKEND: " ${BACKEND})
+message("PARALiA-GEMMex - BACKEND: " ${BACKEND})
 add_definitions(-DBACKEND="${BACKEND}")
 ## Define the project version (used in logfiles for result testing)
 
-execute_process ( COMMAND bash -c "source ${CMAKE_CURRENT_BINARY_DIR}/../config_silver1.sh")
-
-set(PROJECT_VERSION "2.0")
-message("PARALiA-Framework - PROJECT_VERSION: " ${PROJECT_VERSION})
+set(PROJECT_VERSION "2.99")
+message("PARALiA-GEMMex - PROJECT_VERSION: " ${PROJECT_VERSION})
 add_definitions(-DVERSION="${PROJECT_VERSION}")
-
-## Define a name for the testbed, to be used for the whole framework setup
-set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
-message("PARALiA-Framework - TESTBED_NAME: " ${TESTBED_NAME})
-add_definitions(-DTESTBED="${TESTBED_NAME}")
-
-## Define the workspace where execution of the library (benchmarks & deployment) will be invoked from (e.g. to avoid Disk quota problems in /home)
-set(CD_LOCATION $ENV{CD_FOLDER})
-message("PARALiA-Framework - CD_LOCATION: " ${CD_LOCATION})
-
-## Define the (max) number of devices for utilization (0-num_devices)
-set(NUM_LOCATIONS $ENV{PARALIA_SYSTEM_DEVNUM})
-message("PARALiA-Framework - NUM_LOCATIONS: " ${NUM_LOCATIONS})
-add_definitions(-DLOC_NUM=${NUM_LOCATIONS})
 
 ## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
 set(PROBLEM_GPU_PERCENTAGE 70)
-message("PARALiA-Framework - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
+message("PARALiA-GEMMex - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
 add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 
 ###########################################################################################
@@ -120,7 +104,7 @@ add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
 ## The multiplier defines the max bandwidth multiplier that is allowed to be used to replace a route
 ## For example, 1 means that only allow replacement with links of >= bandwidth
 ## The higher this value is, the more ETA-based the selection criteria
-add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5)
+add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5) #FIXME: this should be removed at some point in the future
 
 ## Enable the use of transfer hops through memory locations that do not need a tile
 ## Improves bandwidth, but adds (extra) network load to fast lanes. Currently not integrated in already-chained transfers.
@@ -203,7 +187,6 @@ add_definitions(-DMINIMUM_UNIT_CONTRIBUTION=0.05)
 
 ## Enable power measuring for benchmarks, and energy-related prediction modes for the Autotuner
 add_definitions(-DENABLE_POWA)
-add_definitions(-DCPU_W_PREDEF=$ENV{PARALIA_W_CPU_PREDEF})
 
 ## Choose the Unit combination that maximizes total performance (minimum time).
 add_definitions(-DPREDICT_OPTIMIZE_TARGET="PERF")
@@ -283,40 +266,40 @@ add_definitions(-DWS_SZ=0)
 ###########################################################################################
 
 
-if(NOT $ENV{PARALIA_CUDA_TOOLKIT_PREFIX} STREQUAL "default")
-  set (CUDA_PREFIX $ENV{PARALIA_CUDA_TOOLKIT_PREFIX})
+if(NOT $ENV{CHANGELINK_CUDA_TOOLKIT_PREFIX} STREQUAL "default")
+  set (CUDA_PREFIX $ENV{CHANGELINK_CUDA_TOOLKIT_PREFIX})
   set (CMAKE_CUDA_COMPILER ${CUDA_PREFIX}/bin/nvcc)
 endif()
 
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES $ENV{PARALIA_CUDA_ARCH})
+  set(CMAKE_CUDA_ARCHITECTURES $ENV{CHANGELINK_CUDA_ARCH})
 endif()
 
 set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -O3")
-message("PARALiA-Framework - CMAKE_CUDA_FLAGS: " ${CMAKE_CUDA_FLAGS})
+message("PARALiA-GEMMex - CMAKE_CUDA_FLAGS: " ${CMAKE_CUDA_FLAGS})
 
 set (CUDA_INCLUDE_DIRS ${CUDA_PREFIX}/include ${CUDA_PREFIX}/samples/common/inc)
 include_directories(${CUDA_INCLUDE_DIRS})
-message("PARALiA-Framework - CUDA_INCLUDE_DIRS: " ${CUDA_INCLUDE_DIRS})
+message("PARALiA-GEMMex - CUDA_INCLUDE_DIRS: " ${CUDA_INCLUDE_DIRS})
 
 set (CUDA_LD ${CUDA_PREFIX}/lib64) # or /lib depending on system
 set (CUDA_LINK "-L${CUDA_LD} -lcudart -lcublas -lcurand $ENV{PARALIA_CUDA_LOAD_COMMAND} -fopenmp")
-message("PARALiA-Framework - CUDA_LINK: " ${CUDA_LINK} )
+message("PARALiA-GEMMex - CUDA_LINK: " ${CUDA_LINK} )
 set (INTERNAL_LINK_LIB "${CUDA_LINK} -lrt -ldl -lnuma")
-message("PARALiA-Framework - INTERNAL_LINK_LIB: " ${INTERNAL_LINK_LIB})
+message("PARALiA-GEMMex - INTERNAL_LINK_LIB: " ${INTERNAL_LINK_LIB})
 
 ###########################################################################################
 #----------------------------------C/C++ definitions--------------------------------------#
 ###########################################################################################
 
-if(NOT $ENV{PARALIA_CXX_PREFIX} STREQUAL "default")
-  set (CXX_PREFIX $ENV{PARALIA_CXX_PREFIX})
+if(NOT $ENV{CHANGELINK_CXX_PREFIX} STREQUAL "default")
+  set (CXX_PREFIX $ENV{CHANGELINK_CXX_PREFIX})
   set (CMAKE_CXX_COMPILER ${CXX_PREFIX}/bin/c++)
   set (CMAKE_C_COMPILER ${CXX_PREFIX}/bin/gcc)
 endif()
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp -lm -Wuninitialized -lgomp -lnuma")
-message("PARALiA-Framework - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
+message("PARALiA-GEMMex - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 
 #set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})
 
@@ -324,38 +307,33 @@ message("PARALiA-Framework - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 #---------------------------------OpenBLAS definitions------------------------------------#
 ###########################################################################################
 
-set(OPENBLAS_PREFIX $ENV{PARALIA_OPENBLAS_PREFIX})
+set(OPENBLAS_PREFIX $ENV{CHANGELINK_OPENBLAS_PREFIX})
 
 set (OPENBLAS_INCLUDE_DIRS ${OPENBLAS_PREFIX}/include)
 include_directories(${OPENBLAS_INCLUDE_DIRS})
-message("PARALiA-Framework - OPENBLAS_INCLUDE_DIRS: " ${OPENBLAS_INCLUDE_DIRS})
+message("PARALiA-GEMMex - OPENBLAS_INCLUDE_DIRS: " ${OPENBLAS_INCLUDE_DIRS})
 
 set (OPENBLAS_LD ${OPENBLAS_PREFIX}/lib)
 set (OPENBLAS_LINK  "-L${OPENBLAS_LD} -lopenblas -lgomp" )
-message("PARALiA-Framework - OPENBLAS_LINK: " ${OPENBLAS_LINK})
+message("PARALiA-GEMMex - OPENBLAS_LINK: " ${OPENBLAS_LINK})
 
 ###########################################################################################
 #-------------------------------------Start Project---------------------------------------#
 ###########################################################################################
 
-project (PARALiA-Framework VERSION ${PROJECT_VERSION} DESCRIPTION "The complete PARALiA Framework" LANGUAGES CUDA CXX)
+ADD_SUBDIRECTORY (CHANGE-LINK)
 
-if($ENV{PARALIA_INSTALL_PREFIX} STREQUAL "default")
-  message("PARALiA-Framework - PARALIA_INSTALL_PREFIX not provided, project will be installed under build dir.")
-  set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
-else()
-  set (CMAKE_INSTALL_PREFIX $ENV{PARALIA_INSTALL_PREFIX})
-endif()
+project (PARALiA-GEMMex VERSION ${PROJECT_VERSION} DESCRIPTION "A PARALiA implementation of gemm similar to cublasLt functions, for multi-GPU" LANGUAGES CUDA CXX)
+
+message("PARALiA-GEMMex - Project will be installed under build dir.")
+set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
+
 set (CMAKE_INSTALL_PROJECT ${CMAKE_INSTALL_PREFIX})
-message("PARALiA-Framework - CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_PROJECT: " ${CMAKE_INSTALL_PROJECT})
+message("PARALiA-GEMMex - CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_PROJECT: " ${CMAKE_INSTALL_PROJECT})
 
-configure_file(${PROJECT_SOURCE_DIR}/Deploy.in ${CMAKE_INSTALL_PROJECT}/Deploy.sh @ONLY)
 
 set(PROJECT_BENCH_DIR ${PROJECT_SOURCE_DIR}/Benchmarking)
-configure_file(${PROJECT_BENCH_DIR}/Test_correctness.in ${CMAKE_INSTALL_PROJECT}/Test_correctness.sh @ONLY)
 configure_file(${PROJECT_BENCH_DIR}/Targeted_performance_evaluation.in ${CMAKE_INSTALL_PROJECT}/Targeted_performance_evaluation.sh @ONLY)
-configure_file(${PROJECT_BENCH_DIR}/Full_model_validation.in ${CMAKE_INSTALL_PROJECT}/Full_model_validation.sh @ONLY)
-configure_file(${PROJECT_BENCH_DIR}/Full_performance_evaluation.in ${CMAKE_INSTALL_PROJECT}/Full_performance_evaluation.sh @ONLY)
 configure_file(${PROJECT_BENCH_DIR}/Heterogeneous_performance_estimation.in ${CMAKE_INSTALL_PROJECT}/Heterogeneous_performance_estimation.sh @ONLY)
 
 #set(VALUETYPEID 1)
@@ -366,17 +344,6 @@ configure_file(${PROJECT_BENCH_DIR}/Heterogeneous_performance_estimation.in ${CM
 #else()
 #endif()
 
-#Used for defining Universal_helpers subdir setup mode. Always one for PARALiA
-set (BUILD_BLAS_WRAPPERS_FLAG 1)
-add_definitions(-DBUILD_BLAS_WRAPPERS_FLAG)
-
-ADD_SUBDIRECTORY (Extended_LinkMap)
-
-ADD_SUBDIRECTORY (Database_builder)
-add_definitions(-DDEPLOYDB="${DEPLOYMENT_DIR_DB}")
-
 ADD_SUBDIRECTORY (Autotuner)
-
 ADD_SUBDIRECTORY (Library_scheduler)
-
 ADD_SUBDIRECTORY (Benchmarking)

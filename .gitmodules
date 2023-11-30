@@ -1,3 +1,6 @@
 [submodule "CHANGE-LINK"]
 	path = CHANGE-LINK
 	url = git@github.com:p-anastas/CHANGE-LINK.git
+[submodule "Library_scheduler/Software-assisted_Memory_Buffer"]
+	path = Library_scheduler/Software-assisted_Memory_Buffer
+	url = git@github.com:aristomenisTheod/Software-assisted_Memory_Buffer.git
