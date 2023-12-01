@@ -69,17 +69,17 @@ int main(const int argc, const char *argv[]) {
 
 #ifdef RUNVALIDATION
 	double *C_out, *C_out1, *C_buf;
-	C_out  = (double*) malloc(M * N*sizeof(double));
-	C_out1  = (double*) malloc(M * N*sizeof(double));
-	C_buf  = (double*) malloc(M * N*sizeof(double));
+	C_out  = (double*) CHLMalloc(M * N*sizeof(double), CHL_MEMLOCS-1, 1);
+	C_out1  = (double*) CHLMalloc(M * N*sizeof(double), CHL_MEMLOCS-1, 1);
+	C_buf  = (double*) CHLMalloc(M * N*sizeof(double), CHL_MEMLOCS-1, 1);
 
-	CHLMemcpy(C_buf, C,  M * N *sizeof(double), -2, C_loc);
+	CHLMemcpy(C_buf, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
 
 	// Call for Validate start
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
-	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, -2);
+	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
 
 	// Call for Validate reuse
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
@@ -87,20 +87,20 @@ int main(const int argc, const char *argv[]) {
 	CHLSyncCheckErr();
 	for (int i = 0; i< CHL_MEMLOCS; i++) PARALiADevCacheFree(i);
 
- 	CHLMemcpy(C_out, C,  M * N *sizeof(double), -2, C_loc);
- 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, -2);
+ 	CHLMemcpy(C_out, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
+ 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
 
 	// Validate with cuBLASXt (questionable but CPU validation can be slower by at least a factor)
 	int dev_ids[DEV_NUM];
 	for (int i = 0; i < DEV_NUM; i++) dev_ids[i] = i;
 	cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, DEV_NUM, dev_ids);
-	CHLMemcpy(C_out1, C,  M * N *sizeof(double), -2, C_loc);
+	CHLMemcpy(C_out1, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
  	if(Dtest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
 
- 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, -2);
-	free(C_out);
-	free(C_out1);
-	free(C_buf);
+ 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
+	//CHLFree(C_out, CHL_MEMLOCS-1, M * N*sizeof(double));
+	//CHLFree(C_out1, CHL_MEMLOCS-1, M * N*sizeof(double));
+	//CHLFree(C_buf, CHL_MEMLOCS-1, M * N*sizeof(double));
 #endif
 
 	cpu_timer = csecond();

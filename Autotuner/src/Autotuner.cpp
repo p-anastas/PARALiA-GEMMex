@@ -396,9 +396,9 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 double ATC::optimize_tile(){
 	double timer = csecond();
 #ifdef DEBUG
-fprintf(stderr,  "|-----> ATC::optimize_tile( autotune_controller{ T=%ld, active_unit_num=%d, Problem split = %s -> %s : t_pred = %lf ms}, unit_modeler_list =%p)\n",
+fprintf(stderr,  "|-----> ATC::optimize_tile( autotune_controller{ T=%ld, active_unit_num=%d, Problem split = %s -> %s : t_pred = %lf ms})\n",
 	T, active_unit_num, printlist<int>(active_unit_id_list, active_unit_num),
-	printlist<double>(active_unit_score, active_unit_num), pred_t*1000, unit_modeler_list);
+	printlist<double>(active_unit_score, active_unit_num), pred_t*1000);
 #endif
 	int best_idx = -1;
 	double temp_score = 0;
