@@ -221,7 +221,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DDDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
-#add_definitions(-DSDEBUG)
+add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
 #add_definitions(-DPDEBUG)

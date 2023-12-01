@@ -222,14 +222,17 @@ void ATC::distribute_subkernels(int D1GridSz, int D2GridSz, int D3GridSz){
 /****************************** Autotuning ************************************/
 
 double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc, 
-    int M, int N, int K, int elemSize){
+    int M_in, int N_in, int K_in, int elemSize){
 	short lvl = 3;
 	double cpu_timer = csecond();
 #ifdef DEBUG
-	fprintf(stderr,  "|-----> ATC::autotune_problem(%s, %p)\n", routine_name,
-		initial_problem_wrap);
+	fprintf(stderr,  "|-----> ATC::autotune_problem(%d, %d, %d, %d, %d, %d, %d, %d)\n", 
+		A_loc, B_loc, C_loc, D_loc, M_in, N_in, K_in, elemSize);
 	print();
 #endif
+	M = M_in;
+	N = N_in;
+	K = K_in;
 	int autotune_eval_devices = 0;
 	if (active_unit_num > 0){
 		if (active_unit_id_list){
@@ -261,9 +264,9 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
 		Gamalg_p test_grid;
 		for (int idx = 0; idx < MAX_WORKER_CONFIG; idx++){
-			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num][idx]);
-			test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num][idx], 
-				CHL_OUTPUT_QUEUES_CASE_IDS[active_unit_num][idx]);
+			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx]);
+			test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx], 
+				CHL_OUTPUT_QUEUES_CASE_IDS[active_unit_num-1][idx]);
 			for (int idx = 0; idx < active_unit_num; idx++) active_unit_score[idx] = 1.0/active_unit_num;
 			long long edge_load[64][64];
 			gemm_translate_problem_comm(edge_load, A_loc, B_loc, C_loc, D_loc, M, N, K, elemSize, active_unit_num, active_unit_id_list, active_unit_score);

@@ -69,6 +69,6 @@ ATC_p PARALiADdotControled(long int N, double* x, long int incx,
 	double* y, long int incy, double* result, ATC_p predef_control_values);
 
 ///Deallocates the GPU-allocated cache buffer at target device
-void PARALiADevCacheFree(short dev_id);
+void PARALiADevCacheFree(int dev_id);
 
 #endif
