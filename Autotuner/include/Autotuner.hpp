@@ -65,4 +65,8 @@ typedef class ATC{
 
 }* ATC_p;
 
+extern double best_grid_edge_bws[64][64];
+extern int best_grid_edge_active[64][64];
+extern int best_grid_edge_replaced[64][64][2];
+
 #endif

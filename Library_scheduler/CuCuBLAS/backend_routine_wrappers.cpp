@@ -99,6 +99,29 @@ void cblas_wrap_daxpby(void* backend_data){
     (double*) *ptr_ker_translate->y, ptr_ker_translate->incy);
 }
 
+void custom_cpu_wrap_dslaxpby(void* backend_data){
+  slaxpby_backend_in<double>* ptr_ker_translate = (slaxpby_backend_in<double>*) backend_data;
+#ifdef DEBUG
+  fprintf(stderr,"custom_cpu_wrap_dslaxpby(dev_id = %d,\
+    N = %d, alpha = %lf, x = %p, incx = %d, b = %lf, y = %p, incy = %d, slide_x = %d, slide_y = %d)\n",
+    ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
+    (double*) *ptr_ker_translate->x, ptr_ker_translate->incx, ptr_ker_translate->beta,
+    (double*) *ptr_ker_translate->y, ptr_ker_translate->incy, ptr_ker_translate->slide_x, ptr_ker_translate->slide_y);
+#endif
+  	double* y = (double*) *ptr_ker_translate->y, *x = (double*) *ptr_ker_translate->x;
+	int i, j, N = ptr_ker_translate->N, offset_x = ptr_ker_translate->slide_x, offset_y = ptr_ker_translate->slide_y; 
+	double alpha = ptr_ker_translate->alpha, beta = ptr_ker_translate->beta;
+	//fprintf(stderr,"custom_cpu_wrap_dslaxpby: using %d openmp workers\n", omp_get_num_threads());
+	#pragma omp parallel for collapse(2)
+	for (i = 0; i < offset_x; i++){
+		for (j = 0; j < N; j++){
+		//fprintf(stderr, "y[%d] = ax[%d] + by[%d] , a = %lf, b = %lf\n", i*ptr_ker_translate->slide_y + j, i*ptr_ker_translate->N + j, 
+		//  i*ptr_ker_translate->slide_y + j, ptr_ker_translate->alpha, ptr_ker_translate->beta);
+			y[i*offset_y + j] = alpha*x[i*N + j] + beta*y[i*offset_y + j];
+		}
+	}
+}
+
 void cblas_wrap_saxpy(void* backend_data){
   axpy_backend_in<float>* ptr_ker_translate = (axpy_backend_in<float>*) backend_data;
   cblas_saxpy(ptr_ker_translate->N, ptr_ker_translate->alpha,

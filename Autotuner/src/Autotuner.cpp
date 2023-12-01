@@ -12,6 +12,7 @@
 
 double best_grid_edge_bws[64][64];
 int best_grid_edge_active[64][64];
+int best_grid_edge_replaced[64][64][2];
 
 /********************** Initialization/Modification ***************************/
 ATC::ATC(){
