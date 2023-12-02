@@ -7,10 +7,9 @@
 #define PARALiA_H
 
 #include "Autotuner.hpp"
-
-typedef class Buffer* Buffer_p;
-typedef class Decomposer* Decomposer_p; 
-class Subkernel;
+#include "Decomposer.hpp"
+#include "DataCaching.hpp"
+#include "Subkernel.hpp"
 
 typedef class ProblemMetadata{
 public:	
@@ -24,6 +23,8 @@ public:
 	int sk_dev_num[32]; 
 	Subkernel** subkernel_dev_list[32]; 
 	Buffer_p SAB[64]; 
+
+	void print();
 }* PMD_p; 
 
 extern PMD_p PMD_cache[PROBLEM_MD_CACHE]; 

@@ -8,13 +8,13 @@
 #include "Subkernel.hpp"
 
 double get_edge_bw(int dest_loc, int src_loc){
-  if(best_grid_edge_active[dest_loc][src_loc]){
+  if(best_grid_edge_active[dest_loc][src_loc]!= -1){
     if(best_grid_edge_bws[dest_loc][src_loc] != -1) return best_grid_edge_bws[dest_loc][src_loc];
     else error("get_edge_bw(dest=%d,src=%d) best_grid_edge_active[%d][%d] = %d"
     "but best_grid_edge_bws[%d][%d] = %lf\n", dest_loc, src_loc, dest_loc, src_loc, 
     best_grid_edge_active[dest_loc][src_loc], dest_loc, src_loc, best_grid_edge_bws[dest_loc][src_loc]);
   }
-  else if(!best_grid_edge_active[dest_loc][src_loc] && best_grid_edge_replaced[dest_loc][src_loc][0] == -42){
+  else if(best_grid_edge_active[dest_loc][src_loc] ==-1 && best_grid_edge_replaced[dest_loc][src_loc][0] == -42){
     warning("get_edge_bw(dest=%d,src=%d) called but edge is both inactive AND not replaced\n", dest_loc, src_loc);
     return 1e-9;
   }
@@ -497,7 +497,7 @@ long double LinkRoute::optimize_hop_route(void* transfer_tile_wrapped, int updat
     double tile_t = transfer_tile->size()/(1e9*get_edge_bw(dest_loc, src_loc));
     long double min_ETA = std::max(recv_queues[(dest_loc)][(src_loc)]->ETA_get(), fire_t) + tile_t;
     for(int uidx = 0; uidx < CHL_MEMLOCS; uidx++)
-      if (best_grid_edge_active[uidx][src_loc] && best_grid_edge_active[dest_loc][uidx]){
+      if (best_grid_edge_active[uidx][src_loc]!= -1 && best_grid_edge_active[dest_loc][uidx]!= -1){
         long double temp_t = (1 + HOP_PENALTY) *std::max(transfer_tile->size()/(1e9*get_edge_bw(uidx, src_loc)),
           transfer_tile->size()/(1e9*get_edge_bw(dest_loc, uidx)));
         long double total_t = (1 + HOP_PENALTY) * transfer_tile->size()/(1e9*get_edge_bw(uidx, src_loc)) +

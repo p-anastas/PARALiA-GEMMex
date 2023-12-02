@@ -14,6 +14,7 @@
 #include <cmath>
 
 int Subkernel_ctr = 0;
+int init = SKConfigResources();
 
 inline int get_next_queue_ctr(int dev_id){
 	exec_queue_ctr[(dev_id)]++;
@@ -245,7 +246,7 @@ void Subkernel::run_ready_operation(){
 #endif
 }
 
-void SKInitResources(int* dev_list, int dev_num){
+int SKConfigResources(){
 	for(int dev_id_idx = 0 ; dev_id_idx < 64; dev_id_idx++){
 		for(int dev_id_idy = 0 ; dev_id_idy < 64; dev_id_idy++) 
 			recv_queues[dev_id_idx][dev_id_idy] = wb_queues[dev_id_idx][dev_id_idy] = NULL; 
@@ -255,11 +256,14 @@ void SKInitResources(int* dev_list, int dev_num){
 		for (int i = 0; i < MAX_BACKEND_L; i++) exec_queue[dev_id_idx][i] = NULL;
 		exec_queue_ctr[dev_id_idx] = -1; 
 	}
+	return 1;
+}
 
+void SKInitResources(int* dev_list, int dev_num){
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS + 1; dev_id_idx++){
 		for(int dev_id_idy = 0 ; dev_id_idy < CHL_WORKERS + 1; dev_id_idy++)
 		if(dev_id_idy!=dev_id_idx){
-			if (!recv_queues[dev_id_idx][dev_id_idy] && best_grid_edge_active[dev_id_idx][dev_id_idy]){
+			if (!recv_queues[dev_id_idx][dev_id_idy] && best_grid_edge_active[dev_id_idx][dev_id_idy] != -1){
 				int queue_id = (dev_id_idy == CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
 				recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);	
 #ifdef ENABLE_SEND_RECV_OVERLAP
@@ -298,7 +302,7 @@ void SKInitResources(int* dev_list, int dev_num){
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_MEMLOCS; dev_id_idx++)	
 		for (int i = 0; i < REDUCE_WORKERS_PERDEV; i++){
 		int queue_id = (dev_id_idx >= CHL_WORKERS)? (CHL_MEMLOC_CLOSE_TO_WORKER[dev_id_idx]) : (dev_id_idx);
-			reduce_queue[dev_id_idx][i] = new CommandQueue(queue_id, 1);
+			if (!reduce_queue[dev_id_idx][i]) reduce_queue[dev_id_idx][i] = new CommandQueue(queue_id, 1);
 			reduce_queue_ctr[dev_id_idx] = -1; 
 		}
 #ifdef DEBUG
@@ -488,11 +492,11 @@ Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkerne
 
 void PARALiADevCacheFree(int dev_id){
 	for(int i = 0; i < PMD_cache_entries; i++) 
-		if (PMD_cache[i]->SAB[(dev_id)] == current_SAB[(dev_id)]){
-			PMD_cache[i]->SAB[(dev_id)] = NULL;
+		if (PMD_cache[i]->SAB[dev_id] == current_SAB[dev_id]){
+			PMD_cache[i]->SAB[dev_id] = NULL;
 	}
-	if(current_SAB[(dev_id)]) delete current_SAB[(dev_id)];
-	current_SAB[(dev_id)] = NULL;
+	if(current_SAB[dev_id]) delete current_SAB[dev_id];
+	current_SAB[dev_id] = NULL;
 }
 
 #ifdef STEST

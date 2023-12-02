@@ -37,7 +37,7 @@ void Decomposer::Reset(void* new_adrs, int T1, int T2, long new_chunk_size, Buff
 
 void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size, Buffer_p* init_loc_cache_p){
   #ifdef DEBUG
-  	fprintf(stderr, "|-----> Decom1D::Reset(Buffer_p=%p, loc = %d)\n", init_loc_cache_p, loc);
+  	fprintf(stderr, "|-----> Decom2D::Reset(ptr = %p, Buffer_p=%p, loc = %d)\n", new_adrs, init_loc_cache_p, loc);
   #endif
   adrs = new_adrs;
   ldim = new_chunk_size; 

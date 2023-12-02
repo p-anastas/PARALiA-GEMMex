@@ -44,8 +44,6 @@ set (LIBSC_INSTALL_LIB ${LIBSC_INSTALL}/lib)
 file(MAKE_DIRECTORY ${LIBSC_INSTALL_LIB})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIBSC_INSTALL_LIB})
 
-configure_file(${LIBSC_DIR_INC}/Subkernel.hpp ${LIBSC_INSTALL_INC}/Subkernel.hpp COPYONLY)
-
 add_library(paralia SHARED
 ${LIBSC_DIR_SRC}/extern_definitions.cpp
 ${LIBSC_DIR_SRC}/DataTile.cpp
@@ -60,6 +58,9 @@ ${LIBSC_DIR}/${BACKEND}/backend_routine_wrappers.cpp
 
 target_link_libraries(paralia ${INTERNAL_LINK_LIB} autotuner chl_grid_amalgamation caching)
 configure_file(${LIBSC_DIR_INC}/PARALiA.hpp ${LIBSC_INSTALL_INC}/PARALiA.hpp COPYONLY)
+configure_file(${LIBSC_DIR_INC}/Subkernel.hpp ${LIBSC_INSTALL_INC}/Subkernel.hpp COPYONLY)
+configure_file(${LIBSC_DIR_INC}/Decomposer.hpp ${LIBSC_INSTALL_INC}/Decomposer.hpp COPYONLY)
+configure_file(${LIBSC_DIR_INC}/DataTile.hpp ${LIBSC_INSTALL_INC}/DataTile.hpp COPYONLY)
 configure_file(${LIBSC_DIR}/${BACKEND}/backend_wrappers.hpp ${LIBSC_INSTALL_INC}/backend_wrappers.hpp COPYONLY)
 
 set (LIBSC_INSTALL_INC ${LIBSC_INSTALL_INC} PARENT_SCOPE)

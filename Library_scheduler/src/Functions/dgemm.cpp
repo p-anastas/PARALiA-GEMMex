@@ -337,29 +337,30 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 
 	int reuse_problem_flag = 0;
 	PMD_p local_PMD = NULL; 
-	gemm_backend_in<double>* initial_dgemm;
+	gemm_backend_in<double>* initial_dgemm = NULL;
 
 	for(int cache_entries = 0; cache_entries < PMD_cache_entries; cache_entries++)
 	if(PMD_cache[cache_entries] && !strcmp(PMD_cache[cache_entries]->problem_name, "Dgemm")){
 			initial_dgemm = (gemm_backend_in<double>*) PMD_cache[cache_entries]->problem_wrap;
+#ifdef DEBUG
+			PMD_cache[cache_entries]->print();
+#endif
 			reuse_problem_flag = 1; 
 			if(initial_dgemm->TransA != TransA)
 			reuse_problem_flag = 0;
 			if(initial_dgemm->TransB != TransB)
 				reuse_problem_flag = 0;
-			if(initial_dgemm->M != M)
+			if(PMD_cache[cache_entries]->autotuner->M != M)
 				reuse_problem_flag = 0;
-			if(initial_dgemm->N != N)
+			if(PMD_cache[cache_entries]->autotuner->N != N)
 				reuse_problem_flag = 0;
-			if(initial_dgemm->K != K)
+			if(PMD_cache[cache_entries]->autotuner->K != K)
 				reuse_problem_flag = 0;
-			if(initial_dgemm->A!= NULL && CHLGetPtrLoc(*initial_dgemm->A) != CHLGetPtrLoc(A))
+			if(PMD_cache[cache_entries]->decom[0] && PMD_cache[cache_entries]->decom[0]->loc != CHLGetPtrLoc(A))
 				reuse_problem_flag = 0;
-
-			if(initial_dgemm->B!= NULL && CHLGetPtrLoc(*initial_dgemm->B) != CHLGetPtrLoc(B))
+			if(PMD_cache[cache_entries]->decom[1] && PMD_cache[cache_entries]->decom[1]->loc != CHLGetPtrLoc(B))
 				reuse_problem_flag = 0;
-
-			if(initial_dgemm->C!= NULL && CHLGetPtrLoc(*initial_dgemm->C) != CHLGetPtrLoc(C))
+			if(PMD_cache[cache_entries]->decom[2] && PMD_cache[cache_entries]->decom[2]->loc != CHLGetPtrLoc(C))
 				reuse_problem_flag = 0;
 			if(reuse_problem_flag){
 				local_PMD = PMD_cache[cache_entries]; 
@@ -375,8 +376,16 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 				delete PMD_cache[0];
 				local_PMD = PMD_cache[0] = new ProblemMetadata();
 			}
-			else local_PMD = PMD_cache[PMD_cache_entries++] = new ProblemMetadata();
+			else{
+				PMD_cache[PMD_cache_entries] = new ProblemMetadata();
+				local_PMD = PMD_cache[PMD_cache_entries++];
+			}
 			local_PMD->problem_wrap = malloc(sizeof(gemm_backend_in<double>));
+	}
+	else{;
+#ifdef DEBUG
+			fprintf(stderr, "Reusing local_PMD = %p with similar characteristics\n", local_PMD);
+#endif
 	}
 	initial_dgemm = (gemm_backend_in<double>*) local_PMD->problem_wrap;
 	initial_dgemm->TransA = TransA;
@@ -662,7 +671,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	cpu_timer = csecond();
 #endif
 
-	 CHLSelectDevice(prev_dev_id);
+	CHLSelectDevice(prev_dev_id);
 
     local_PMD->decom[0]->resetProperties();
     local_PMD->decom[1]->resetProperties();

@@ -417,10 +417,9 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
   id = Tile2D_num;
   Tile2D_num++;
   short init_loc = CHLGetPtrLoc(in_addr);
-  short init_loc_idx = (init_loc);
   for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
   {
-    if (iloc == init_loc_idx)
+    if (iloc == init_loc)
     {
       loc_map[iloc] = 0;
       block_ETA[iloc] = 0; 
@@ -471,9 +470,8 @@ Tile1D::Tile1D(void * in_addr, int in_dim,
   id = Tile1D_num;
   Tile1D_num++;
   short init_loc = CHLGetPtrLoc(in_addr);
-  short init_loc_idx = (init_loc);
   for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
-    if (iloc == init_loc_idx){
+    if (iloc == init_loc){
       loc_map[iloc] = 0;
       StoreBlock[iloc] = init_loc_block_p;
       StoreBlock[iloc]->Adrs = in_addr;
