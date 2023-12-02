@@ -92,14 +92,14 @@ add_definitions(-DSTREAMING_BUFFER_OVERLAP=1)
 #-----------------------------------Routing selection-------------------------------------#
 ###########################################################################################
 
-add_definitions(-DP2P_FETCH_FROM_INIT)
+#add_definitions(-DP2P_FETCH_FROM_INIT)
 #add_definitions(-DP2P_FETCH_FROM_GPU_SERIAL)
 #add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE)
 #add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE_PLUS) # PARALIa 1.5
 #add_definitions(-DCHAIN_FETCH_SERIAL)
 #add_definitions(-DCHAIN_FETCH_RANDOM)
 #add_definitions(-DCHAIN_FETCH_TIME)
-#add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
+add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
 
 ## An extra heuristic to avoid only trusting QUEUE_ETAs for route selection
 ## Since some routes migh result in extremely low botlenecks due to serialization
@@ -110,7 +110,7 @@ add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5) #FIXME: this should be re
 
 ## Enable the use of transfer hops through memory locations that do not need a tile
 ## Improves bandwidth, but adds (extra) network load to fast lanes. Currently not integrated in already-chained transfers.
-#add_definitions(-DENABLE_TRANSFER_HOPS)
+add_definitions(-DENABLE_TRANSFER_HOPS)
 
 #add_definitions(-DHOP_FETCH_BANDWIDTH)
 #add_definitions(-DHOP_FETCH_QUEUE_WORKLOAD)

@@ -273,7 +273,7 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_score);
 			test_grid->set_node_load(node_ops, node_mem_ops);
 			double temp_t = test_grid->get_problem_perf_estimation();
-			if(temp_t < best_t){
+			if(temp_t <= best_t){
 				inter_grid = test_grid;
 				best_t = temp_t; 
 			}

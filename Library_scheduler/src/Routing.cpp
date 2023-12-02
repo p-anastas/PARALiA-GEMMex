@@ -14,7 +14,7 @@ double get_edge_bw(int dest_loc, int src_loc){
     "but best_grid_edge_bws[%d][%d] = %lf\n", dest_loc, src_loc, dest_loc, src_loc, 
     best_grid_edge_active[dest_loc][src_loc], dest_loc, src_loc, best_grid_edge_bws[dest_loc][src_loc]);
   }
-  else if(best_grid_edge_active[dest_loc][src_loc] ==-1 && best_grid_edge_replaced[dest_loc][src_loc][0] == -42){
+  else if(best_grid_edge_active[dest_loc][src_loc] ==-1 && best_grid_edge_replaced[dest_loc][src_loc][0] == -1){
     warning("get_edge_bw(dest=%d,src=%d) called but edge is both inactive AND not replaced\n", dest_loc, src_loc);
     return 1e-9;
   }
@@ -206,9 +206,9 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
     DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
     hop_num = 0;
     std::list<int> loc_list;
-    int tmp_hop; 
+    int tmp_hop = -42; 
     double fire_est = csecond();
-    for(int ctr = 0; ctr < LOC_NUM; ctr++){
+    for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
       if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
       else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2){
         tmp_hop = ctr;
@@ -263,11 +263,11 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
 #ifdef CHAIN_FETCH_QUEUE_WORKLOAD
 long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
     DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-    long double min_ETA = DBL_MAX, tile_t = DBL_MAX/10, fire_t = csecond();
+    long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = csecond();
     hop_num = 0;
     std::list<int> loc_list;
-    int tmp_hop; 
-    for(int ctr = 0; ctr < LOC_NUM; ctr++){
+    int tmp_hop = -42; 
+    for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
       if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
       else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2){
         tmp_hop = ctr;

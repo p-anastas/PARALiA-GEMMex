@@ -427,8 +427,9 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->autotuner = new ATC();
 		if (predef_controller_dgemm && local_PMD->autotuner->diff_intialized_params_ATC(predef_controller_dgemm))
 			local_PMD->autotuner->mimic_ATC(predef_controller_dgemm);
-		autotune_timer = local_PMD->autotuner->autotune_problem(CHLGetPtrLoc(A), CHLGetPtrLoc(B), CHLGetPtrLoc(C), CHLGetPtrLoc(C), 
-		M, N, K, sizeof(double));
+		autotune_timer = local_PMD->autotuner->autotune_problem(CHLGetPtrAdvLoc(A, M, K, sizeof(double)), 
+		CHLGetPtrAdvLoc(B, K, N, sizeof(double)), CHLGetPtrAdvLoc(C, M, N, sizeof(double)), 
+		CHLGetPtrAdvLoc(C, M, N, sizeof(double)), M, N, K, sizeof(double));
 
 		for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
 
