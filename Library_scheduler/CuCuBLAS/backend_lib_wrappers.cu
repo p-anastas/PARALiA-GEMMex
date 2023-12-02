@@ -16,15 +16,6 @@ pthread_t thread_pool[THREAD_POOL_SZ];
 pthread_attr_t thread_pool_attr[THREAD_POOL_SZ];
 int thread_ctr = 0, thread_lock = 0 ;
 
-#ifdef MULTIDEVICE_REDUCTION_ENABLE
-#ifdef ENABLE_MUTEX_LOCKING
-#include <mutex> // std::mutex
-std::mutex reduce_block_mutex[128*MAX_BUFFERING_L];// mutex for critical section
-#else
-int reduce_block_lock[128*MAX_BUFFERING_L] = {0};
-#endif
-#endif
-
 void backend_init(short dev_id, CQueue_p h2d_q, CQueue_p d2h_q, CQueue_p exec_q){
   int dev_idc = -1;
   cudaError_t err = cudaGetDevice(&dev_idc);

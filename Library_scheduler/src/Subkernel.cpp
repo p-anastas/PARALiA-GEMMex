@@ -263,24 +263,39 @@ void SKInitResources(int* dev_list, int dev_num){
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS + 1; dev_id_idx++){
 		for(int dev_id_idy = 0 ; dev_id_idy < CHL_WORKERS + 1; dev_id_idy++)
 		if(dev_id_idy!=dev_id_idx){
-			if (!recv_queues[dev_id_idx][dev_id_idy] && best_grid_edge_active[dev_id_idx][dev_id_idy] != -1){
-				int queue_id = (dev_id_idy == CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
-				recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);	
+			if (!recv_queues[dev_id_idx][dev_id_idy]){
+				int cont_flag = 0; 
+				if(best_grid_edge_active[dev_id_idx][dev_id_idy] != -1){
+					cont_flag = 1; 
+					int queue_id = (dev_id_idy == CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
+					recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);	
 #ifdef ENABLE_SEND_RECV_OVERLAP
-				wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);
+					wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);
 #else 
-				wb_queues[dev_id_idx][dev_id_idy] = recv_queues[dev_id_idx][dev_id_idy];
+					wb_queues[dev_id_idx][dev_id_idy] = recv_queues[dev_id_idx][dev_id_idy];
 #endif
-				if(dev_id_idy == CHL_WORKERS){ // The smallest index shared link allocates the queue
-					for(int idx1 = CHL_WORKERS + 1 ; idx1 < CHL_MEMLOCS; idx1++){
-						recv_queues[dev_id_idx][idx1] = recv_queues[dev_id_idx][dev_id_idy];
-						wb_queues[dev_id_idx][idx1] = wb_queues[dev_id_idx][dev_id_idy];
-					}
 				}
-				if(dev_id_idx == CHL_WORKERS){ // The smallest index shared link allocates the queue
-					for(int idx1 = CHL_WORKERS + 1 ; idx1 < CHL_MEMLOCS; idx1++){
-						recv_queues[idx1][dev_id_idy] = recv_queues[dev_id_idx][dev_id_idy];
-						wb_queues[idx1][dev_id_idy] = wb_queues[dev_id_idx][dev_id_idy];
+				else if(best_grid_edge_replaced[dev_id_idx][dev_id_idy][0]!= -1){
+					cont_flag = 1;
+					recv_queues[dev_id_idx][dev_id_idy] = recv_queues
+						[best_grid_edge_replaced[dev_id_idx][dev_id_idy][0]]
+						[best_grid_edge_replaced[dev_id_idx][dev_id_idy][1]];
+					wb_queues[dev_id_idx][dev_id_idy] = wb_queues
+						[best_grid_edge_replaced[dev_id_idx][dev_id_idy][0]]
+						[best_grid_edge_replaced[dev_id_idx][dev_id_idy][1]];
+				}
+				if(cont_flag){
+					if(dev_id_idy == CHL_WORKERS){ // The smallest index shared link allocates the queue
+						for(int idx1 = CHL_WORKERS + 1 ; idx1 < CHL_MEMLOCS; idx1++){
+							recv_queues[dev_id_idx][idx1] = recv_queues[dev_id_idx][dev_id_idy];
+							wb_queues[dev_id_idx][idx1] = wb_queues[dev_id_idx][dev_id_idy];
+						}
+					}
+					if(dev_id_idx == CHL_WORKERS){ // The smallest index shared link allocates the queue
+						for(int idx1 = CHL_WORKERS + 1 ; idx1 < CHL_MEMLOCS; idx1++){
+							recv_queues[idx1][dev_id_idy] = recv_queues[dev_id_idx][dev_id_idy];
+							wb_queues[idx1][dev_id_idy] = wb_queues[dev_id_idx][dev_id_idy];
+						}
 					}
 				}
 			}

@@ -69,8 +69,8 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=10)
 ###########################################################################################
@@ -217,7 +217,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 ###########################################################################################
 
 #Run in debug mode, which includes detailed function calls and info for error-checking
-add_definitions(-DDEBUG)
+#add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
 #add_definitions(-DDDEBUG)
@@ -250,7 +250,7 @@ add_definitions(-DSDEBUG)
 #add_definitions(-DDSTEST)
 
 #Run in Link Hop testing mode; transfers using link hops are logged and timed.
-#add_definitions(-DTTEST)
+add_definitions(-DTTEST)
 
 ###########################################################################################
 #------------------------------------Other options----------------------------------------#
