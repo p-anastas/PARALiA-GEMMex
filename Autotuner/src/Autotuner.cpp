@@ -261,8 +261,9 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 		Gamalg_p test_grid;
 		for (int idx = 0; idx < MAX_WORKER_CONFIG; idx++){
 			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx]);
-			test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx], 
-				CHL_OUTPUT_QUEUES_CASE_IDS[active_unit_num-1][idx]);
+			if(!test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx], 
+				CHL_OUTPUT_QUEUES_CASE_IDS[active_unit_num-1][idx])) continue;
+			if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_unit_id_list,active_unit_num)) continue;
 			for (int idx = 0; idx < active_unit_num; idx++) active_unit_score[idx] = 1.0/active_unit_num;
 			long long edge_load[64][64];
 			gemm_translate_problem_comm(edge_load, A_loc, B_loc, C_loc, D_loc, M, N, K, elemSize, active_unit_num, active_unit_id_list, active_unit_score);
@@ -281,6 +282,8 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 				delete test_grid; 
 			}
 		}
+		if (best_t == DBL_MAX) error("ATC::autotune_problem: No device configuration found matching devices %s\n",
+		printlist(active_unit_id_list,active_unit_num));
 		if(initial_T <= 0) tile_selection_t += optimize_tile();
 		else{
 			double* c_T_sl = (double*) calloc(6,sizeof(double));
