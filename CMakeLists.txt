@@ -35,14 +35,16 @@ add_definitions(-DQUEUE_REUSE_ENABLE)
 ## Enable GPU and CPU allocated buffer reuse between different calls
 add_definitions(-DBUFFER_REUSE_ENABLE)
 
+
 ## The level of reuse for the autotuning metadata of every routine call by SIMILAR subsequent calls
 ## NONE -> Rerun full autotuning every time
 ## MODELS -> Keep the models but rerun the distribution and routing functions
 ## PROBLEMS -> Keep a cache of size PROBLEM_MD_CACHE with the autotuning MD of DIFFERENT routine calls
 ##             This enables the full autotuning metadata reuse of up to PROBLEM_MD_CACHE problems. 
+# ---------------- FIXME: Currently bugged ---------------------- #
 #add_definitions(-DMETADATA_REUSE_NONE)
 #add_definitions(-DMETADATA_REUSE_MODELS)
-add_definitions(-DMETADATA_REUSE_PROBLEMS) # FIXME: Currently bugged
+add_definitions(-DMETADATA_REUSE_PROBLEMS) 
 add_definitions(-DPROBLEM_MD_CACHE=100) # Only relevant for "PROBLEMS" reuse level
 
 ###########################################################################################
@@ -67,8 +69,8 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=10)
 ###########################################################################################
@@ -218,7 +220,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
-add_definitions(-DDDEBUG)
+#add_definitions(-DDDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
 add_definitions(-DSDEBUG)
@@ -248,7 +250,7 @@ add_definitions(-DSDEBUG)
 #add_definitions(-DDSTEST)
 
 #Run in Link Hop testing mode; transfers using link hops are logged and timed.
-add_definitions(-DTTEST)
+#add_definitions(-DTTEST)
 
 ###########################################################################################
 #------------------------------------Other options----------------------------------------#

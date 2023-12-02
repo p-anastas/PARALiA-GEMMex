@@ -22,6 +22,9 @@ message( "Benchmarking - Included DIR: " ${AUTOTUNE_INSTALL_INC} )
 include_directories(${LIBSC_INSTALL_INC})
 message( "Benchmarking - Included DIR: " ${LIBSC_INSTALL_INC} )
 
+include_directories(${CACHING_INSTALL_INC})
+message( "Benchmarking - Included DIR: " ${CACHING_INSTALL_INC} )
+
 set (BENCH_DIR_SRC ${BENCH_DIR}/src)
 message( "Benchmarking - Source DIR: " ${BENCH_DIR_SRC} )
 

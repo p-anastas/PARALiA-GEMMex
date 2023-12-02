@@ -98,9 +98,9 @@ int main(const int argc, const char *argv[]) {
  	if(Dtest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
 
  	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
-	//CHLFree(C_out, CHL_MEMLOCS-1, M * N*sizeof(double));
-	//CHLFree(C_out1, CHL_MEMLOCS-1, M * N*sizeof(double));
-	//CHLFree(C_buf, CHL_MEMLOCS-1, M * N*sizeof(double));
+	CHLFree(C_out, M * N*sizeof(double), CHL_MEMLOCS-1);
+	CHLFree(C_out1, M * N*sizeof(double), CHL_MEMLOCS-1);
+	CHLFree(C_buf, M * N*sizeof(double), CHL_MEMLOCS-1);
 #endif
 
 	cpu_timer = csecond();
@@ -152,8 +152,8 @@ int main(const int argc, const char *argv[]) {
 	for (int i = 0; i< CHL_MEMLOCS; i++) PARALiADevCacheFree((i));
 
 	CHLSyncCheckErr();
-	CHLFree(A, A_loc, M * K*sizeof(double));
-	CHLFree(B, B_loc, N * K*sizeof(double));
-	CHLFree(C, C_loc, M * N*sizeof(double));
+	CHLFree(A, M * K*sizeof(double), A_loc);
+	CHLFree(B, N * K*sizeof(double), B_loc);
+	CHLFree(C, M * N*sizeof(double), C_loc);
 	return 0;
 }
