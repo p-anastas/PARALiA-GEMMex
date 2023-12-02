@@ -298,9 +298,12 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 	for(int i = 0; i< CHL_MEMLOCS; i++)	for(int j = 0; j< CHL_MEMLOCS; j++){
 			best_grid_edge_bws[i][j] = inter_grid->problem_edge_bw[i][j];
 			best_grid_edge_active[i][j] = inter_grid->edge_active[i][j];
+			best_grid_edge_replaced[i][j][0] = inter_grid->edge_replaced[i][j][0];
+			best_grid_edge_replaced[i][j][1] = inter_grid->edge_replaced[i][j][1];
 	}
 #ifdef SDEBUG
 	inter_grid->print_edge_active();
+	inter_grid->print_edge_replaced();
 	inter_grid->print_edge_bws();
 	inter_grid->print_simu_edge_bws();
 	inter_grid->print_edge_load();
