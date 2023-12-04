@@ -165,7 +165,7 @@ void Subkernel::run_operation()
 	}
 	long double start_op_ETA = std::max(fire_t, fetch_ETA);
 	assigned_exec_queue->ETA_add_task(start_op_ETA, run_op_est_t); 
-	backend_run_operation(operation_params, op_name,assigned_exec_queue);
+	assigned_exec_queue->run_operation(operation_params, op_name);
 
 	for (int j = 0; j < TileNum; j++){
 		DataTile_p tmp = TileList[j];
@@ -225,7 +225,7 @@ void Subkernel::run_ready_operation(){
 	}
 	//long double start_op_ETA = std::max(fire_t, fetch_ETA);
 	//assigned_exec_queue->ETA_add_task(start_op_ETA, run_op_est_t); 
-	backend_run_operation(operation_params, op_name, assigned_exec_queue);
+	assigned_exec_queue->run_operation(operation_params, op_name);
 
 	for (int j = 0; j < TileNum; j++){
 		DataTile_p tmp = TileList[j];
@@ -268,9 +268,9 @@ void SKInitResources(int* dev_list, int dev_num){
 				if(best_grid_edge_active[dev_id_idx][dev_id_idy] != -1){
 					cont_flag = 1; 
 					int queue_id = (dev_id_idy == CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
-					recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);	
+					recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);	
 #ifdef ENABLE_SEND_RECV_OVERLAP
-					wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, 0);
+					wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);
 #else 
 					wb_queues[dev_id_idx][dev_id_idy] = recv_queues[dev_id_idx][dev_id_idy];
 #endif
@@ -308,7 +308,7 @@ void SKInitResources(int* dev_list, int dev_num){
 			}
 			if(flag_is_worker){
 				for (int i = 0; i < MAX_BACKEND_L; i++){
-					exec_queue[dev_id_idx][i] = new CommandQueue(dev_id_idx, 1);
+					exec_queue[dev_id_idx][i] = new CommandQueue(dev_id_idx, COMPUTATION);
 					exec_queue_ctr[dev_id_idx] = -1; 
 				}
 			}
@@ -317,7 +317,7 @@ void SKInitResources(int* dev_list, int dev_num){
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_MEMLOCS; dev_id_idx++)	
 		for (int i = 0; i < REDUCE_WORKERS_PERDEV; i++){
 		int queue_id = (dev_id_idx >= CHL_WORKERS)? (CHL_MEMLOC_CLOSE_TO_WORKER[dev_id_idx]) : (dev_id_idx);
-			if (!reduce_queue[dev_id_idx][i]) reduce_queue[dev_id_idx][i] = new CommandQueue(queue_id, 1);
+			if (!reduce_queue[dev_id_idx][i]) reduce_queue[dev_id_idx][i] = new CommandQueue(queue_id, COMPUTATION);
 			reduce_queue_ctr[dev_id_idx] = -1; 
 		}
 #ifdef DEBUG
@@ -334,14 +334,11 @@ void SKInitWS(int* dev_list, int dev_num){
 				flag_is_worker = 1; 
 				break;
 			}
-			if(flag_is_worker && (dev_id_idx)!= -1){
-				for (int par_idx = 0; par_idx < exec_queue[dev_id_idx][0]->simultaneous_workers; par_idx++ ){
-					void* local_ws = CHLMalloc(2048, (dev_id_idx), 1); 
-					massert(CUBLAS_STATUS_SUCCESS == cublasSetWorkspace(*((cublasHandle_t*) 
-						exec_queue[dev_id_idx][0]->cqueue_backend_data[par_idx]), local_ws, 2048), 
-						"CommandQueue::CommandQueue(%d): cublasSetWorkspace failed\n", (dev_id_idx));
-					
-				}
+			if(flag_is_worker && (dev_id_idx)!= -1){	
+				void* local_ws = CHLMalloc(2048, (dev_id_idx), 1); 
+				massert(CUBLAS_STATUS_SUCCESS == cublasSetWorkspace(*((cublasHandle_t*) 
+					exec_queue[dev_id_idx][0]->backend_comp_md), local_ws, 2048), 
+					"CommandQueue::CommandQueue(%d): cublasSetWorkspace failed\n", (dev_id_idx));	
 			}
 		}
 	}

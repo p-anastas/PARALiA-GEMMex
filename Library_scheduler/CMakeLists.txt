@@ -52,8 +52,6 @@ ${LIBSC_DIR_SRC}/Subkernel.cpp
 ${LIBSC_DIR_SRC}/Routing.cpp
 ${LIBSC_DIR_SRC}/Functions/dgemm.cpp
 ${LIBSC_DIR}/${BACKEND}/Decom_backend.cpp
-${LIBSC_DIR}/${BACKEND}/backend_lib_wrappers.cu
-${LIBSC_DIR}/${BACKEND}/backend_routine_wrappers.cpp
 )
 
 target_link_libraries(paralia ${INTERNAL_LINK_LIB} autotuner chl_grid_amalgamation caching)
@@ -61,7 +59,6 @@ configure_file(${LIBSC_DIR_INC}/PARALiA.hpp ${LIBSC_INSTALL_INC}/PARALiA.hpp COP
 configure_file(${LIBSC_DIR_INC}/Subkernel.hpp ${LIBSC_INSTALL_INC}/Subkernel.hpp COPYONLY)
 configure_file(${LIBSC_DIR_INC}/Decomposer.hpp ${LIBSC_INSTALL_INC}/Decomposer.hpp COPYONLY)
 configure_file(${LIBSC_DIR_INC}/DataTile.hpp ${LIBSC_INSTALL_INC}/DataTile.hpp COPYONLY)
-configure_file(${LIBSC_DIR}/${BACKEND}/backend_wrappers.hpp ${LIBSC_INSTALL_INC}/backend_wrappers.hpp COPYONLY)
 
 set (LIBSC_INSTALL_INC ${LIBSC_INSTALL_INC} PARENT_SCOPE)
 message( "->\nLibrary Scheduler - Shared Library: " ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} )
