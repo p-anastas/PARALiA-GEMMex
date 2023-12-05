@@ -26,15 +26,11 @@ add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 ## Enable Asynchronous execution for Subkernels
 add_definitions(-DASYNC_ENABLE)
 
-## Enable lock-free versions of event & Queue management in Universal_helpers
-add_definitions(-DUNIHELPER_LOCKFREE_ENABLE)
-
 ## Enable GPU backend resourse reuse (streams, handles)
 add_definitions(-DQUEUE_REUSE_ENABLE)
 
 ## Enable GPU and CPU allocated buffer reuse between different calls
 add_definitions(-DBUFFER_REUSE_ENABLE)
-
 
 ## The level of reuse for the autotuning metadata of every routine call by SIMILAR subsequent calls
 ## NONE -> Rerun full autotuning every time
@@ -69,8 +65,8 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=10)
 ###########################################################################################
@@ -86,7 +82,7 @@ add_definitions(-DENABLE_LINK_BW_SHARING) # by putting them on different queues
 ## The number of sub-buffers FasTCoCoMemcpy2DAsync will use to increase effective BW
 ## In general effective_trans_time = max_trans_time(route[]) + 1/SBO * sub_trans_time(route_minus_max[])
 ## Rule of thumb: large SBO -> increased transfer latency, small SBO -> decreased bandwidth
-add_definitions(-DSTREAMING_BUFFER_OVERLAP=1)
+add_definitions(-DSTREAMING_BUFFER_OVERLAP=8)
 
 ###########################################################################################
 #-----------------------------------Routing selection-------------------------------------#
@@ -223,7 +219,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DDDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
-add_definitions(-DSDEBUG)
+#add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
 #add_definitions(-DPDEBUG)
@@ -250,7 +246,7 @@ add_definitions(-DSDEBUG)
 #add_definitions(-DDSTEST)
 
 #Run in Link Hop testing mode; transfers using link hops are logged and timed.
-add_definitions(-DTTEST)
+#add_definitions(-DTTEST)
 
 ###########################################################################################
 #------------------------------------Other options----------------------------------------#
