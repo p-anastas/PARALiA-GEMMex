@@ -339,7 +339,7 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
       }
       
       int rand_tie_list = int(rand() % tie_list_num); 
-#ifdef DPDEBUG
+#ifdef SDEBUG
       fprintf(stderr,"DataTile[%d:%d,%d]: Selected route = %s from %d candidates with ETA = %llf\n", 
           transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2,
           printlist(best_list[tie_list_num-1],hop_num), tie_list_num, min_ETA);
@@ -388,10 +388,10 @@ long double LinkRoute::optimize_hop_route(void* transfer_tile_wrapped, int updat
     hop_num = 1;
     long double min_ETA = 0; 
     long double fire_t = csecond();
-    int best_list[LOC_NUM], tie_list_num = 0; 
+    int best_list[CHL_MEMLOCS], tie_list_num = 0; 
     double hop_bw_best = get_edge_bw(dest_loc,src_loc);
-    for(int uidx = 0; uidx < LOC_NUM; uidx++)
-      if (final_link_active[uidx][(src_loc)]==2 && final_link_active[(dest_loc)][uidx]){
+    for(int uidx = 0; uidx < CHL_MEMLOCS; uidx++)
+      if (best_grid_edge_active[uidx][src_loc]!= -1 && best_grid_edge_active[dest_loc][uidx]!= -1){
         double hop_est_bw = (1 - HOP_PENALTY) * std::min(get_edge_bw(uidx,src_loc), 
           get_edge_bw(dest_loc, uidx));
         if (hop_est_bw  > hop_bw_best){
@@ -448,12 +448,12 @@ long double LinkRoute::optimize_hop_route(void* transfer_tile_wrapped, int updat
     if (MAX_ALLOWED_HOPS > 1) error("LinkRoute::optimize_hop_route: Not implemented for MAX_ALLOWED_HOPS = %d\n", MAX_ALLOWED_HOPS);
     hop_uid_list[0] = src_loc;
     hop_num = 1;
-    int best_list[LOC_NUM], tie_list_num = 0; 
+    int best_list[CHL_MEMLOCS], tie_list_num = 0; 
     long double fire_t = csecond();
     double tile_t = transfer_tile->size()/(1e9*get_edge_bw(dest_loc, src_loc));
     long double min_ETA = std::max(recv_queues[(dest_loc)][(src_loc)]->ETA_get(), fire_t) + tile_t;
-    for(int uidx = 0; uidx < LOC_NUM; uidx++)
-      if (final_link_active[uidx][(src_loc)]==2 && final_link_active[(dest_loc)][uidx]){
+    for(int uidx = 0; uidx < CHL_MEMLOCS; uidx++)
+      if (best_grid_edge_active[uidx][src_loc]!= -1 && best_grid_edge_active[dest_loc][uidx]!= -1){
         long double temp_t = (1 + HOP_PENALTY) *std::max(transfer_tile->size()/(1e9*get_edge_bw(uidx, src_loc)),
           transfer_tile->size()/(1e9*get_edge_bw(dest_loc, uidx)));
         long double total_t = (1 + HOP_PENALTY) * transfer_tile->size()/(1e9*get_edge_bw(uidx, src_loc)) +
