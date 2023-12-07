@@ -23,6 +23,8 @@ typedef class ATC{
 		long int Grid_M, Grid_N, Grid_K; /// The resulting grid sizes from the tiling. 
 		/// Slowdowns for the selected T that can be used for model adjustment
 		double T_aggregate_sl, T_imbalance_sl, T_remainder_sl, T_small_sl, T_sknum_sl, T_big_sl;
+		int* active_memlocs; // The memlocs that are utilized (workers + inputs + outputs) for a problem.
+		int active_memloc_num; // The number of memlocs of the problem.
 		int active_unit_num; /// The number of units that will be used in the involving operation.
 		int* active_unit_id_list;	/// The list of ids of said units.
 		double* active_unit_score; /// The 'score' of each said units relative to the total task completion.

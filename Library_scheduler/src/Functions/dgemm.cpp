@@ -22,15 +22,16 @@ double gemm_entry_ts;
 
 void ManageCachesDgemm(PMD_p local_PMD){
 	int T = local_PMD->autotuner->T; 
-	int Block_num_A = (local_PMD->decom[0]->dim1/T + ((local_PMD->decom[0]->dim1%T)? 1 : 0))
-			* (local_PMD->decom[0]->dim2/T + ((local_PMD->decom[0]->dim2%T)? 1 : 0)),
-		Block_num_B = (local_PMD->decom[1]->dim1/T + ((local_PMD->decom[1]->dim1%T)? 1 : 0))
-			* (local_PMD->decom[1]->dim2/T + ((local_PMD->decom[1]->dim2%T)? 1 : 0)),
-		Block_num_C = (local_PMD->decom[2]->dim1/T + ((local_PMD->decom[2]->dim1%T)? 1 : 0))
-			* (local_PMD->decom[2]->dim2/T + ((local_PMD->decom[2]->dim2%T)? 1 : 0));
+	int Block_num_A = local_PMD->autotuner->Grid_M * local_PMD->autotuner->Grid_K,
+		Block_num_B = local_PMD->autotuner->Grid_N * local_PMD->autotuner->Grid_K,
+		Block_num_C = local_PMD->autotuner->Grid_M * local_PMD->autotuner->Grid_N;
 	long long Block_sz = 	T*T*sizeof(double);
 	for(int cache_loc = 0; cache_loc < CHL_MEMLOCS; cache_loc++){
 		int Block_num = 0, Native_block_num = 0;
+		if(!is_in_list(cache_loc, local_PMD->autotuner->active_memlocs, 
+			local_PMD->autotuner->active_memloc_num))
+			continue;
+
 		if (local_PMD->decom[0]->loc == cache_loc) Native_block_num+=Block_num_A;
 		if (local_PMD->decom[1]->loc == cache_loc) Native_block_num+=Block_num_B;
 		if (local_PMD->decom[2]->loc == cache_loc) Native_block_num+=Block_num_C;
@@ -47,7 +48,7 @@ void ManageCachesDgemm(PMD_p local_PMD){
 			int prev_dev = CHLGetDevice();
 			CHLSelectDevice(cache_loc);
 
-			if(cache_loc!=-1) {
+			if(!(cache_loc >= CHL_WORKERS)) {
 			// if(Native_block_num==0){
 				CHLDevGetMemInfo(&free_dev_mem, &max_dev_mem);
 				max_cache_sz = (long long) fmin(max_cache_sz, free_dev_mem 
@@ -71,14 +72,16 @@ void ManageCachesDgemm(PMD_p local_PMD){
 			int prev_dev = CHLGetDevice();
 			CHLSelectDevice(cache_loc);
 
-			if(cache_loc!=-1) CHLDevGetMemInfo(&free_dev_mem, &max_dev_mem);
+			if(!(cache_loc >= CHL_WORKERS)) CHLDevGetMemInfo(&free_dev_mem, &max_dev_mem);
 			// TODO: hard coded value, should put something that reads it from system?
 			else free_dev_mem = max_dev_mem = 100000000000; 
 			CHLSelectDevice(prev_dev);
 			max_cache_sz = free_dev_mem - ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)) + prev_DevCache_sz;
 		}
 		Block_num = 1 + Block_num_A + Block_num_B + Block_num_C;
-		if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR_LAZY") || !strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE")) Block_num+= Block_num_C; 
+		if ((!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR_LAZY") && is_in_list(cache_loc, 
+		local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num))
+		|| (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE"))) Block_num+= Block_num_C; 
 		int max_block_num = max_cache_sz/Block_sz;
 		if(max_block_num < Block_num){
 			lprintf(0, "PARALiADgemm: Problem will use %d blocks for dev_id = %d\
@@ -475,7 +478,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		int buffer_freed = 0; 
 		for (int i = 0; i < CHL_MEMLOCS; i++){
 			current_SAB[i] = local_PMD->SAB[i];
-			if(!current_SAB[i]) buffer_freed = 1; 
+			if(is_in_list (i, local_PMD->autotuner->active_memlocs, 
+			local_PMD->autotuner->active_memloc_num) && !current_SAB[i]) buffer_freed = 1; 
 		}
 		if(buffer_freed) ManageCachesDgemm(local_PMD);
 		T = local_PMD->autotuner->T;
@@ -498,12 +502,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	fprintf(stderr, "Updated subkernels for devices: t_update = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 #endif
-	for(int d=0; d < local_PMD->autotuner->active_unit_num; d++)
-		current_SAB[local_PMD->autotuner->active_unit_id_list[d]]->allocate(true);
-	if(!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE")){
-		reduce_loc = CHLGetPtrLoc(C); 
-		current_SAB[reduce_loc]->allocate(true);
-	}
+	for(int d=0; d < local_PMD->autotuner->active_memloc_num; d++)
+		current_SAB[local_PMD->autotuner->active_memlocs[d]]->allocate(true);
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -633,9 +633,9 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 
 #ifdef BUFFER_REUSE_ENABLE
-	for(int i = 0; i < CHL_MEMLOCS; i++) local_PMD->SAB[i]->reset(false,true);
+	for(int i = 0; i < CHL_MEMLOCS; i++) if(local_PMD->SAB[i]) local_PMD->SAB[i]->reset(false,true);
 #else
-	for(int i = 0 ; i < CHL_MEMLOCS; i++){
+	for(int i = 0 ; i < CHL_MEMLOCS; i++) if(local_PMD->SAB[i]){
 		delete local_PMD->SAB[i];
 		local_PMD->SAB[i] = current_SAB[i] = NULL;
 	}
@@ -648,11 +648,11 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 
 #ifdef TEST
+	CHLSyncCheckErr();
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Invalidate caches -> t_invalidate = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 #endif
-
 #ifdef METADATA_REUSE_PROBLEMS
 	for(int i=0; i<local_PMD->sk_num; i++) local_PMD->subkernel_list[i]->reset();
 #else

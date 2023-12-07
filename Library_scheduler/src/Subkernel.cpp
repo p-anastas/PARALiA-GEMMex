@@ -165,7 +165,7 @@ void Subkernel::run_operation()
 	}
 	long double start_op_ETA = std::max(fire_t, fetch_ETA);
 	assigned_exec_queue->ETA_add_task(start_op_ETA, run_op_est_t); 
-	assigned_exec_queue->run_operation(operation_params, op_name);
+	assigned_exec_queue->run_operation(operation_params, op_name, run_dev_id);
 
 	for (int j = 0; j < TileNum; j++){
 		DataTile_p tmp = TileList[j];
@@ -225,7 +225,7 @@ void Subkernel::run_ready_operation(){
 	}
 	//long double start_op_ETA = std::max(fire_t, fetch_ETA);
 	//assigned_exec_queue->ETA_add_task(start_op_ETA, run_op_est_t); 
-	assigned_exec_queue->run_operation(operation_params, op_name);
+	assigned_exec_queue->run_operation(operation_params, op_name,run_dev_id);
 
 	for (int j = 0; j < TileNum; j++){
 		DataTile_p tmp = TileList[j];
@@ -267,7 +267,7 @@ void SKInitResources(int* dev_list, int dev_num){
 				int cont_flag = 0; 
 				if(best_grid_edge_active[dev_id_idx][dev_id_idy] != -1){
 					cont_flag = 1; 
-					int queue_id = (dev_id_idy == CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
+					int queue_id = (dev_id_idy >= CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
 					recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);	
 #ifdef ENABLE_SEND_RECV_OVERLAP
 					wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);

@@ -251,7 +251,13 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 		for (int i =0; i < active_unit_num; i++)
 			active_unit_id_list[i] = i;
 	}
-	
+	active_memlocs = (int*) malloc (CHL_MEMLOCS*sizeof(int));
+	active_memloc_num = 0;
+	for( int idx = 0; idx < CHL_MEMLOCS; idx++){
+		if (is_in_list(idx, active_unit_id_list, active_unit_num) 
+		|| idx == A_loc || idx == B_loc || idx == C_loc || idx == D_loc) 
+			active_memlocs[active_memloc_num++] = idx;
+	}
 	if (autotune_eval_devices){
 		error("ATC::autotune_problem: Not implemented (yet) for autotune_eval_devices\n");
 	}

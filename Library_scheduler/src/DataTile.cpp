@@ -180,7 +180,7 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     backend_axpy_wrapper->dev_id = W_master;
     backend_axpy_wrapper->x = (void**) &(temp_block->Adrs);
     backend_axpy_wrapper->y = (void**) &(StoreBlock[W_master_idx]->Adrs);
-    assigned_exec_queue->run_operation(backend_axpy_wrapper, "Daxpy");
+    assigned_exec_queue->run_operation(backend_axpy_wrapper, "Daxpy", backend_axpy_wrapper->dev_id);
     W_complete->record_to_queue(assigned_exec_queue);
 #ifdef SUBKERNELS_FIRE_WHEN_READY
     *out_route_p = writeback(NULL, *out_route_p);
@@ -193,15 +193,15 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
   }
   else if(W_REDUCE == WRP){
     W_complete->record_to_queue(assigned_exec_queue);
-	  short Writeback_id = get_initial_location(), Writeback_id_idx = (Writeback_id);
-    CBlock_p temp_block = current_SAB[Writeback_id_idx]->assign_Cblock(EXCLUSIVE,false);
+	  short Writeback_id = get_initial_location();
+    CBlock_p temp_block = current_SAB[Writeback_id]->assign_Cblock(EXCLUSIVE,false);
     loc_map[W_master_idx] = 42;
-    long int wb_chunk_size = get_chunk_size(Writeback_id_idx);
-    set_chunk_size(Writeback_id_idx, dim2);
+    long int wb_chunk_size = get_chunk_size(Writeback_id);
+    set_chunk_size(Writeback_id, dim2);
 #ifdef SUBKERNELS_FIRE_WHEN_READY
     *out_route_p = writeback(temp_block, *out_route_p);
 #endif
-    set_chunk_size(Writeback_id_idx, wb_chunk_size);
+    set_chunk_size(Writeback_id, wb_chunk_size);
     //temp_block->set_owner(NULL,false);
     if (reduce_queue_ctr[W_master_idx] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[W_master_idx] = 0; 
     else reduce_queue_ctr[W_master_idx]++;
@@ -225,7 +225,7 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
       slide_addr_y[daxpy_dims] = &(((double*)StoreBlock[Writeback_id_idx]->Adrs)[daxpy_dims*get_chunk_size(Writeback_id_idx)]);
       backend_axpby_wrapper[daxpy_dims]->x = (void**) &(slide_addr_x[daxpy_dims]);
       backend_axpby_wrapper[daxpy_dims]->y = (void**) &(slide_addr_y[daxpy_dims]);
-      WB_exec_queue->run_operation(backend_axpby_wrapper[daxpy_dims], "Daxpby");
+      WB_exec_queue->run_operation(backend_axpby_wrapper[daxpy_dims], "Daxpby", backend_axpby_wrapper[daxpy_dims]->dev_id);
     //cblas_daxpby(backend_axpby_wrapper[daxpy_dims]->N, backend_axpby_wrapper[daxpy_dims]->alpha,
     //  (double*) *backend_axpby_wrapper[daxpy_dims]->x, backend_axpby_wrapper[daxpy_dims]->incx, 
     //  backend_axpby_wrapper[daxpy_dims]->beta,
@@ -239,10 +239,10 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     backend_slaxpby_wrapper->beta = reduce_mult;
     backend_slaxpby_wrapper->dev_id = Writeback_id;
     backend_slaxpby_wrapper->x = (void**) &(temp_block->Adrs);
-    backend_slaxpby_wrapper->y = (void**) &(StoreBlock[Writeback_id_idx]->Adrs);
+    backend_slaxpby_wrapper->y = (void**) &(StoreBlock[Writeback_id]->Adrs);
     backend_slaxpby_wrapper->slide_x = dim2;
-    backend_slaxpby_wrapper->slide_y = get_chunk_size(Writeback_id_idx);
-    WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby");
+    backend_slaxpby_wrapper->slide_y = get_chunk_size(Writeback_id);
+    WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", backend_slaxpby_wrapper->dev_id);
     W_reduce->record_to_queue(WB_exec_queue);
     //WB_exec_queue->sync_barrier();
     /*CBlock_wrap_p wrap_inval = NULL;
