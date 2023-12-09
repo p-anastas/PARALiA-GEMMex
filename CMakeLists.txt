@@ -65,10 +65,10 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
-add_definitions(-DREDUCE_WORKERS_PERDEV=10)
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
+add_definitions(-DREDUCE_WORKERS_PERDEV=4)
 ###########################################################################################
 #---------------------------------Routing optimizations-----------------------------------#
 ###########################################################################################
@@ -296,7 +296,7 @@ if(NOT $ENV{CHANGELINK_CXX_PREFIX} STREQUAL "default")
   set (CMAKE_C_COMPILER ${CXX_PREFIX}/bin/gcc)
 endif()
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp -lm -Wuninitialized -lgomp -lnuma")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp -lm -Wuninitialized -lgomp -lnuma -mavx2")
 message("PARALiA-GEMMex - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 
 #set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})

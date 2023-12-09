@@ -26,12 +26,19 @@ void ManageCachesDgemm(PMD_p local_PMD){
 		Block_num_B = local_PMD->autotuner->Grid_N * local_PMD->autotuner->Grid_K,
 		Block_num_C = local_PMD->autotuner->Grid_M * local_PMD->autotuner->Grid_N;
 	long long Block_sz = 	T*T*sizeof(double);
+	int host_in_locs = 0;
+	for(int loc = CHL_WORKERS; loc < CHL_MEMLOCS; loc++) if(is_in_list(loc, local_PMD->autotuner->active_memlocs, 
+			local_PMD->autotuner->active_memloc_num)) host_in_locs = 1;
 	for(int cache_loc = 0; cache_loc < CHL_MEMLOCS; cache_loc++){
 		int Block_num = 0, Native_block_num = 0;
 		if(!is_in_list(cache_loc, local_PMD->autotuner->active_memlocs, 
-			local_PMD->autotuner->active_memloc_num))
+			local_PMD->autotuner->active_memloc_num) && strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE"))
 			continue;
-
+		else if(!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE") && ((cache_loc < CHL_WORKERS && 
+			!is_in_list(cache_loc, local_PMD->autotuner->active_unit_id_list, 
+			local_PMD->autotuner->active_unit_num)) || (cache_loc >= CHL_WORKERS && !host_in_locs)) )
+			continue;
+		
 		if (local_PMD->decom[0]->loc == cache_loc) Native_block_num+=Block_num_A;
 		if (local_PMD->decom[1]->loc == cache_loc) Native_block_num+=Block_num_B;
 		if (local_PMD->decom[2]->loc == cache_loc) Native_block_num+=Block_num_C;
@@ -39,9 +46,8 @@ void ManageCachesDgemm(PMD_p local_PMD){
 		long long max_cache_sz = 0;
 		if(local_PMD->autotuner->cache_limit > 0) {
 			max_cache_sz = local_PMD->autotuner->cache_limit;
-			if (max_cache_sz < 3 * Block_sz) 
+			if (max_cache_sz < 3 * Block_sz)
 				error("PARALiADgemm: Problem cannot run with less memory than %d\n", 3 * Block_sz);
-
 			long long free_dev_mem, max_dev_mem = 0, prev_DevCache_sz = 0;
 			if (current_SAB[cache_loc] != NULL) prev_DevCache_sz = (long long)
 				current_SAB[cache_loc]->BlockSize* current_SAB[cache_loc]->BlockNum;
@@ -479,7 +485,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		for (int i = 0; i < CHL_MEMLOCS; i++){
 			current_SAB[i] = local_PMD->SAB[i];
 			if(is_in_list (i, local_PMD->autotuner->active_memlocs, 
-			local_PMD->autotuner->active_memloc_num) && !current_SAB[i]) buffer_freed = 1; 
+			local_PMD->autotuner->active_memloc_num)) buffer_freed = 1; 
 		}
 		if(buffer_freed) ManageCachesDgemm(local_PMD);
 		T = local_PMD->autotuner->T;
@@ -502,8 +508,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	fprintf(stderr, "Updated subkernels for devices: t_update = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 #endif
-	for(int d=0; d < local_PMD->autotuner->active_memloc_num; d++)
-		current_SAB[local_PMD->autotuner->active_memlocs[d]]->allocate(true);
+	for(int d=0; d < CHL_MEMLOCS; d++)
+		if(current_SAB[d]) current_SAB[d]->allocate(true);
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;

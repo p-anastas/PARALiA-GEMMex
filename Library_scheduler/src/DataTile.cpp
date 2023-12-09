@@ -159,7 +159,6 @@ LinkRoute_p DataTile::fetch(CBlock_p target_block, int priority_loc_id, LinkRout
 }
 
 void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in_route_p, LinkRoute_p* out_route_p){
-  short W_master_idx = (W_master);
   if(WR == WRP){
     W_complete->record_to_queue(assigned_exec_queue);
 #ifdef SUBKERNELS_FIRE_WHEN_READY
@@ -169,7 +168,7 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
 #endif
   }
   else if(WR_LAZY == WRP){
-    CBlock_p temp_block = current_SAB[W_master_idx]->assign_Cblock(EXCLUSIVE,false);
+    CBlock_p temp_block = current_SAB[W_master]->assign_Cblock(EXCLUSIVE,false);
     //temp_block->set_owner(NULL,false);
     *in_route_p = fetch(temp_block, W_master, *in_route_p);
     assigned_exec_queue->wait_for_event(temp_block->Available);
@@ -179,7 +178,7 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     backend_axpy_wrapper->alpha = reduce_mult;
     backend_axpy_wrapper->dev_id = W_master;
     backend_axpy_wrapper->x = (void**) &(temp_block->Adrs);
-    backend_axpy_wrapper->y = (void**) &(StoreBlock[W_master_idx]->Adrs);
+    backend_axpy_wrapper->y = (void**) &(StoreBlock[W_master]->Adrs);
     assigned_exec_queue->run_operation(backend_axpy_wrapper, "Daxpy", backend_axpy_wrapper->dev_id);
     W_complete->record_to_queue(assigned_exec_queue);
 #ifdef SUBKERNELS_FIRE_WHEN_READY
@@ -194,18 +193,19 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
   else if(W_REDUCE == WRP){
     W_complete->record_to_queue(assigned_exec_queue);
 	  short Writeback_id = get_initial_location();
+    if(Writeback_id >= CHL_WORKERS) Writeback_id = CHL_WORKER_CLOSE_TO_MEMLOC[W_master];
     CBlock_p temp_block = current_SAB[Writeback_id]->assign_Cblock(EXCLUSIVE,false);
-    loc_map[W_master_idx] = 42;
-    long int wb_chunk_size = get_chunk_size(Writeback_id);
-    set_chunk_size(Writeback_id, dim2);
+    loc_map[W_master] = 42;
+    long int wb_chunk_size = get_chunk_size(get_initial_location());
+    set_chunk_size(get_initial_location(), dim2);
 #ifdef SUBKERNELS_FIRE_WHEN_READY
     *out_route_p = writeback(temp_block, *out_route_p);
 #endif
-    set_chunk_size(Writeback_id, wb_chunk_size);
+    set_chunk_size(get_initial_location(), wb_chunk_size);
     //temp_block->set_owner(NULL,false);
-    if (reduce_queue_ctr[W_master_idx] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[W_master_idx] = 0; 
-    else reduce_queue_ctr[W_master_idx]++;
-    CQueue_p WB_exec_queue = reduce_queue[W_master_idx][0]; //[W_master_backend_ctr];
+    if (reduce_queue_ctr[W_master] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[W_master] = 0; 
+    else reduce_queue_ctr[W_master]++;
+    CQueue_p WB_exec_queue = reduce_queue[W_master][0]; //[W_master_backend_ctr];
     WB_exec_queue->wait_for_event(temp_block->Available);
     /*
     axpby_backend_in<double>* backend_axpby_wrapper[dim2]= {NULL};
@@ -239,9 +239,9 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     backend_slaxpby_wrapper->beta = reduce_mult;
     backend_slaxpby_wrapper->dev_id = Writeback_id;
     backend_slaxpby_wrapper->x = (void**) &(temp_block->Adrs);
-    backend_slaxpby_wrapper->y = (void**) &(StoreBlock[Writeback_id]->Adrs);
+    backend_slaxpby_wrapper->y = (void**) &(StoreBlock[get_initial_location()]->Adrs);
     backend_slaxpby_wrapper->slide_x = dim2;
-    backend_slaxpby_wrapper->slide_y = get_chunk_size(Writeback_id);
+    backend_slaxpby_wrapper->slide_y = get_chunk_size(get_initial_location());
     WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", backend_slaxpby_wrapper->dev_id);
     W_reduce->record_to_queue(WB_exec_queue);
     //WB_exec_queue->sync_barrier();
