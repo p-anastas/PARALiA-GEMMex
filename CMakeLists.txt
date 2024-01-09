@@ -68,7 +68,7 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
-add_definitions(-DREDUCE_WORKERS_PERDEV=4)
+add_definitions(-DREDUCE_WORKERS_PERDEV=1)
 ###########################################################################################
 #---------------------------------Routing optimizations-----------------------------------#
 ###########################################################################################

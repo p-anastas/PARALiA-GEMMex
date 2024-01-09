@@ -203,9 +203,9 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
 #endif
     set_chunk_size(get_initial_location(), wb_chunk_size);
     //temp_block->set_owner(NULL,false);
-    if (reduce_queue_ctr[W_master] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[W_master] = 0; 
-    else reduce_queue_ctr[W_master]++;
-    CQueue_p WB_exec_queue = reduce_queue[W_master][0]; //[W_master_backend_ctr];
+    if (reduce_queue_ctr[Writeback_id] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[Writeback_id] = 0; 
+    else reduce_queue_ctr[Writeback_id]++;
+    CQueue_p WB_exec_queue = reduce_queue[Writeback_id][reduce_queue_ctr[Writeback_id]];
     WB_exec_queue->wait_for_event(temp_block->Available);
     /*
     axpby_backend_in<double>* backend_axpby_wrapper[dim2]= {NULL};
@@ -242,6 +242,7 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     backend_slaxpby_wrapper->y = (void**) &(StoreBlock[get_initial_location()]->Adrs);
     backend_slaxpby_wrapper->slide_x = dim2;
     backend_slaxpby_wrapper->slide_y = get_chunk_size(get_initial_location());
+    //WB_exec_queue->sync_barrier();
     WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", backend_slaxpby_wrapper->dev_id);
     W_reduce->record_to_queue(WB_exec_queue);
     //WB_exec_queue->sync_barrier();
