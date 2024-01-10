@@ -559,6 +559,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 			}
 		}
 	}
+	//fprintf(stderr, "You are here\n");
 	s = pthread_join(manager_thread_id, &res);
 	if (s != 0) error("PARALiADgemm: manager_thread_id failed with exit value %d", s);
 #else
@@ -594,7 +595,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	fprintf(stderr, "Subkernels launched: t_sk_fire = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 #endif
-	local_PMD->decom[2]->WBTileMap();
+	//local_PMD->decom[2]->WBTileMap();
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Writebacks launched -> t_wb_fire = %lf ms\n", cpu_timer*1000);

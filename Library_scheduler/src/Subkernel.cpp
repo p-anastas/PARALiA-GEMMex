@@ -47,7 +47,6 @@ Subkernel::~Subkernel(){
 	Subkernel_ctr--;
 	free(TileList);
 	free(operation_params);
-	//delete operation_complete;
 }
 
 void Subkernel::reset(){
@@ -190,14 +189,13 @@ void Subkernel::run_operation()
 }
 
 int Subkernel::check_ready(){
-	int run_dev_id_idx = (run_dev_id);
 	int update_ETA_flag = fetch_ETA; // Only update ETA the first time the check runs for each sk. 
 	for (int j = 0; j < TileNum; j++){
 		DataTile_p tmp = TileList[j];
 		if(update_ETA_flag) fetch_ETA = std::max(fetch_ETA, tmp->ETA_get(run_dev_id));
-		if (tmp->StoreBlock[run_dev_id_idx] == NULL || tmp->StoreBlock[run_dev_id_idx]->State == INVALID) return 0; 
-		else if (tmp->WRP == WR || tmp->WRP == RONLY){
-			event_status what = tmp->StoreBlock[run_dev_id_idx]->Available->query_status();
+		if (tmp->StoreBlock[run_dev_id] == NULL || tmp->StoreBlock[run_dev_id]->State == INVALID) return 0; 
+		else if (tmp->WRP == RONLY || tmp->WRP == WR){
+			event_status what = tmp->StoreBlock[run_dev_id]->Available->query_status();
 			if (!(COMPLETE == what || CHECKED == what)) return 0; 
 		}
 	}

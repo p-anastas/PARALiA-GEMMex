@@ -161,13 +161,14 @@ LinkRoute_p DataTile::fetch(CBlock_p target_block, int priority_loc_id, LinkRout
 void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in_route_p, LinkRoute_p* out_route_p){
   if(WR == WRP){
     W_complete->record_to_queue(assigned_exec_queue);
-#ifdef SUBKERNELS_FIRE_WHEN_READY
+//#ifdef SUBKERNELS_FIRE_WHEN_READY
 #ifdef ENABLE_SEND_RECV_OVERLAP
     *out_route_p = writeback(NULL, *out_route_p);
 #endif
-#endif
+//#endif
   }
   else if(WR_LAZY == WRP){
+    //FIXME: This has a bug that appears sometimes for 8 11111111 -1 -1 N N 1.234 1 8192 8192 8192 0 1 2 2. Its time-related so DEBUG hides it.
     CBlock_p temp_block = current_SAB[W_master]->assign_Cblock(EXCLUSIVE,false);
     //temp_block->set_owner(NULL,false);
     *in_route_p = fetch(temp_block, W_master, *in_route_p);
@@ -181,7 +182,7 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     backend_axpy_wrapper->y = (void**) &(StoreBlock[W_master]->Adrs);
     assigned_exec_queue->run_operation(backend_axpy_wrapper, "Daxpy", backend_axpy_wrapper->dev_id);
     W_complete->record_to_queue(assigned_exec_queue);
-#ifdef SUBKERNELS_FIRE_WHEN_READY
+#ifdef ENABLE_SEND_RECV_OVERLAP
     *out_route_p = writeback(NULL, *out_route_p);
 #endif
     /*CBlock_wrap_p wrap_inval = NULL;
@@ -198,9 +199,9 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
     loc_map[W_master] = 42;
     long int wb_chunk_size = get_chunk_size(get_initial_location());
     set_chunk_size(get_initial_location(), dim2);
-#ifdef SUBKERNELS_FIRE_WHEN_READY
+//#ifdef SUBKERNELS_FIRE_WHEN_READY
     *out_route_p = writeback(temp_block, *out_route_p);
-#endif
+//#endif
     set_chunk_size(get_initial_location(), wb_chunk_size);
     //temp_block->set_owner(NULL,false);
     if (reduce_queue_ctr[Writeback_id] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[Writeback_id] = 0; 

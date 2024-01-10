@@ -66,9 +66,9 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
-add_definitions(-DREDUCE_WORKERS_PERDEV=1)
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
+add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 ###########################################################################################
 #---------------------------------Routing optimizations-----------------------------------#
 ###########################################################################################
@@ -106,7 +106,7 @@ add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5) #FIXME: this should be re
 
 ## Enable the use of transfer hops through memory locations that do not need a tile
 ## Improves bandwidth, but adds (extra) network load to fast lanes. Currently not integrated in already-chained transfers.
-add_definitions(-DENABLE_TRANSFER_HOPS)
+#add_definitions(-DENABLE_TRANSFER_HOPS)
 
 #add_definitions(-DHOP_FETCH_BANDWIDTH)
 #add_definitions(-DHOP_FETCH_QUEUE_WORKLOAD)
@@ -213,7 +213,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 ###########################################################################################
 
 #Run in debug mode, which includes detailed function calls and info for error-checking
-#add_definitions(-DDEBUG)
+add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
 #add_definitions(-DDDEBUG)

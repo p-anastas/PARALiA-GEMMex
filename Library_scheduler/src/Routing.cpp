@@ -30,16 +30,16 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
 #ifdef DEBUG
 	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
 #endif
-    DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-    hop_num = 2;
-    int start_hop = -42, end_hop = -42;
-    for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++)
-    {
-        if(transfer_tile->loc_map[ctr] == 0) start_hop = ctr;
-        if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
-    }
-	  hop_uid_list[0] = start_hop;
-    hop_uid_list[1] = end_hop;
+  DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
+  hop_num = 2;
+  int start_hop = -42, end_hop = -42;
+  for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++)
+  {
+      if(transfer_tile->loc_map[ctr] == 0) start_hop = ctr;
+      if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
+  }
+  hop_uid_list[0] = start_hop;
+  hop_uid_list[1] = end_hop;
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif
@@ -51,17 +51,17 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
 // Similar to BLASX behaviour when its assumed topology does not fit to the interconnect
 #ifdef P2P_FETCH_FROM_GPU_SERIAL 
 long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-    DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-    hop_num = 2;
-    int start_hop = -42, end_hop = -42;
-    for(int ctr = 0; ctr < LOC_NUM; ctr++)
-    {
-        if(transfer_tile->loc_map[ctr] == 0 || transfer_tile->loc_map[ctr] == 42) start_hop = ctr;
-        if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
-        if(start_hop!= -42 && end_hop != -42) break;
+  DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
+  hop_num = 2;
+  int start_hop = -42, end_hop = -42;
+  for(int ctr = 0; ctr < LOC_NUM; ctr++)
+  {
+      if(transfer_tile->loc_map[ctr] == 0 || transfer_tile->loc_map[ctr] == 42) start_hop = ctr;
+      if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
+      if(start_hop!= -42 && end_hop != -42) break;
     }
-	hop_uid_list[0] = start_hop;
-    hop_uid_list[1] = end_hop;
+  hop_uid_list[0] = start_hop;
+  hop_uid_list[1] = end_hop;
   return 0;
 }
 #endif
@@ -169,7 +169,7 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
 long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
     DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
     hop_num = 1;
-    for(int ctr = 0; ctr < LOC_NUM; ctr++){
+    for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
       if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
       else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2)
         hop_uid_list[hop_num++] = ctr;
@@ -182,8 +182,8 @@ long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag
 long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
     DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
     hop_num = 0;
-    int loc_list[LOC_NUM];
-    for(int ctr = 0; ctr < LOC_NUM; ctr++){
+    int loc_list[CHL_MEMLOCS];
+    for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
       if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
       else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2)
         loc_list[hop_num++] = ctr;

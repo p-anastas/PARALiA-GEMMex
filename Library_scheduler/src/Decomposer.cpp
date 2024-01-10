@@ -5,6 +5,7 @@
 ///
 
 #include "Decomposer.hpp"
+#include "Subkernel.hpp"
 #include "chl_smart_wrappers.hpp"
 
 Decom2D::Decom2D( void* in_adr, int in_dim1, int in_dim2, int in_ldim, char in_transpose, dtype_enum dtype_in){
@@ -194,7 +195,7 @@ void Decomposer::DestroyTileMap(){
 }
 
 void Decomposer::WBTileMap(){
-  if (Tile_map[0]->WRP == W_REDUCE) error("Decomposer::WBTileMap not implemented for ALGO_WREDUCE\n");
+  if (Tile_map[0]->WRP == W_REDUCE) return; //error("Decomposer::WBTileMap not implemented for ALGO_WREDUCE\n");
   for (int itt1 = 0; itt1 < GridSz1; itt1++)
     for (int itt2 = 0 ; itt2 < GridSz2; itt2++)
       // TODO: this does not reuse pathing (for !SK_FIRE_WHEN_READY)
@@ -205,14 +206,13 @@ void Decomposer::SyncTileMap(){
   for (int itt1 = 0; itt1 < GridSz1; itt1++)
     for (int itt2 = 0 ; itt2 < GridSz2; itt2++){
       Tile_map[itt1*GridSz2 + itt2]->W_complete->sync_barrier();
-      if(!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE")) Tile_map[itt1*GridSz2 + itt2]->
-        W_reduce->sync_barrier();
-      //if(!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE")) for (int devi = 0; devi < CHL_MEMLOCS; devi++)
-      //for (int ctri = 0; ctri < REDUCE_WORKERS_PERDEV; ctri++) 
-      //if(reduce_queue[devi] && reduce_queue[devi][ctri]) reduce_queue[devi][ctri]->sync_barrier();
-      //Tile_map[itt1*GridSz2 + itt2]->StoreBlock[Tile_map[itt1*GridSz2 + itt2]->
-      //get_initial_location()]->Available->sync_barrier();
+      //if(!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE")){
+      if(Tile_map[itt1*GridSz2 + itt2]->WRP == W_REDUCE){
+        Tile_map[itt1*GridSz2 + itt2]->W_reduce->sync_barrier();
+      }
     }
+    for (int devi = 0; devi < CHL_MEMLOCS; devi++) for (int ctri = 0; ctri < REDUCE_WORKERS_PERDEV; ctri++)
+    if(reduce_queue[devi] && reduce_queue[devi][ctri]) reduce_queue[devi][ctri]->sync_barrier();
 }
 
 
