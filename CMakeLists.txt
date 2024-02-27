@@ -212,6 +212,9 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #----------------------------------DEBUG/TEST Options-------------------------------------#
 ###########################################################################################
 
+#Run in production mode, where checking of correctness for all functions is disabled
+#add_definitions(-DPRODUCTION)
+
 #Run in debug mode, which includes detailed function calls and info for error-checking
 add_definitions(-DDEBUG)
 

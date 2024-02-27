@@ -127,12 +127,6 @@ enum CQueue_type{
 	MIXED = 2
 };
 
-typedef struct comm_wrap{
-	void* dest, *src;
-	long int ldest, ldsrc, rows, cols;
-	int elemSize, loc_dest, loc_src, log_flag;
-}* CO_p;
-
 typedef class CommandQueue
 {
 	private:
@@ -142,29 +136,7 @@ typedef class CommandQueue
 		// The Worker that this queue's backend is close to. 
 		int dev_id;
 
-		pthread_t* backend_worker_ptr;
-		pthread_cond_t *backend_cond_ptr;
-		pthread_mutex_t * backend_mutex_ptr, *queue_mutex_ptr;
-		// A control flag that corresponds to the backend_worker_ptr pthread status.
-		// Depending on its value, the worker will execute a corresponding task ( 0 = worker blocks)
-		std::atomic<int> task_id;
-
-		void* backend_queue_ptr;
-		void* backend_comp_md;
-		void* backend_comm_md;
-
-		// Extra pointers needed for add_host_function/run operation backend. 
-		void* func_ptr;
-		void* data_ptr; 
-		int target_dev_id;
-		// Extra pointer for transfers md. 
-		CO_p comm_wrap_ptr;
-
-		// Extra pointer needed for wait_for_event backend. 
-		Event_p wait_for_it; 
-
-		// Extra pointer needed for record_event backend. 
-		Event_p record_it; 
+		void* backend_queue_ptr, *backend_comp_md;
 
 		/// Queues can support communication, computation or both. This is controlled by 'type'
 		// type = 0: communication-only queue, 
@@ -209,8 +181,6 @@ enum event_status{
 	UNRECORDED = 0, /// Event has not been recorded yet.
 	RECORDED = 1, /// Recorded but not guaranteed to be complete.
 	COMPLETE = 2,  /// Complete but not yet ran 'check' function (for cache updates etc)
-	CHECKED = 3,  /// Complete and Checked/Updated caches etc.
-	GHOST = 4  /// Does not exist in the time continuum.
 };
 
 /// Returns a string representation for event_status

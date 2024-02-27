@@ -50,9 +50,6 @@ add_definitions(-DCLDEBUG)
 #------------------------------------Other options----------------------------------------#
 ###########################################################################################
 
-## Use pthread-backend queues for firing tasks to devices
-#add_definitions(-DENABLE_PTHREAD_BACKQUEUES)
-
 ## The smart numa alloc method
 #add_definitions(-DSMART_NUMALLOC_ROWWISE)
 #add_definitions(-DSMART_NUMALLOC_COLWISE)
