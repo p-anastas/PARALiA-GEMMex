@@ -94,16 +94,14 @@ LinkRoute_p DataTile::fetch(CBlock_p target_block, int priority_loc_id, LinkRout
   best_route->hop_ldim_list[0] = get_chunk_size((best_route->hop_uid_list[0]));
 
 	for(int inter_hop = 1 ; inter_hop < best_route->hop_num; inter_hop++){
-    best_route->hop_ldim_list[inter_hop] = get_chunk_size((best_route->hop_uid_list[inter_hop]));  // TODO: This might be wrong for Tile1D + inc!=1
-
+    best_route->hop_ldim_list[inter_hop] = get_chunk_size((best_route->hop_uid_list[inter_hop])); 
     if (best_route->hop_uid_list[inter_hop] != priority_loc_id){ // We do not have a block assigned already in this case
       if(WRP == RONLY){
         //if(tmp->StoreBlock[(best_route->hop_uid_list[1+inter_hop])] != NULL) // TODO: Is thi needed?
         //	tmp->StoreBlock[(best_route->hop_uid_list[1+inter_hop])]->Owner_p = NULL;
-        
-          block_ptr[inter_hop] = StoreBlock[(best_route->hop_uid_list[inter_hop])] = 
-            current_SAB[(best_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE,false);
-          block_ptr[inter_hop]->set_owner((void**)&StoreBlock[(best_route->hop_uid_list[inter_hop])],false);
+        block_ptr[inter_hop] = StoreBlock[(best_route->hop_uid_list[inter_hop])] = 
+          current_SAB[(best_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE,false);
+        //block_ptr[inter_hop]->set_owner((void**)&StoreBlock[(best_route->hop_uid_list[inter_hop])],false);
         }
         else block_ptr[inter_hop] = current_SAB[(best_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
 
@@ -384,7 +382,7 @@ void DataTile::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_b
       //block_ETA[iloc] = 0; 
       StoreBlock[iloc] = new_init_loc_block_p;
       StoreBlock[iloc]->Adrs = new_adrr;
-      StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
+      //StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
       set_chunk_size(iloc, new_init_chunk);
       StoreBlock[iloc]->Available->record_to_queue(NULL);
     }
@@ -427,7 +425,7 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
       block_ETA[iloc] = 0; 
       StoreBlock[iloc] = init_loc_block_p;
       StoreBlock[iloc]->Adrs = in_addr;
-      StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
+      //StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
       ldim[iloc] = in_ldim;
       StoreBlock[iloc]->Available->record_to_queue(NULL);
     }
@@ -477,7 +475,7 @@ Tile1D::Tile1D(void * in_addr, int in_dim,
       loc_map[iloc] = 0;
       StoreBlock[iloc] = init_loc_block_p;
       StoreBlock[iloc]->Adrs = in_addr;
-      StoreBlock[iloc]->set_owner((void**)&StoreBlock[iloc]);
+      //StoreBlock[iloc]->set_owner((void**)&StoreBlock[iloc]);
       inc[iloc] = in_inc;
       StoreBlock[iloc]->Available->record_to_queue(NULL);
     }
