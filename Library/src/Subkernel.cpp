@@ -159,18 +159,18 @@ void Subkernel::run_operation()
 				run_dev_id, id, tmp->id, tmp->GridId1, tmp->GridId2, j);
 		if (tmp->WRP == WR || tmp->WRP == RONLY){
 			assigned_exec_queue->wait_for_event(tmp->StoreBlock[run_dev_id_idx]->Available);
-			fetch_ETA = std::max(fetch_ETA, tmp->ETA_get(run_dev_id));
+			//fetch_ETA = std::max(fetch_ETA, tmp->ETA_get(run_dev_id));
 		}
 	}
-	long double start_op_ETA = std::max(fire_t, fetch_ETA);
-	assigned_exec_queue->ETA_add_task(start_op_ETA, run_op_est_t); 
+	//long double start_op_ETA = std::max(fire_t, fetch_ETA);
+	//assigned_exec_queue->ETA_add_task(start_op_ETA, run_op_est_t); 
 	assigned_exec_queue->run_operation(operation_params, op_name, run_dev_id);
 
 	for (int j = 0; j < TileNum; j++){
 		DataTile_p tmp = TileList[j];
 		if(tmp->WRP == WR || tmp->WRP == W_REDUCE || tmp->WRP == WR_LAZY){
 			tmp->W_pending--;
-			tmp->ETA_set(assigned_exec_queue->ETA_get(), run_dev_id);
+			//tmp->ETA_set(assigned_exec_queue->ETA_get(), run_dev_id);
 			if(!tmp->W_pending) tmp->operations_complete(assigned_exec_queue, &(predef_route[j]), &(predef_route[TileNum +j]));
 		}
 		/*CBlock_wrap_p wrap_oper = NULL;

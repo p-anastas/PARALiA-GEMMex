@@ -22,49 +22,77 @@ enum WR_properties{
         W_REDUCE = 5
 };
 
-typedef class DataTile{
+typedef class Tile2D{
 public:
-    dtype_enum dtype;
-    int id, GridId1, GridId2;
-    int dim1, dim2;
-    WR_properties WRP;
-    int W_master = -42;
-    int W_pending = -42;
-    int fired_times = 0; 
-    Event_p W_complete = NULL, W_reduce = NULL; 
-    int W_master_backend_ctr = -42;
-    double reduce_mult; 
-    // loc_map values mean: 
+    //----------------------------------------------General class-----------------------------------------//
+
+    dtype_enum dtype; // An enum of the datatype (used to select the operation)
+    int get_dtype_size();
+
+    int id, GridId1, GridId2; // The tile location in a 1D/2D grid (1D = order of initialization). 
+    int dim1, dim2, ldim[64]; // The tile dimensions and its decomposer's leading dimension.
+    int size();
+
+	// Constructor : Initializes a tile with certain dimensions on a grid (used by the decomposer)
+	Tile2D(void* tile_addr, int T1tmp, int T2tmp,
+			int ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, CBlock_p init_loc_block_p);
+	~Tile2D(); 	//Destructor
+    
+    short get_initial_location();
+    void reset(void* new_adrr, int new_ldim, CBlock_p new_init_loc_block_p);
+
+    //----------------------------------------------Tile caching------------------------------------------//
+    
+    CBlock_p StoreBlock[64];// The softcache blocks that store this Tile in each device.
+ 
+    // loc_map: A runtime representation of Tile availability in each device: 
     // - not available = -42
     // - available in location = 42 (exhept initial)
     // - initial location = 0
     // - priority target loc = 2, 
     // - other target loc(s) = 1
     int loc_map[64]; 
-    CBlock_p StoreBlock[64];
 
-    // General Functions
-    int get_dtype_size();
-    short get_initial_location();
+    void set_loc_idx(int loc_idx, int val); // Set the loc_idx element of loc_map to val.
+    void try_set_loc_idx(int loc_idx, int val); // Similar but can only set uninitialized values (-42).
+
+    void fetch(LinkRoute_p in_route); // Fetch block to a list of locations using a predefined route.
+
+    //--------------------------------------------Tile properties-----------------------------------------//
+    WR_properties WRP; // Defines an enum for the type of the tile. 
     WR_properties get_WRP();
     const char* get_WRP_string();
-    int size();
-    virtual long get_chunk_size(int loc_idx);
-    virtual void set_chunk_size(int loc_idx, long value);
-
-    void set_loc_idx(int loc_idx, int val);
-    /// Same functionality with the exheption that can only set uninitialized values. 
-    void try_set_loc_idx(int loc_idx, int val);
     void set_WRP(WR_properties inprop);
 
-    LinkRoute_p fetch(CBlock_p target_block, int priority_loc_id, LinkRoute_p in_route);
-    LinkRoute_p writeback(CBlock_p WB_block, LinkRoute_p in_route);
-    void operations_complete(CQueue_p assigned_exec_queue, 
-        LinkRoute_p* in_route_p, LinkRoute_p* out_route_p);
+    //--------------------------------------------WTile properties-----------------------------------------//
+    // Note: Only relevant for output tiles (e.g. not RONLY)
+    int W_master = -42;
+    int W_master_backend_ctr = -42;
 
+    int W_op_num = -42; 
+    int W_op_fired = -42;
+    Event_p W_op_complete = NULL, W_ready = NULL;
+    void* operation_params;
+	const char* op_name;
+    void Wrun_operation(int op_id); 
 
-    void reset(void* new_adrr, int new_ldim, CBlock_p new_init_loc_block_p);
+    void Writeback(LinkRoute_p in_route); // Write back block to initial location using a predefined route.
+
+    /// Only applicable for ALGO_WR_LAZY/ALGO_WREDUCE. 
+    /// For ALGO_WR_LAZY: C = reduce_mult * C' + C (axpy)
+    /// For ALGO_WREDUCE: C = 1.0 * C' + reduce_mult * C (axpby)
+    double reduce_mult; 
+
+    /// Only for ALGO_WR_LAZY. Fetch C0 to a temp Cblock and perform C = reduce_mult * C' + C
+    /// Must be called after W_op_fired = W_op_num and uses the related W_master_backend_ctr queue.
+    void WR_lazy_combine(); 
     
+    /// Only for ALGO_WREDUCE
+    CBlock_p backup_C; 
+    int backup_C_ldim; 
+    void WReduce_backup_C(); // Store the pointer of C0 to backup_C. 
+    void WReduce_combine(); // After WB, perform C = 1.0 * C' + reduce_mult * C and restore StoreBlock[init].
+
     /*****************************************************/
     /// PARALia 2.0 - timed queues and blocks
     void ETA_add_task(long double task_duration, int dev_id);
@@ -73,34 +101,6 @@ public:
     long double ETA_fetch_estimate(int target_id); 
     long double block_ETA[64]; 
 
-}* DataTile_p;
-
-class Tile1D : public DataTile {
-public:
-    int inc[64];
-
-    // Constructor
-    Tile1D(void* tile_addr, int T1tmp,
-        int inc, int inGrid1, dtype_enum dtype_in, CBlock_p init_loc_block_p);
-    //Destructor
-    ~Tile1D();
-
-    long get_chunk_size(int loc_idx); 
-    void set_chunk_size(int loc_idx, long value);
-
-};
-
-class Tile2D : public DataTile {
-public:    
-    int ldim[64];
-	// Constructor
-	Tile2D(void* tile_addr, int T1tmp, int T2tmp,
-			int ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, CBlock_p init_loc_block_p);
-	//Destructor
-	~Tile2D();
-
-    long get_chunk_size(int loc_idx);
-    void set_chunk_size(int loc_idx, long value);
-};
+}* Tile2D_p;
 
 #endif

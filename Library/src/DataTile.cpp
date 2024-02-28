@@ -8,38 +8,38 @@
 #include "Subkernel.hpp"
 #include "backend_wrappers.hpp"
 
-int DataTile::get_dtype_size() {
+int Tile2D::get_dtype_size() {
     if (dtype == DOUBLE) return sizeof(double);
     else if (dtype == FLOAT) return sizeof(float);
     else error("dtypesize: Unknown type");
     return -1;
 }
 
-void DataTile::set_loc_idx(int loc_idx, int val){
+void Tile2D::set_loc_idx(int loc_idx, int val){
     loc_map[loc_idx] = val; 
 }
 
-void DataTile::try_set_loc_idx(int loc_idx, int val){
+void Tile2D::try_set_loc_idx(int loc_idx, int val){
     if (loc_map[loc_idx] == -42) loc_map[loc_idx] = val; 
 }
 
-short DataTile::get_initial_location() 
+short Tile2D::get_initial_location() 
 { 
     //TODO: not implemented for multiple initial tile locations
     for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++) if (!loc_map[iloc]) return iloc; 
-    warning("DataTile::get_initial_location: No initial location found");
+    warning("Tile2D::get_initial_location: No initial location found");
     return -42; 
 }
 
-WR_properties DataTile::get_WRP(){
+WR_properties Tile2D::get_WRP(){
     return WRP;
 }
 
-void DataTile::set_WRP(WR_properties inprop){
+void Tile2D::set_WRP(WR_properties inprop){
     this->WRP = inprop;
 }
 
-const char* DataTile::get_WRP_string(){
+const char* Tile2D::get_WRP_string(){
     switch (WRP)
     {
     case RONLY: 
@@ -53,21 +53,21 @@ const char* DataTile::get_WRP_string(){
     case W_REDUCE:  
       return "W_REDUCE";
     default:
-        error("DataTile::get_WRP_string(): Unknown WRP\n");
+        error("Tile2D::get_WRP_string(): Unknown WRP\n");
     }
     return "UNREACHABLE";
 }
 
-int DataTile::size() { return get_dtype_size()*dim1*dim2;}
+int Tile2D::size() { return get_dtype_size()*dim1*dim2;}
 
-LinkRoute_p DataTile::fetch(CBlock_p target_block, int priority_loc_id, LinkRoute_p in_route)
+LinkRoute_p Tile2D::fetch(CBlock_p target_block, int priority_loc_id, LinkRoute_p in_route)
 {
-  if (!(WRP == WR || WRP== RONLY || WRP == WR_LAZY)) error("DataTile::fetch called with WRP = %s\n", get_WRP_string());
+  if (!(WRP == WR || WRP== RONLY || WRP == WR_LAZY)) error("Tile2D::fetch called with WRP = %s\n", get_WRP_string());
   
   set_loc_idx((priority_loc_id), 2);
 
 #ifdef DEBUG
-	fprintf(stderr, "|-----> DataTile[%d:%d,%d]::fetch(%d) : loc_map = %s\n", 
+	fprintf(stderr, "|-----> Tile2D[%d:%d,%d]::fetch(%d) : loc_map = %s\n", 
     id, GridId1, GridId2, priority_loc_id, printlist(loc_map, CHL_MEMLOCS));
 #endif
 
@@ -76,14 +76,14 @@ LinkRoute_p DataTile::fetch(CBlock_p target_block, int priority_loc_id, LinkRout
     best_route = new LinkRoute();
     best_route->starting_hop = 0;
     best_route->optimize(this, 1); // The core of our optimization
-    //fprintf(stderr, "DataTile[%d:%d,%d]::fetch(%d) - Ran this fetch\n", 
+    //fprintf(stderr, "Tile2D[%d:%d,%d]::fetch(%d) - Ran this fetch\n", 
     //  id, GridId1, GridId2, priority_loc_id);
 
   }
   else best_route = in_route;
 
 #ifdef DEBUG
-  fprintf(stderr, "DataTile[%d:%d,%d]::fetch(%d) WRP = %s, Road = %s \n", id, GridId1, GridId2, 
+  fprintf(stderr, "Tile2D[%d:%d,%d]::fetch(%d) WRP = %s, Road = %s \n", id, GridId1, GridId2, 
     priority_loc_id, get_WRP_string(), printlist(best_route->hop_uid_list, best_route->hop_num));
 #endif
 
@@ -156,7 +156,7 @@ LinkRoute_p DataTile::fetch(CBlock_p target_block, int priority_loc_id, LinkRout
   return best_route;
 }
 
-void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in_route_p, LinkRoute_p* out_route_p){
+void Tile2D::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in_route_p, LinkRoute_p* out_route_p){
   if(WR == WRP){
     W_complete->record_to_queue(assigned_exec_queue);
 //#ifdef SUBKERNELS_FIRE_WHEN_READY
@@ -253,18 +253,18 @@ void DataTile::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in
   }
 }
 
-LinkRoute_p DataTile::writeback(CBlock_p WB_block_candidate, LinkRoute_p in_route){
+LinkRoute_p Tile2D::writeback(CBlock_p WB_block_candidate, LinkRoute_p in_route){
 	short W_master_idx = (W_master);
 	short Writeback_id = get_initial_location(), Writeback_id_idx = (Writeback_id);
   CBlock_p WB_block = (WB_block_candidate) ? WB_block_candidate : StoreBlock[Writeback_id_idx];
 	if (!(WRP == WR || WRP == WR_LAZY || WRP == W_REDUCE))
-    error("DataTile::writeback -> Tile(%d.[%d,%d]) has WRP = %s\n",
+    error("Tile2D::writeback -> Tile(%d.[%d,%d]) has WRP = %s\n",
 			id, GridId1, GridId2, WRP);
 	if (StoreBlock[W_master_idx] == NULL || StoreBlock[W_master_idx]->State == INVALID)
-		error("DataTile::writeback -> Tile(%d.[%d,%d]) Storeblock[%d] is NULL\n",
+		error("Tile2D::writeback -> Tile(%d.[%d,%d]) Storeblock[%d] is NULL\n",
 			id, GridId1, GridId2, W_master_idx);
 	if (WB_block == NULL)
-		error("DataTile::writeback -> Tile(%d.[%d,%d]) WB_block at %d is NULL\n",
+		error("Tile2D::writeback -> Tile(%d.[%d,%d]) WB_block at %d is NULL\n",
       id, GridId1, GridId2, Writeback_id_idx);
   LinkRoute_p best_route = NULL;
 	if (W_master_idx == Writeback_id);
@@ -279,11 +279,11 @@ LinkRoute_p DataTile::writeback(CBlock_p WB_block_candidate, LinkRoute_p in_rout
     else best_route = in_route; 
 
   massert(W_master_idx == (best_route->hop_uid_list[0]), 
-    "DataTile::writeback error -> W_master_idx [%d] != (best_route->hop_uid_list[0]) [%d]", 
+    "Tile2D::writeback error -> W_master_idx [%d] != (best_route->hop_uid_list[0]) [%d]", 
     W_master_idx, (best_route->hop_uid_list[0]));
 
 #ifdef DEBUG
-	fprintf(stderr, "|-----> DataTile[%d:%d,%d]::writeback() : loc_map = %s\n", 
+	fprintf(stderr, "|-----> Tile2D[%d:%d,%d]::writeback() : loc_map = %s\n", 
     id, GridId1, GridId2, printlist(loc_map, CHL_MEMLOCS));
 #endif
 
@@ -315,7 +315,7 @@ LinkRoute_p DataTile::writeback(CBlock_p WB_block_candidate, LinkRoute_p in_rout
     CQueue_p used_queue = best_route->hop_cqueue_list[best_route->hop_num-2];
 
   #ifdef DEBUG
-    fprintf(stderr, "DataTile::writeback WRP = %s, Road = %s \n", get_WRP_string() ,
+    fprintf(stderr, "Tile2D::writeback WRP = %s, Road = %s \n", get_WRP_string() ,
       printlist(best_route->hop_uid_list, best_route->hop_num));
   #endif
     FasTCHLMemcpy2DAsync(best_route, dim1, dim2, get_dtype_size());
@@ -337,19 +337,19 @@ LinkRoute_p DataTile::writeback(CBlock_p WB_block_candidate, LinkRoute_p in_rout
 /*****************************************************/
 /// PARALia 2.0 - timed queues and blocks
 
-void DataTile::ETA_add_task(long double task_duration, int dev_id){
+void Tile2D::ETA_add_task(long double task_duration, int dev_id){
 	block_ETA[(dev_id)] += task_duration;
 }
 
-void DataTile::ETA_set(long double new_workload_t, int dev_id){
+void Tile2D::ETA_set(long double new_workload_t, int dev_id){
 	block_ETA[(dev_id)] = new_workload_t; 
 }
 
-long double DataTile::ETA_get(int dev_id){
+long double Tile2D::ETA_get(int dev_id){
 	return block_ETA[(dev_id)];
 }
 
-long double DataTile::ETA_fetch_estimate(int target_id){
+long double Tile2D::ETA_fetch_estimate(int target_id){
   long double result = 0; 
   if(loc_map[(target_id)]){
     int temp_val = loc_map[(target_id)];
@@ -364,10 +364,10 @@ long double DataTile::ETA_fetch_estimate(int target_id){
   return result; 
 }
 
-void DataTile::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
+void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
   short lvl = 3;
 #ifdef DDEBUG
-  lprintf(lvl - 1, "|-----> DataTile()::reset(%p, %d)\n", new_adrr, new_init_chunk);
+  lprintf(lvl - 1, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
 #endif
 
   W_master_backend_ctr = -42;
@@ -447,81 +447,4 @@ Tile2D::~Tile2D()
   delete W_complete; 
   delete W_reduce; 
   Tile2D_num--;
-}
-
-
-
-int Tile1D_num = 0;
-
-Tile1D::Tile1D(void * in_addr, int in_dim,
-  int in_inc, int inGrid, dtype_enum dtype_in, CBlock_p init_loc_block_p)
-{
-  short lvl = 3;
-
-  #ifdef DEBUG
-    lprintf(lvl-1, "|-----> Tile1D(%d)::Tile1D(in_addr(%d), %d, %d, %d)\n",
-      Tile1D_num, CHLGetPtrLoc(in_addr), in_dim, in_inc, inGrid);
-  #endif
-  dtype = dtype_in;
-  dim1 = in_dim;
-  dim2 = 1;
-  GridId1 = inGrid;
-  GridId2 = 1;
-  id = Tile1D_num;
-  Tile1D_num++;
-  short init_loc = CHLGetPtrLoc(in_addr);
-  for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
-    if (iloc == init_loc){
-      loc_map[iloc] = 0;
-      StoreBlock[iloc] = init_loc_block_p;
-      StoreBlock[iloc]->Adrs = in_addr;
-      //StoreBlock[iloc]->set_owner((void**)&StoreBlock[iloc]);
-      inc[iloc] = in_inc;
-      StoreBlock[iloc]->Available->record_to_queue(NULL);
-    }
-    else{
-      loc_map[iloc] = -42;
-      StoreBlock[iloc] = NULL;
-      inc[iloc] = in_inc;
-    }
-  }
-  #ifdef DEBUG
-  	lprintf(lvl-1, "<-----|\n");
-  #endif
-}
-
-Tile1D::~Tile1D()
-{
-  delete W_complete; 
-  delete W_reduce; 
-  Tile1D_num--;
-}
-
-long DataTile::get_chunk_size(int loc_idx){
-    error("Must never be called for parent DataTile class\n");
-    return -42;
-}
-
-long Tile2D::get_chunk_size(int loc_idx)
-{
-  return ldim[loc_idx];
-}
-
-long Tile1D::get_chunk_size(int loc_idx){
-  return inc[loc_idx];
-}
-
-void DataTile::set_chunk_size(int loc_idx, long value){
-  error("Must never be called for parent DataTile class\n");
-  return;
-}
-
-
-void Tile2D::set_chunk_size(int loc_idx, long value){
-  ldim[loc_idx] = value; 
-}
-
-
-void Tile1D::set_chunk_size(int loc_idx, long value){
-  inc[loc_idx] = value; 
 }

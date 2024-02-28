@@ -37,9 +37,10 @@ typedef class ATC{
 		double pred_J_pesimistic; /// The predicted Joules the whole operation will require if all overlap fails.
 		double power_delay_pesimistic, energy_delay_pesimistic; /// The predicted power and energy delay products if all overlap fails.
 	
-		long int subkernel_num; /// The number of subkernels.
+		int subkernel_num; /// The number of subkernels.
 		int* Subkernels_per_unit_num; /// The number of subkernels derived from a unit's score that that unit unit will fire.
-		int** Subkernels_per_unit_list; /// The sk_id ids of said sub-kernels, IF they are predefined and not dynamic.
+		int* Subkernel_fire_target; /// The dev_id of the unit each subkernels will be fired to. 
+		int* Subkernel_fire_order; /// The predefined order of firing all sub-kernels.
 		long long cache_limit; /// The 'cache' size allocation limit for all devices in bytes, IF any.
 		Gamalg_p inter_grid; /// The LinkMap representation of the system memory interconnection.
 /********************** Initialization/Modification ***************************/

@@ -18,7 +18,7 @@ class Subkernel
 		int id, iloc1, iloc2, iloc3;
 		int run_dev_id, launch_order, launched;
 		int TileNum;
-		DataTile** TileList;
+		Tile2D_p* TileList;
 		LinkRoute_p* predef_route;
 
 #ifdef STEST
