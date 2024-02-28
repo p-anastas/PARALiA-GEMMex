@@ -56,7 +56,8 @@ public:
     void set_loc_idx(int loc_idx, int val); // Set the loc_idx element of loc_map to val.
     void try_set_loc_idx(int loc_idx, int val); // Similar but can only set uninitialized values (-42).
 
-    void fetch(LinkRoute_p in_route); // Fetch block to a list of locations using a predefined route.
+    LinkRoute_p in_route;
+    void fetch(); // Fetch block to a list of locations using a predefined route.
 
     //--------------------------------------------Tile properties-----------------------------------------//
     WR_properties WRP; // Defines an enum for the type of the tile. 
@@ -66,35 +67,34 @@ public:
 
     //--------------------------------------------WTile properties-----------------------------------------//
     // Note: Only relevant for output tiles (e.g. not RONLY)
-    int W_master = -42;
-    int W_master_backend_ctr = -42;
+    int W_init_loc, W_op_dev_id, W_op_queue_ctr, W_op_num, W_op_fired;
+    Event_p W_op_complete, W_wb_complete, W_ready;
 
-    int W_op_num = -42; 
-    int W_op_fired = -42;
-    Event_p W_op_complete = NULL, W_ready = NULL;
-    void* operation_params;
-	const char* op_name;
-    void Wrun_operation(int op_id); 
+    Event_p W_op_dependencies[4] = {NULL};
+    int W_op_dep_num;
+    void** W_op_params;
+	const char* W_op_name;
+    void run_operation(int W_op_id); 
 
-    void Writeback(LinkRoute_p in_route); // Write back block to initial location using a predefined route.
+    LinkRoute_p out_route;
+    void writeback(); // Write back block to initial location using a predefined route.
 
     /// Only applicable for ALGO_WR_LAZY/ALGO_WREDUCE. 
     /// For ALGO_WR_LAZY: C = reduce_mult * C' + C (axpy)
     /// For ALGO_WREDUCE: C = 1.0 * C' + reduce_mult * C (axpby)
     double reduce_mult; 
+    CBlock_p backup_C; 
 
     /// Only for ALGO_WR_LAZY. Fetch C0 to a temp Cblock and perform C = reduce_mult * C' + C
     /// Must be called after W_op_fired = W_op_num and uses the related W_master_backend_ctr queue.
     void WR_lazy_combine(); 
     
     /// Only for ALGO_WREDUCE
-    CBlock_p backup_C; 
     int backup_C_ldim; 
     void WReduce_backup_C(); // Store the pointer of C0 to backup_C. 
     void WReduce_combine(); // After WB, perform C = 1.0 * C' + reduce_mult * C and restore StoreBlock[init].
 
-    /*****************************************************/
-    /// PARALia 2.0 - timed queues and blocks
+    //------------------------------------PARALia 2.0 - timed queues and blocks----------------------------//
     void ETA_add_task(long double task_duration, int dev_id);
     void ETA_set(long double new_workload_t, int dev_id);
     long double ETA_get(int dev_id);

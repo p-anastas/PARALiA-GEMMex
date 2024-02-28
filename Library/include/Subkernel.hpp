@@ -56,9 +56,6 @@ class Subkernel
 		//long double run_op_estimate(ATC_p autotuner); 
 };
 
-//Subkernel** CoCoAsignTilesToSubkernelsGemm(Decom2D<double>* A_asset, Decom2D<double>* B_asset,
-//Decom2D<double>* C_asset, int T, int* kernelNum);
-
 int SKConfigResources();
 void SKInitResources(int* dev_list, int dev_num);
 void SKInitWS(int* dev_list, int dev_num);

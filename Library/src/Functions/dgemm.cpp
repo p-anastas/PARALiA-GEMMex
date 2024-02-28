@@ -267,7 +267,7 @@ void DgemmBindDevice(PMD_p local_PMD, Subkernel* ker, int dev_id){
 	ker->TileList[2]->try_set_loc_idx(dev_id_idx, 1);
 	if (ker->TileList[2]->WRP != WR && !ker->TileList[2]->loc_map[dev_id_idx]) 
 		ker->TileList[2]->set_WRP(WR);
-	ker->TileList[2]->W_master = dev_id;
+	ker->TileList[2]->W_op_dev = dev_id;
 	if(ker->TileList[2]->W_pending == local_PMD->decom[0]->GridSz2){
 		ker->TileList[2]->W_complete = new Event(dev_id);
 		ker->TileList[2]->W_reduce = new Event(ker->TileList[2]->get_initial_location());

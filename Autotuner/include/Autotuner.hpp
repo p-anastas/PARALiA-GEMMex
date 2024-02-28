@@ -39,8 +39,7 @@ typedef class ATC{
 	
 		int subkernel_num; /// The number of subkernels.
 		int* Subkernels_per_unit_num; /// The number of subkernels derived from a unit's score that that unit unit will fire.
-		int* Subkernel_fire_target; /// The dev_id of the unit each subkernels will be fired to. 
-		int* Subkernel_fire_order; /// The predefined order of firing all sub-kernels.
+		int** Subkernels_per_unit_list; /// The dev_id of the unit each subkernels will be fired to. 
 		long long cache_limit; /// The 'cache' size allocation limit for all devices in bytes, IF any.
 		Gamalg_p inter_grid; /// The LinkMap representation of the system memory interconnection.
 /********************** Initialization/Modification ***************************/

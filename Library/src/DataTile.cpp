@@ -8,12 +8,69 @@
 #include "Subkernel.hpp"
 #include "backend_wrappers.hpp"
 
+int Tile2D_num = 0;
+
+//----------------------------------------------General class-----------------------------------------//
+
 int Tile2D::get_dtype_size() {
     if (dtype == DOUBLE) return sizeof(double);
     else if (dtype == FLOAT) return sizeof(float);
     else error("dtypesize: Unknown type");
     return -1;
 }
+
+int Tile2D::size() { return get_dtype_size()*dim1*dim2;}
+
+Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
+               int in_ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, CBlock_p init_loc_block_p){
+#ifdef DDEBUG
+	fprintf(stderr, "|-----> Tile2D(%d)::Tile2D(in_addr(%d) = %p,%d,%d,%d, %d, %d)\n",
+			Tile2D_num, CHLGetPtrLoc(in_addr), in_addr, in_dim1, in_dim2, in_ldim, inGrid1, inGrid2);
+#endif
+	dtype = dtype_in;
+	dim1 = in_dim1;
+	dim2 = in_dim2;
+	GridId1 = inGrid1;
+	GridId2 = inGrid2;
+	id = Tile2D_num;
+	W_op_dev_id = W_op_queue_ctr = W_op_num = W_op_fired = -42;
+	W_op_complete = W_ready = NULL;
+	W_op_params = NULL; 
+	W_op_dep_num = 0; 
+	Tile2D_num++;
+	short init_loc = CHLGetPtrLoc(in_addr);
+	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
+		if (iloc == init_loc){
+			W_init_loc = iloc;
+			loc_map[iloc] = 0;
+			block_ETA[iloc] = 0; 
+			StoreBlock[iloc] = init_loc_block_p;
+			StoreBlock[iloc]->Adrs = in_addr;
+			//StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
+			ldim[iloc] = in_ldim;
+			StoreBlock[iloc]->Available->record_to_queue(NULL);
+		}
+		else{
+			StoreBlock[iloc] = NULL;
+			ldim[iloc] = in_dim1;
+			loc_map[iloc] = -42;
+			block_ETA[iloc] = -42; 
+		} 
+	}
+#ifdef DDEBUG
+  fprintf(stderr, "<-----|\n");
+#endif
+}
+
+Tile2D::~Tile2D()
+{
+  delete W_op_complete; 
+  delete W_ready; 
+  Tile2D_num--;
+  if(!Tile2D_num) warning("Tile2D::~Tile2D destructor incomplete, TBC\n");
+}
+
+//----------------------------------------------Tile caching------------------------------------------//
 
 void Tile2D::set_loc_idx(int loc_idx, int val){
     loc_map[loc_idx] = val; 
@@ -23,13 +80,51 @@ void Tile2D::try_set_loc_idx(int loc_idx, int val){
     if (loc_map[loc_idx] == -42) loc_map[loc_idx] = val; 
 }
 
-short Tile2D::get_initial_location() 
-{ 
-    //TODO: not implemented for multiple initial tile locations
-    for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++) if (!loc_map[iloc]) return iloc; 
-    warning("Tile2D::get_initial_location: No initial location found");
-    return -42; 
+void Tile2D::fetch()
+{
+#ifdef DEBUG
+  fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::fetch(%s)\n", id, GridId1, GridId2,
+  	printlist(in_route->hop_uid_list, in_route->hop_num));
+#endif
+	CBlock_p block_ptr[in_route->hop_num] = {NULL};
+	block_ptr[0] = StoreBlock[(in_route->hop_uid_list[0])]; 
+	in_route->hop_buf_list[0] = block_ptr[0]->Adrs;
+	in_route->hop_ldim_list[0] = ldim[in_route->hop_uid_list[0]];
+	for(int inter_hop = 1 ; inter_hop < in_route->hop_num; inter_hop++){
+		in_route->hop_ldim_list[inter_hop] = ldim[in_route->hop_uid_list[inter_hop]];
+#ifndef PRODUCTION
+		if(WRP == RONLY && StoreBlock[(in_route->hop_uid_list[inter_hop])] != NULL) 
+			error("Tile2D(%d:[%d,%d])::fetch(%s) -> StoreBlock[%d] is already defined\n", id, GridId1, GridId2, 
+				printlist(in_route->hop_uid_list, in_route->hop_num), in_route->hop_uid_list[inter_hop]);
+#endif 
+		if(WRP == RONLY) block_ptr[inter_hop] = StoreBlock[(in_route->hop_uid_list[inter_hop])] = 
+			current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE,false);
+		else block_ptr[inter_hop] = current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
+		in_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
+		in_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
+		in_route->hop_cqueue_list[inter_hop-1] = 
+		recv_queues[(in_route->hop_uid_list[inter_hop])]
+		[(in_route->hop_uid_list[inter_hop-1])];
+	}
+	// Wait until the source of the transfer has the data available (might be obsolete based on implementation)
+	in_route->hop_cqueue_list[0]->wait_for_event(block_ptr[0]->Available);
+
+	// Fire the full transfer chain described by in_route
+	FasTCHLMemcpy2DAsync(in_route, dim1, dim2, get_dtype_size());
+
+	CQueue_p used_queue = in_route->hop_cqueue_list[in_route->hop_num-2];
+
+	// TODO: Is an updated loc_map needed for PARALiA 3.0?
+	if(WRP == WR || WRP == W_REDUCE || WRP == WR_LAZY) loc_map[(in_route->hop_uid_list[in_route->hop_num-1])] = 42;
+	else for(int inter_hop = 1 ; inter_hop < in_route->hop_num; inter_hop++) loc_map[(in_route->hop_uid_list[inter_hop])] = 42; 
+
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+  return;
 }
+
+//--------------------------------------------Tile properties-----------------------------------------//
 
 WR_properties Tile2D::get_WRP(){
     return WRP;
@@ -58,281 +153,174 @@ const char* Tile2D::get_WRP_string(){
     return "UNREACHABLE";
 }
 
-int Tile2D::size() { return get_dtype_size()*dim1*dim2;}
+//--------------------------------------------WTile properties-----------------------------------------//
 
-LinkRoute_p Tile2D::fetch(CBlock_p target_block, int priority_loc_id, LinkRoute_p in_route)
+inline int get_next_queue_ctr(int dev_id){
+	exec_queue_ctr[(dev_id)]++;
+	if (exec_queue_ctr[(dev_id)] == MAX_BACKEND_L) exec_queue_ctr[(dev_id)] = 0; 
+	return exec_queue_ctr[(dev_id)];
+}
+
+void Tile2D::run_operation(int W_op_id)
 {
-  if (!(WRP == WR || WRP== RONLY || WRP == WR_LAZY)) error("Tile2D::fetch called with WRP = %s\n", get_WRP_string());
-  
-  set_loc_idx((priority_loc_id), 2);
-
 #ifdef DEBUG
-	fprintf(stderr, "|-----> Tile2D[%d:%d,%d]::fetch(%d) : loc_map = %s\n", 
-    id, GridId1, GridId2, priority_loc_id, printlist(loc_map, CHL_MEMLOCS));
+	fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d)\n", id, GridId1, GridId2, W_op_dev_id);
 #endif
-
-  LinkRoute_p best_route;
-  if(!in_route){
-    best_route = new LinkRoute();
-    best_route->starting_hop = 0;
-    best_route->optimize(this, 1); // The core of our optimization
-    //fprintf(stderr, "Tile2D[%d:%d,%d]::fetch(%d) - Ran this fetch\n", 
-    //  id, GridId1, GridId2, priority_loc_id);
-
-  }
-  else best_route = in_route;
-
-#ifdef DEBUG
-  fprintf(stderr, "Tile2D[%d:%d,%d]::fetch(%d) WRP = %s, Road = %s \n", id, GridId1, GridId2, 
-    priority_loc_id, get_WRP_string(), printlist(best_route->hop_uid_list, best_route->hop_num));
+#ifndef PRODUCTION
+	if(W_op_dev_id == -42) error("Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d)\n Uninitialized W_op_dev_id", 
+    	id, GridId1, GridId2, W_op_dev_id);
+#endif 
+	CHLSelectDevice(W_op_dev_id);
+	CQueue_p assigned_exec_queue = NULL;
+	if(W_op_queue_ctr == -42)
+		W_op_queue_ctr = get_next_queue_ctr(W_op_dev_id);
+	assigned_exec_queue = exec_queue[W_op_dev_id][W_op_queue_ctr];
+#ifndef PRODUCTION
+	if (StoreBlock[W_op_dev_id] == NULL)
+		error("Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d): Storeblock is NULL\n",
+			id, GridId1, GridId2, W_op_dev_id);
 #endif
+	// Make execution queue block until all input dependencies are met. 
+	for (int depidx = 0; depidx < W_op_dep_num; depidx++)
+		assigned_exec_queue->wait_for_event(W_op_dependencies[depidx]);
+	
+	// Fire the W_op_id - ith operation to the queue
+	assigned_exec_queue->run_operation(W_op_params[W_op_id], W_op_name, W_op_dev_id);
 
-	CBlock_p block_ptr[best_route->hop_num] = {NULL};
-  block_ptr[0] = StoreBlock[(best_route->hop_uid_list[0])]; 
-  //block_ptr[0]->add_reader();
-  best_route->hop_buf_list[0] = block_ptr[0]->Adrs;
-  best_route->hop_ldim_list[0] = get_chunk_size((best_route->hop_uid_list[0]));
-
-	for(int inter_hop = 1 ; inter_hop < best_route->hop_num; inter_hop++){
-    best_route->hop_ldim_list[inter_hop] = get_chunk_size((best_route->hop_uid_list[inter_hop])); 
-    if (best_route->hop_uid_list[inter_hop] != priority_loc_id){ // We do not have a block assigned already in this case
-      if(WRP == RONLY){
-        //if(tmp->StoreBlock[(best_route->hop_uid_list[1+inter_hop])] != NULL) // TODO: Is thi needed?
-        //	tmp->StoreBlock[(best_route->hop_uid_list[1+inter_hop])]->Owner_p = NULL;
-        block_ptr[inter_hop] = StoreBlock[(best_route->hop_uid_list[inter_hop])] = 
-          current_SAB[(best_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE,false);
-        //block_ptr[inter_hop]->set_owner((void**)&StoreBlock[(best_route->hop_uid_list[inter_hop])],false);
-        }
-        else block_ptr[inter_hop] = current_SAB[(best_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
-
-    }
-    else block_ptr[inter_hop] = target_block;
-
-    best_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
-    best_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
-    best_route->hop_cqueue_list[inter_hop-1] = 
-      recv_queues[(best_route->hop_uid_list[inter_hop])]
-      [(best_route->hop_uid_list[inter_hop-1])];
-    ETA_set(best_route->hop_cqueue_list[inter_hop-1]->ETA_get(), best_route->hop_uid_list[inter_hop]);
-
-  }
-  best_route->hop_cqueue_list[0]->wait_for_event(block_ptr[0]->Available); // TODO: is this needed for all optimization methods?
-  
-  FasTCHLMemcpy2DAsync(best_route, dim1, dim2, get_dtype_size());
-  
-  CQueue_p used_queue = best_route->hop_cqueue_list[best_route->hop_num-2];
-
-  if(WRP == WR || WRP == W_REDUCE || WRP == WR_LAZY){
-      /*for(int inter_hop = 1 ; inter_hop < best_route->hop_num - 1; inter_hop++){
-        CBlock_wrap_p wrap_inval = NULL;
-        wrap_inval = (CBlock_wrap_p) malloc (sizeof(struct CBlock_wrap));
-        wrap_inval->lockfree = false;
-        wrap_inval->CBlock = block_ptr[inter_hop];
-        best_route->hop_cqueue_list[inter_hop-1]->add_host_func((void*)&CBlock_RW_INV_wrap, (void*) wrap_inval);
-      }*/
-      loc_map[(best_route->hop_uid_list[best_route->hop_num-1])] = 42;
-
-  }
-  else{
-    for(int inter_hop = 1 ; inter_hop < best_route->hop_num; inter_hop++)
-      loc_map[(best_route->hop_uid_list[inter_hop])] = 42; 
-  }
-  /*if (WRP == WR || WRP == W_REDUCE || WRP == WR_LAZY){
-    CBlock_wrap_p wrap_inval = NULL;
-    wrap_inval = (CBlock_wrap_p) malloc (sizeof(struct CBlock_wrap));
-    wrap_inval->lockfree = false;
-    wrap_inval->CBlock = StoreBlock[(best_route->hop_uid_list[0])];
-    used_queue->add_host_func((void*)&CBlock_RR_INV_wrap, (void*) wrap_inval);
-  }
-  else{
-    CBlock_wrap_p wrap_read = (CBlock_wrap_p) malloc (sizeof(struct CBlock_wrap));
-    wrap_read->CBlock = StoreBlock[(best_route->hop_uid_list[0])];
-    wrap_read->lockfree = false;
-    used_queue->add_host_func((void*)&CBlock_RR_wrap, (void*) wrap_read);
-  }*/
+	if (++W_op_fired == W_op_num){
+		if (WRP == WR_LAZY) WR_lazy_combine();
+		else if (WRP == W_REDUCE) WReduce_backup_C();
+		W_op_complete->record_to_queue(assigned_exec_queue);
+	}
+#ifndef ASYNC_ENABLE
+	CHLSyncCheckErr();
+#endif
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif
-  return best_route;
 }
 
-void Tile2D::operations_complete(CQueue_p assigned_exec_queue, LinkRoute_p* in_route_p, LinkRoute_p* out_route_p){
-  if(WR == WRP){
-    W_complete->record_to_queue(assigned_exec_queue);
-//#ifdef SUBKERNELS_FIRE_WHEN_READY
-#ifdef ENABLE_SEND_RECV_OVERLAP
-    *out_route_p = writeback(NULL, *out_route_p);
+void Tile2D::writeback(){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::writeback() : loc_map = %s\n", 
+    id, GridId1, GridId2, printlist(loc_map, CHL_MEMLOCS));
 #endif
-//#endif
-  }
-  else if(WR_LAZY == WRP){
-    //FIXME: This has a bug that appears sometimes for 8 11111111 -1 -1 N N 1.234 1 8192 8192 8192 0 1 2 2. Its time-related so DEBUG hides it.
-    CBlock_p temp_block = current_SAB[W_master]->assign_Cblock(EXCLUSIVE,false);
-    //temp_block->set_owner(NULL,false);
-    *in_route_p = fetch(temp_block, W_master, *in_route_p);
-    assigned_exec_queue->wait_for_event(temp_block->Available);
-    axpy_backend_in<double>* backend_axpy_wrapper = (axpy_backend_in<double>*) malloc(sizeof(struct axpy_backend_in<double>));
+	// If operation location is also the output location, do not perform any writeback. 
+	if (W_op_dev_id == W_init_loc) return;
+	CBlock_p WB_block = StoreBlock[W_init_loc];
+#ifndef PRODUCTION
+	if (!(WRP == WR || WRP == WR_LAZY || WRP == W_REDUCE))
+    error("Tile2D::writeback -> Tile(%d.[%d,%d]) has WRP = %s\n",
+			id, GridId1, GridId2, get_WRP_string());
+	if (StoreBlock[W_op_dev_id] == NULL || StoreBlock[W_op_dev_id]->State == INVALID)
+		error("Tile2D::writeback -> Tile(%d.[%d,%d]) Storeblock[%d] is NULL\n",
+			id, GridId1, GridId2, W_op_dev_id);
+	if (WB_block == NULL)
+		error("Tile2D::writeback -> Tile(%d.[%d,%d]) WB_block at %d is NULL\n",
+      id, GridId1, GridId2, W_init_loc);
+	if(W_op_dev_id != out_route->hop_uid_list[0])
+		error("Tile2D::writeback error -> W_op_dev_id [%d] != (out_route->hop_uid_list[0]) [%d]", 
+		W_op_dev_id, out_route->hop_uid_list[0]);
+#endif
+    out_route->hop_ldim_list[0] = ldim[W_op_dev_id];
+    out_route->hop_buf_list[0] = StoreBlock[W_op_dev_id]->Adrs;
+    CBlock_p block_ptr[out_route->hop_num] = {NULL};
+    block_ptr[0] = StoreBlock[W_op_dev_id]; 
+
+    for(int inter_hop = 1 ; inter_hop < out_route->hop_num; inter_hop++){
+		out_route->hop_ldim_list[inter_hop] = ldim[out_route->hop_uid_list[inter_hop]];
+		if(inter_hop < out_route->hop_num - 1){
+			block_ptr[inter_hop] = current_SAB[(out_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
+			out_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
+		}
+		else{
+			block_ptr[inter_hop] = WB_block;
+			out_route->hop_event_list[inter_hop-1] = W_wb_complete;
+		}
+		out_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
+    	out_route->hop_cqueue_list[inter_hop-1] = wb_queues[(out_route->hop_uid_list[inter_hop])][(out_route->hop_uid_list[inter_hop-1])];
+    }
+	/// Wait for all operations on the tile to be complete 
+    out_route->hop_cqueue_list[0]->wait_for_event(W_op_complete);
+
+#ifdef DEBUG
+    fprintf(stderr, "Tile2D::writeback WRP = %s, Road = %s \n", get_WRP_string() ,
+    	printlist(out_route->hop_uid_list, out_route->hop_num));
+#endif
+    FasTCHLMemcpy2DAsync(out_route, dim1, dim2, get_dtype_size());
+
+	if (WRP == W_REDUCE) WReduce_combine();
+	else W_ready->record_to_queue(out_route->hop_cqueue_list[out_route->hop_num - 2]);
+
+#ifndef ASYNC_ENABLE
+	CHLSyncCheckErr();
+#endif
+  return; 
+}
+
+void Tile2D::WR_lazy_combine(){
+	backup_C = StoreBlock[W_op_dev_id];
+    StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE,false);
+    fetch();
+	/// Swap backup_C back to StoreBlock 
+	CBlock_p temp_block = StoreBlock[W_op_dev_id]; 
+	StoreBlock[W_op_dev_id] = backup_C; 
+	backup_C = temp_block; 
+	axpy_backend_in<double>* backend_axpy_wrapper = (axpy_backend_in<double>*) malloc(sizeof(struct axpy_backend_in<double>));
     backend_axpy_wrapper->N = dim1*dim2;
     backend_axpy_wrapper->incx = backend_axpy_wrapper->incy = 1;
     backend_axpy_wrapper->alpha = reduce_mult;
-    backend_axpy_wrapper->dev_id = W_master;
+    backend_axpy_wrapper->dev_id = W_op_dev_id;
     backend_axpy_wrapper->x = (void**) &(temp_block->Adrs);
-    backend_axpy_wrapper->y = (void**) &(StoreBlock[W_master]->Adrs);
-    assigned_exec_queue->run_operation(backend_axpy_wrapper, "Daxpy", backend_axpy_wrapper->dev_id);
-    W_complete->record_to_queue(assigned_exec_queue);
-#ifdef ENABLE_SEND_RECV_OVERLAP
-    *out_route_p = writeback(NULL, *out_route_p);
-#endif
-    /*CBlock_wrap_p wrap_inval = NULL;
-    wrap_inval = (CBlock_wrap_p) malloc (sizeof(struct CBlock_wrap));
-    wrap_inval->lockfree = false;
-    wrap_inval->CBlock = temp_block;
-    assigned_exec_queue->add_host_func((void*)&CBlock_RW_INV_wrap, (void*) wrap_inval);*/
-  }
-  else if(W_REDUCE == WRP){
-    W_complete->record_to_queue(assigned_exec_queue);
-	  short Writeback_id = get_initial_location();
-    if(Writeback_id >= CHL_WORKERS) Writeback_id = CHL_WORKER_CLOSE_TO_MEMLOC[W_master];
-    CBlock_p temp_block = current_SAB[Writeback_id]->assign_Cblock(EXCLUSIVE,false);
-    loc_map[W_master] = 42;
-    long int wb_chunk_size = get_chunk_size(get_initial_location());
-    set_chunk_size(get_initial_location(), dim2);
-//#ifdef SUBKERNELS_FIRE_WHEN_READY
-    *out_route_p = writeback(temp_block, *out_route_p);
-//#endif
-    set_chunk_size(get_initial_location(), wb_chunk_size);
-    //temp_block->set_owner(NULL,false);
-    if (reduce_queue_ctr[Writeback_id] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[Writeback_id] = 0; 
-    else reduce_queue_ctr[Writeback_id]++;
-    CQueue_p WB_exec_queue = reduce_queue[Writeback_id][reduce_queue_ctr[Writeback_id]];
-    WB_exec_queue->wait_for_event(temp_block->Available);
-    /*
-    axpby_backend_in<double>* backend_axpby_wrapper[dim2]= {NULL};
-    double** slide_addr_x = (double**) malloc(dim2*sizeof(double*)), 
-    **slide_addr_y = (double**)  malloc(dim2*sizeof(double*));
-    //temp_block->Available->sync_barrier();
-    for(int daxpy_dims = 0; daxpy_dims < dim2; daxpy_dims++){
-      //fprintf(stderr, "Itter %d\n", daxpy_dims);
-      backend_axpby_wrapper[daxpy_dims] = (axpby_backend_in<double>*) malloc(sizeof(struct axpby_backend_in<double>));
-      backend_axpby_wrapper[daxpy_dims]->N = dim1;
-      backend_axpby_wrapper[daxpy_dims]->incx = 1;
-      backend_axpby_wrapper[daxpy_dims]->incy = 1;
-      backend_axpby_wrapper[daxpy_dims]->alpha = 1.0;
-      backend_axpby_wrapper[daxpy_dims]->beta = reduce_mult;
-      backend_axpby_wrapper[daxpy_dims]->dev_id = Writeback_id;
-      slide_addr_x[daxpy_dims] = &(((double*)temp_block->Adrs)[daxpy_dims*dim1]);
-      slide_addr_y[daxpy_dims] = &(((double*)StoreBlock[Writeback_id_idx]->Adrs)[daxpy_dims*get_chunk_size(Writeback_id_idx)]);
-      backend_axpby_wrapper[daxpy_dims]->x = (void**) &(slide_addr_x[daxpy_dims]);
-      backend_axpby_wrapper[daxpy_dims]->y = (void**) &(slide_addr_y[daxpy_dims]);
-      WB_exec_queue->run_operation(backend_axpby_wrapper[daxpy_dims], "Daxpby", backend_axpby_wrapper[daxpy_dims]->dev_id);
-    //cblas_daxpby(backend_axpby_wrapper[daxpy_dims]->N, backend_axpby_wrapper[daxpy_dims]->alpha,
-    //  (double*) *backend_axpby_wrapper[daxpy_dims]->x, backend_axpby_wrapper[daxpy_dims]->incx, 
-    //  backend_axpby_wrapper[daxpy_dims]->beta,
-    //  (double*)*backend_axpby_wrapper[daxpy_dims]->y, backend_axpby_wrapper[daxpy_dims]->incy);
-    }*/
-    slaxpby_backend_in<double>* backend_slaxpby_wrapper = (slaxpby_backend_in<double>*) malloc(sizeof(struct slaxpby_backend_in<double>));
+    backend_axpy_wrapper->y = (void**) &(StoreBlock[W_op_dev_id]->Adrs);
+	/// Wait for WR tile fetch to be complete
+    exec_queue[W_op_dev_id][W_op_queue_ctr]->wait_for_event(StoreBlock[W_op_dev_id]->Available);
+	/// Perform  C = reduce_mult * C' + C (axpy) at the compute location for this tile (W_op_dev_id)
+    exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Daxpy", W_op_dev_id);
+    W_op_complete->record_to_queue(exec_queue[W_op_dev_id][W_op_queue_ctr]);
+}
+
+void Tile2D::WReduce_backup_C(){
+    //if(W_init_loc >= CHL_WORKERS) W_init_loc = CHL_WORKER_CLOSE_TO_MEMLOC[W_master];
+	backup_C = StoreBlock[W_init_loc];
+	StoreBlock[W_init_loc] = current_SAB[W_init_loc]->assign_Cblock(EXCLUSIVE,false);
+	backup_C_ldim = ldim[W_init_loc];
+	ldim[W_init_loc] = dim2; 
+	//loc_map[W_op_dev_id] = 42; TODO: P3 - is this needed somewhere?
+}
+
+void Tile2D::WReduce_combine(){
+    //if(W_init_loc >= CHL_WORKERS) W_init_loc = CHL_WORKER_CLOSE_TO_MEMLOC[W_master];
+    if (reduce_queue_ctr[W_init_loc] == REDUCE_WORKERS_PERDEV - 1) reduce_queue_ctr[W_init_loc] = 0; 
+    else reduce_queue_ctr[W_init_loc]++;
+    CQueue_p WB_exec_queue = reduce_queue[W_init_loc][reduce_queue_ctr[W_init_loc]];
+	CBlock_p temp_block = StoreBlock[W_init_loc]; 
+	StoreBlock[W_init_loc] = backup_C;
+	ldim[W_init_loc] = backup_C_ldim; 
+
+	slaxpby_backend_in<double>* backend_slaxpby_wrapper = (slaxpby_backend_in<double>*) malloc(sizeof(struct slaxpby_backend_in<double>));
     backend_slaxpby_wrapper->N = dim1;
     backend_slaxpby_wrapper->incx = 1;
     backend_slaxpby_wrapper->incy = 1;
     backend_slaxpby_wrapper->alpha = 1.0;
     backend_slaxpby_wrapper->beta = reduce_mult;
-    backend_slaxpby_wrapper->dev_id = Writeback_id;
+    backend_slaxpby_wrapper->dev_id = W_init_loc;
     backend_slaxpby_wrapper->x = (void**) &(temp_block->Adrs);
-    backend_slaxpby_wrapper->y = (void**) &(StoreBlock[get_initial_location()]->Adrs);
+    backend_slaxpby_wrapper->y = (void**) &(StoreBlock[W_init_loc]->Adrs);
     backend_slaxpby_wrapper->slide_x = dim2;
-    backend_slaxpby_wrapper->slide_y = get_chunk_size(get_initial_location());
-    //WB_exec_queue->sync_barrier();
-    WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", backend_slaxpby_wrapper->dev_id);
-    W_reduce->record_to_queue(WB_exec_queue);
-    //WB_exec_queue->sync_barrier();
-    /*CBlock_wrap_p wrap_inval = NULL;
-    wrap_inval = (CBlock_wrap_p) malloc (sizeof(struct CBlock_wrap));
-    wrap_inval->lockfree = false;
-    wrap_inval->CBlock = temp_block;
-    assigned_exec_queue->add_host_func((void*)&CBlock_RW_INV_wrap, (void*) wrap_inval);*/
-  }
+    backend_slaxpby_wrapper->slide_y = ldim[W_init_loc];
+
+	/// Wait for the writeback of C' to be complete
+    WB_exec_queue->wait_for_event(W_wb_complete);
+
+	/// Perform  C = 1.0 * C' + reduce_mult * C (axpby) at the initial data location for this tile (W_init_loc)
+	WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", W_init_loc);
+
+	W_ready->record_to_queue(WB_exec_queue);
+
 }
 
-LinkRoute_p Tile2D::writeback(CBlock_p WB_block_candidate, LinkRoute_p in_route){
-	short W_master_idx = (W_master);
-	short Writeback_id = get_initial_location(), Writeback_id_idx = (Writeback_id);
-  CBlock_p WB_block = (WB_block_candidate) ? WB_block_candidate : StoreBlock[Writeback_id_idx];
-	if (!(WRP == WR || WRP == WR_LAZY || WRP == W_REDUCE))
-    error("Tile2D::writeback -> Tile(%d.[%d,%d]) has WRP = %s\n",
-			id, GridId1, GridId2, WRP);
-	if (StoreBlock[W_master_idx] == NULL || StoreBlock[W_master_idx]->State == INVALID)
-		error("Tile2D::writeback -> Tile(%d.[%d,%d]) Storeblock[%d] is NULL\n",
-			id, GridId1, GridId2, W_master_idx);
-	if (WB_block == NULL)
-		error("Tile2D::writeback -> Tile(%d.[%d,%d]) WB_block at %d is NULL\n",
-      id, GridId1, GridId2, Writeback_id_idx);
-  LinkRoute_p best_route = NULL;
-	if (W_master_idx == Writeback_id);
-	else{
-    if(!in_route){
-      //fprintf(stderr, "Tile(%d.[%d,%d]): writeback with in_route = %p\n",
-      //id, GridId1, GridId2, in_route);
-      best_route = new LinkRoute();
-      best_route->starting_hop = 0;
-      best_route->optimize_reverse(this, 1); // The core of our optimization
-    }
-    else best_route = in_route; 
 
-  massert(W_master_idx == (best_route->hop_uid_list[0]), 
-    "Tile2D::writeback error -> W_master_idx [%d] != (best_route->hop_uid_list[0]) [%d]", 
-    W_master_idx, (best_route->hop_uid_list[0]));
-
-#ifdef DEBUG
-	fprintf(stderr, "|-----> Tile2D[%d:%d,%d]::writeback() : loc_map = %s\n", 
-    id, GridId1, GridId2, printlist(loc_map, CHL_MEMLOCS));
-#endif
-
-    best_route->hop_ldim_list[0] = get_chunk_size(W_master_idx);
-    best_route->hop_buf_list[0] = StoreBlock[W_master_idx]->Adrs;
-    CBlock_p block_ptr[best_route->hop_num] = {NULL};
-    block_ptr[0] = StoreBlock[W_master_idx]; 
-
-    for(int inter_hop = 1 ; inter_hop < best_route->hop_num; inter_hop++){
-      best_route->hop_ldim_list[inter_hop] = get_chunk_size((best_route->hop_uid_list[inter_hop]));  // TODO: This might be wrong for Tile1D + inc!=1
-
-      if(inter_hop < best_route->hop_num - 1){
-        block_ptr[inter_hop] = current_SAB[(best_route->hop_uid_list[inter_hop])]->
-          assign_Cblock(EXCLUSIVE,false);
-          best_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
-      }
-      else{
-        block_ptr[inter_hop] = WB_block;
-        if (!(WB_block_candidate)) best_route->hop_event_list[inter_hop-1] = NULL;
-        else best_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
-      }
-  
-      best_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
-
-      best_route->hop_cqueue_list[inter_hop-1] = wb_queues[(best_route->hop_uid_list[inter_hop])][(best_route->hop_uid_list[inter_hop-1])];
-
-    }
-    best_route->hop_cqueue_list[0]->wait_for_event(W_complete);
-    CQueue_p used_queue = best_route->hop_cqueue_list[best_route->hop_num-2];
-
-  #ifdef DEBUG
-    fprintf(stderr, "Tile2D::writeback WRP = %s, Road = %s \n", get_WRP_string() ,
-      printlist(best_route->hop_uid_list, best_route->hop_num));
-  #endif
-    FasTCHLMemcpy2DAsync(best_route, dim1, dim2, get_dtype_size());
-
-    /*for(int inter_hop = 1 ; inter_hop < best_route->hop_num -1; inter_hop++){
-      CBlock_wrap_p wrap_inval = NULL;
-      wrap_inval = (CBlock_wrap_p) malloc (sizeof(struct CBlock_wrap));
-      wrap_inval->lockfree = false;
-      wrap_inval->CBlock = block_ptr[inter_hop];
-      best_route->hop_cqueue_list[inter_hop-1]->add_host_func((void*)&CBlock_RW_INV_wrap, (void*) wrap_inval);
-    }*/
-  }
-#ifndef ASYNC_ENABLE
-	CHLSyncCheckErr();
-#endif
-  return best_route; 
-}
 
 /*****************************************************/
 /// PARALia 2.0 - timed queues and blocks
@@ -365,86 +353,29 @@ long double Tile2D::ETA_fetch_estimate(int target_id){
 }
 
 void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
-  short lvl = 3;
 #ifdef DDEBUG
-  lprintf(lvl - 1, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
+	fprintf(stderr, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
 #endif
-
-  W_master_backend_ctr = -42;
-  fired_times = 0; 
-  short init_loc = CHLGetPtrLoc(new_adrr);
-  short init_loc_idx = (init_loc);
-  for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
-  {
-    if (iloc == init_loc_idx)
-    {
-      //loc_map[iloc] = 0;
-      //block_ETA[iloc] = 0; 
-      StoreBlock[iloc] = new_init_loc_block_p;
-      StoreBlock[iloc]->Adrs = new_adrr;
-      //StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
-      set_chunk_size(iloc, new_init_chunk);
-      StoreBlock[iloc]->Available->record_to_queue(NULL);
-    }
-    else
-    {
-      StoreBlock[iloc] = NULL;
-      //ldim[iloc] = dim1;
-      loc_map[iloc] = -42;
-      //block_ETA[iloc] = -42; 
-    } 
-  }
+	W_op_dev_id = W_op_queue_ctr = W_op_num = W_op_fired = -42;
+	W_op_complete = W_ready = NULL;
+	W_op_params = NULL; 
+	W_op_dep_num = 0; 
+	short init_loc = CHLGetPtrLoc(new_adrr);
+	short init_loc_idx = (init_loc);
+	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
+	{
+		if (iloc == init_loc_idx){
+			StoreBlock[iloc] = new_init_loc_block_p;
+			StoreBlock[iloc]->Adrs = new_adrr;
+			ldim[iloc] = new_init_chunk;
+			StoreBlock[iloc]->Available->record_to_queue(NULL);
+		}
+		else{
+			StoreBlock[iloc] = NULL;
+			loc_map[iloc] = -42;
+		} 
+	}
 #ifdef DDEBUG
-  lprintf(lvl - 1, "<-----|\n");
+	fprintf(stderr, "<-----|\n");
 #endif
-}
-
-int Tile2D_num = 0;
-
-Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
-               int in_ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, CBlock_p init_loc_block_p)
-{
-  short lvl = 3;
-#ifdef DDEBUG
-  lprintf(lvl - 1, "|-----> Tile2D(%d)::Tile2D(in_addr(%d) = %p,%d,%d,%d, %d, %d)\n",
-          Tile2D_num, CHLGetPtrLoc(in_addr), in_addr, in_dim1, in_dim2, in_ldim, inGrid1, inGrid2);
-#endif
-  dtype = dtype_in;
-  dim1 = in_dim1;
-  dim2 = in_dim2;
-  GridId1 = inGrid1;
-  GridId2 = inGrid2;
-  id = Tile2D_num;
-  Tile2D_num++;
-  short init_loc = CHLGetPtrLoc(in_addr);
-  for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
-  {
-    if (iloc == init_loc)
-    {
-      loc_map[iloc] = 0;
-      block_ETA[iloc] = 0; 
-      StoreBlock[iloc] = init_loc_block_p;
-      StoreBlock[iloc]->Adrs = in_addr;
-      //StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
-      ldim[iloc] = in_ldim;
-      StoreBlock[iloc]->Available->record_to_queue(NULL);
-    }
-    else
-    {
-      StoreBlock[iloc] = NULL;
-      ldim[iloc] = in_dim1;
-      loc_map[iloc] = -42;
-      block_ETA[iloc] = -42; 
-    } 
-  }
-#ifdef DDEBUG
-  lprintf(lvl - 1, "<-----|\n");
-#endif
-}
-
-Tile2D::~Tile2D()
-{
-  delete W_complete; 
-  delete W_reduce; 
-  Tile2D_num--;
 }

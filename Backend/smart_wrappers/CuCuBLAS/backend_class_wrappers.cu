@@ -139,6 +139,9 @@ void CommandQueue::add_host_func(void* func, void* data){
 
 void CommandQueue::wait_for_event(Event_p Wevent)
 {
+#ifndef PRODUCTION
+	if (Wevent == NULL) error("[dev_id=%3d] CommandQueue(%d)::wait_for_event() called with NULL event\n", dev_id, id);
+#endif
 #ifdef UDEBUG
 	fprintf(stderr, "[dev_id=%3d] |-----> CommandQueue(%d)::wait_for_event(Event(%d))\n", dev_id, id, Wevent->id);
 #endif

@@ -391,7 +391,7 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 	// Condition 4.2
 	if(dev_sks > MAX_DESIRED_SK_DEV) slowdown[4]+= (1.0*dev_sks/MAX_DESIRED_SK_DEV)*MAX_DESIRED_SK_DEV_SLOWDOWN;
 	// Condition 5
-	if(candidate_T > TILE_MAX) slowdown[5]+=candidate_T/TILE_MAX*TILE_MΑΧ_SLOWDOWN;
+	if(candidate_T > TILE_MAX) slowdown[5]+=candidate_T/TILE_MAX*TILE_MAX_SLOWDOWN;
 	slowdown[0] = slowdown[1] + slowdown[2] + slowdown[3] + slowdown[4]  + slowdown[5];
 #ifdef DPDEBUG
 	fprintf(stderr,  "====================================\n");

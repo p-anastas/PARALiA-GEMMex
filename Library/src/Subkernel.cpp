@@ -16,12 +16,6 @@
 int Subkernel_ctr = 0;
 int init = SKConfigResources();
 
-inline int get_next_queue_ctr(int dev_id){
-	exec_queue_ctr[(dev_id)]++;
-	if (exec_queue_ctr[(dev_id)] == MAX_BACKEND_L) exec_queue_ctr[(dev_id)] = 0; 
-	return exec_queue_ctr[(dev_id)];
-}
-
 Subkernel::Subkernel(int TileNum_in, const char* name){
 	id = Subkernel_ctr;
 	fetch_ETA = run_op_est_t = 0;

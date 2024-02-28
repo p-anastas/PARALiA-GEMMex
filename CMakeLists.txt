@@ -144,7 +144,7 @@ add_definitions(-DMAX_DESIRED_SK_DEV=512)
 add_definitions(-DMAX_DESIRED_SK_DEV_SLOWDOWN=0.1)
 ## 5: T-max: Tile should be <= than a preset value
 add_definitions(-DTILE_MAX=4096)
-add_definitions(-DTILE_MΑΧ_SLOWDOWN=0.1)
+add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
 
 
 ###########################################################################################
