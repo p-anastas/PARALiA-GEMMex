@@ -267,13 +267,13 @@ add_definitions(-DWS_SZ=0)
 ###########################################################################################
 
 
-if(NOT $ENV{CHANGELINK_CUDA_TOOLKIT_PREFIX} STREQUAL "default")
-  set (CUDA_PREFIX $ENV{CHANGELINK_CUDA_TOOLKIT_PREFIX})
+if(NOT $ENV{PARALIA_CUDA_TOOLKIT_PREFIX} STREQUAL "default")
+  set (CUDA_PREFIX $ENV{PARALIA_CUDA_TOOLKIT_PREFIX})
   set (CMAKE_CUDA_COMPILER ${CUDA_PREFIX}/bin/nvcc)
 endif()
 
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES $ENV{CHANGELINK_CUDA_ARCH})
+  set(CMAKE_CUDA_ARCHITECTURES $ENV{PARALIA_CUDA_ARCH})
 endif()
 
 set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -O3")
@@ -293,8 +293,8 @@ message("PARALiA-GEMMex - INTERNAL_LINK_LIB: " ${INTERNAL_LINK_LIB})
 #----------------------------------C/C++ definitions--------------------------------------#
 ###########################################################################################
 
-if(NOT $ENV{CHANGELINK_CXX_PREFIX} STREQUAL "default")
-  set (CXX_PREFIX $ENV{CHANGELINK_CXX_PREFIX})
+if(NOT $ENV{PARALIA_CXX_PREFIX} STREQUAL "default")
+  set (CXX_PREFIX $ENV{PARALIA_CXX_PREFIX})
   set (CMAKE_CXX_COMPILER ${CXX_PREFIX}/bin/c++)
   set (CMAKE_C_COMPILER ${CXX_PREFIX}/bin/gcc)
 endif()
@@ -308,7 +308,7 @@ message("PARALiA-GEMMex - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 #---------------------------------OpenBLAS definitions------------------------------------#
 ###########################################################################################
 
-set(OPENBLAS_PREFIX $ENV{CHANGELINK_OPENBLAS_PREFIX})
+set(OPENBLAS_PREFIX $ENV{PARALIA_OPENBLAS_PREFIX})
 
 set (OPENBLAS_INCLUDE_DIRS ${OPENBLAS_PREFIX}/include)
 include_directories(${OPENBLAS_INCLUDE_DIRS})
@@ -322,7 +322,7 @@ message("PARALiA-GEMMex - OPENBLAS_LINK: " ${OPENBLAS_LINK})
 #-------------------------------------Start Project---------------------------------------#
 ###########################################################################################
 
-ADD_SUBDIRECTORY (CHANGE-LINK)
+ADD_SUBDIRECTORY (Backend)
 
 project (PARALiA-GEMMex VERSION ${PROJECT_VERSION} DESCRIPTION "A PARALiA implementation of gemm similar to cublasLt functions, for multi-GPU" LANGUAGES CUDA CXX)
 
@@ -346,5 +346,5 @@ configure_file(${PROJECT_BENCH_DIR}/Heterogeneous_performance_estimation.in ${CM
 #endif()
 
 ADD_SUBDIRECTORY (Autotuner)
-ADD_SUBDIRECTORY (Library_scheduler)
+ADD_SUBDIRECTORY (Library)
 ADD_SUBDIRECTORY (Benchmarking)

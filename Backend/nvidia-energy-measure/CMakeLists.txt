@@ -2,7 +2,7 @@ cmake_minimum_required (VERSION 3.10)
 #set(CMAKE_VERBOSE_MAKEFILE on)
 
 ## 1) TODO: CUDA PREFIX - replace with your CUDA path
-set (CUDA_TOOLKIT_ROOT_DIR $ENV{CHANGELINK_CUDA_TOOLKIT_PREFIX})
+set (CUDA_TOOLKIT_ROOT_DIR ${CUDA_PREFIX})
 
 # 	a) Compiler
 set (CMAKE_CUDA_COMPILER ${CUDA_TOOLKIT_ROOT_DIR}/bin/nvcc)

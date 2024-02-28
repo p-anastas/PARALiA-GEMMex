@@ -13,8 +13,8 @@ set (AUTOTUNE_DIR_INC ${AUTOTUNE_DIR}/include)
 include_directories( ${AUTOTUNE_DIR_INC})
 message( "Autotuner - Included DIR: " ${AUTOTUNE_DIR_INC} )
 
-include_directories(${CHANGELINK_INSTALL_INC})
-message( "Autotuner - Included DIR: " ${CHANGELINK_INSTALL_INC} )
+include_directories(${PARALIA_INSTALL_INC})
+message( "Autotuner - Included DIR: " ${PARALIA_INSTALL_INC} )
 
 set (AUTOTUNE_DIR_SRC ${AUTOTUNE_DIR}/src)
 message( "Autotuner - Source DIR: " ${AUTOTUNE_DIR_SRC} )

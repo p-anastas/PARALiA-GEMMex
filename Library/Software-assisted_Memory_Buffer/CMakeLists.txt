@@ -13,12 +13,8 @@ set (CACHING_DIR_INC ${CACHING_DIR}/include)
 include_directories( ${CACHING_DIR_INC})
 message( "Software-assisted Memory Buffer - Included DIR: " ${CACHING_DIR_INC} )
 
-set (CACHING_DIR_TEST ${PROJECT_SOURCE_DIR}/Testing)
-#include_directories( ${CACHING_DIR_TEST})
-message( "Software-assisted Memory Buffer - Included DIR: " ${CACHING_DIR_TEST} )
-
-include_directories(${CHANGELINK_INSTALL_INC})
-message( "Software-assisted Memory Buffer - Included DIR: " ${CHANGELINK_INSTALL_INC} )
+include_directories(${PARALIA_INSTALL_INC})
+message( "Software-assisted Memory Buffer - Included DIR: " ${PARALIA_INSTALL_INC} )
 
 include_directories(${LIBSC_INSTALL_INC})
 message( "Software-assisted Memory Buffer - Included DIR: " ${LIBSC_INSTALL_INC} )
@@ -53,9 +49,6 @@ set (BUFFER_VAL ${BUFFER_VAL} PARENT_SCOPE)
 
 target_link_libraries(caching ${INTERNAL_LINK_LIB} chl_grid_amalgamation)
 configure_file(${CACHING_DIR_INC}/DataCaching.hpp ${CACHING_INSTALL_INC}/DataCaching.hpp COPYONLY)
-
-add_executable (functionTest ${CACHING_DIR_TEST}/functionTest.cpp )
-target_link_libraries(functionTest ${INTERNAL_LINK_LIB} caching)
 
 set (CACHING_INSTALL_INC ${CACHING_INSTALL_INC} PARENT_SCOPE)
 message( "->\nSoftware-assisted Memory Buffer - Shared Library: " ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} )

@@ -13,8 +13,8 @@ set (BENCH_DIR_INC ${BENCH_DIR}/include)
 include_directories( ${BENCH_DIR_INC})
 message( "Benchmarking - Included DIR: " ${BENCH_DIR_INC} )
 
-include_directories(${CHANGELINK_INSTALL_INC})
-message( "Benchmarking - Included DIR: " ${CHANGELINK_INSTALL_INC} )
+include_directories(${PARALIA_INSTALL_INC})
+message( "Benchmarking - Included DIR: " ${PARALIA_INSTALL_INC} )
 
 include_directories(${AUTOTUNE_INSTALL_INC})
 message( "Benchmarking - Included DIR: " ${AUTOTUNE_INSTALL_INC} )

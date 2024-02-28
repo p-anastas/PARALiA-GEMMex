@@ -34,22 +34,22 @@ const char* print_event_status(event_status in_status){
 
 void CommandQueue_comp_init(CQueue_p myself){
 #ifdef UDEBUG
-	fprintf(stderr, "[dev_id=%3d] |-----> CommandQueue_comp_init(Queue(%d))\n", dev_id, id);
+	fprintf(stderr, "[dev_id=%3d] |-----> CommandQueue_comp_init(Queue(%d))\n", myself->dev_id, myself->id);
 #endif
-	cudaStream_t stream = *((cudaStream_t*) backend_queue_ptr);
-	backend_comp_md = malloc(sizeof(cublasHandle_t));
-	massert(CUBLAS_STATUS_SUCCESS == cublasCreate((cublasHandle_t*) backend_comp_md),
-		"CommandQueue_comp_init(%d): cublasCreate failed\n", dev_id);
-	massert(CUBLAS_STATUS_SUCCESS == cublasSetStream(*((cublasHandle_t*) backend_comp_md), stream),
-		"CommandQueue_comp_init(%d): cublasSetStream failed\n", dev_id);
+	cudaStream_t stream = *((cudaStream_t*) myself->backend_queue_ptr);
+	myself->backend_comp_md = malloc(sizeof(cublasHandle_t));
+	massert(CUBLAS_STATUS_SUCCESS == cublasCreate((cublasHandle_t*) myself->backend_comp_md),
+		"CommandQueue_comp_init(%d): cublasCreate failed\n", myself->dev_id);
+	massert(CUBLAS_STATUS_SUCCESS == cublasSetStream(*((cublasHandle_t*) myself->backend_comp_md), stream),
+		"CommandQueue_comp_init(%d): cublasSetStream failed\n", myself->dev_id);
 	if(WS_SZ >=0){
 	void* local_ws = NULL; if(WS_SZ) cudaMalloc(&local_ws, WS_SZ); 
 	massert(CUBLAS_STATUS_SUCCESS == cublasSetWorkspace(*((cublasHandle_t*) 
-		backend_comp_md), local_ws, WS_SZ), 
-		"CommandQueue_comp_init(%d): cublasSetWorkspace failed\n", dev_id);
+		myself->backend_comp_md), local_ws, WS_SZ), 
+		"CommandQueue_comp_init(%d): cublasSetWorkspace failed\n", myself->dev_id);
 	}
 #ifdef UDEBUG
-	fprintf(stderr, "[dev_id=%3d] <-----| CommandQueue_comp_init(Queue(%d))\n", dev_id, id);
+	fprintf(stderr, "[dev_id=%3d] <-----| CommandQueue_comp_init(Queue(%d))\n", myself->dev_id, myself->id);
 #endif
 }
 
@@ -80,10 +80,10 @@ CommandQueue::CommandQueue(int dev_id_in, CQueue_type type_in)
 }
 
 void CommandQueue_comp_delete(CQueue_p myself){
-	cublasHandle_t handle = *((cublasHandle_t*) backend_comp_md);
+	cublasHandle_t handle = *((cublasHandle_t*) myself->backend_comp_md);
 	massert(CUBLAS_STATUS_SUCCESS == cublasDestroy(handle),
 		"CommandQueue_comp_delete - cublasDestroy(handle) failed\n");
-	free(backend_comp_md);
+	free(myself->backend_comp_md);
 }
 
 CommandQueue::~CommandQueue()
@@ -201,10 +201,10 @@ void CommandQueue::run_operation(void* backend_data, const char* opname, int tar
 	//TODO: This seemed to be needed here for the GPU calls...
 	CHLSelectDevice(target_dev_id_in);
 	if(target_dev_id_in == -1 || target_dev_id_in >= CHL_WORKERS){
-		if (!strcmp(opname, "Dgemm")) add_host_func( &cblas_wrap_dgemm, backend_data);
-		else if (!strcmp(opname, "Daxpy")) add_host_func( &cblas_wrap_daxpy, backend_data);
-		else if (!strcmp(opname, "Daxpby")) add_host_func( &cblas_wrap_daxpby, backend_data);
-		else if (!strcmp(opname, "Dslaxpby")) add_host_func( &custom_cpu_wrap_dslaxpby, backend_data);
+		if (!strcmp(opname, "Dgemm")) add_host_func( (cudaHostFn_t*) &cblas_wrap_dgemm, backend_data);
+		else if (!strcmp(opname, "Daxpy")) add_host_func( (cudaHostFn_t*) &cblas_wrap_daxpy, backend_data);
+		else if (!strcmp(opname, "Daxpby")) add_host_func( (cudaHostFn_t*) &cblas_wrap_daxpby, backend_data);
+		else if (!strcmp(opname, "Dslaxpby")) add_host_func( (cudaHostFn_t*) &custom_cpu_wrap_dslaxpby, backend_data);
 		else error("CommandQueue(%d)::run_operation(): unsupported opname = %s\n", id, opname);
 	}
 	else{
@@ -212,7 +212,7 @@ void CommandQueue::run_operation(void* backend_data, const char* opname, int tar
 		else if (!strcmp(opname, "Daxpy")) cublas_wrap_daxpy(backend_data, this);
 		else if (!strcmp(opname, "Daxpby")) cublas_wrap_daxpby(backend_data, this);
 		else if (!strcmp(opname, "Dslaxpby")) custom_gpu_wrap_dslaxpby(backend_data, this);
-		else error("CommandQueue(%d)::run_operation(): unsupported opname = %s\n", id, opname)
+		else error("CommandQueue(%d)::run_operation(): unsupported opname = %s\n", id, opname);
 
 	}
 #ifdef UDEBUG
@@ -394,7 +394,7 @@ Event::~Event()
 	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::~Event()\n", dev_id, id);
 #endif
 	sync_barrier();
-	Event_num_device[dev_id]--;
+	Event_num_loc[dev_id]--;
 	cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
 #ifndef PRODUCTION
 	massert(cudaSuccess == err, "Event(%d)::~Event() - %s\n", id, cudaGetErrorString(err));
@@ -413,7 +413,7 @@ void Event::sync_barrier()
 #endif
 	event_status Evstat = query_status();
 	if (status == COMPLETE) return;
-	else (status == RECORDED){
+	else if(status == RECORDED){
 		cudaEvent_t cuda_event= *(cudaEvent_t*) event_backend_ptr;
 		cudaError_t err = cudaEventSynchronize(cuda_event);
 		status = COMPLETE;
@@ -469,7 +469,7 @@ void Event::soft_reset(){
 	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::soft_reset()\n", dev_id, id);
 #endif
 	// sync_barrier();
-	error("Not updated for non-lazy events\n")
+	error("Not updated for non-lazy events\n");
 	status = UNRECORDED;
 #ifdef UDDEBUG
 	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::soft_reset()\n", dev_id, id);

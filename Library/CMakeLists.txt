@@ -17,8 +17,8 @@ set (LIBSC_DIR_INC_BACK ${LIBSC_DIR}/${BACKEND}/)
 include_directories( ${LIBSC_DIR_INC_BACK})
 message( "Library Scheduler - Included DIR: " ${LIBSC_DIR_INC_BACK} )
 
-include_directories(${CHANGELINK_INSTALL_INC})
-message( "Library Scheduler - Included DIR: " ${CHANGELINK_INSTALL_INC} )
+include_directories(${PARALIA_INSTALL_INC})
+message( "Library Scheduler - Included DIR: " ${PARALIA_INSTALL_INC} )
 
 include_directories(${AUTOTUNE_INSTALL_INC})
 message( "Library Scheduler - Included DIR: " ${AUTOTUNE_INSTALL_INC} )
