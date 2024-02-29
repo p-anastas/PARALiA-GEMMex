@@ -70,7 +70,6 @@ public:
     int W_init_loc, W_op_dev_id, W_op_queue_ctr, W_op_num, W_op_fired;
     Event_p W_op_complete, W_wb_complete, W_ready;
 
-    Event_p W_op_dependencies[4] = {NULL};
     int W_op_dep_num;
     void** W_op_params;
 	const char* W_op_name;

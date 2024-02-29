@@ -129,29 +129,11 @@ void ManageCachesDgemm(PMD_p local_PMD){
 	return;
 }
 
-void CreateSubkernelsDgemm(PMD_p local_PMD){
-	/// Check if decomposers satisfy GEMM dim criteria for N, N transpose
-	if (local_PMD->decom[0]->transpose == 'N' && local_PMD->decom[1]->transpose == 'N'){
-		massert(local_PMD->decom[0]->GridSz1 == local_PMD->decom[2]->GridSz1 &&
-						local_PMD->decom[0]->Tile_map[0]->dim1 == local_PMD->decom[2]->Tile_map[0]->dim1 &&
-						local_PMD->decom[0]->Tile_map[local_PMD->decom[0]->GridSz1*local_PMD->decom[0]->GridSz2-1]->dim1
-						== local_PMD->decom[2]->Tile_map[local_PMD->decom[2]->GridSz1*local_PMD->decom[2]->GridSz2-1]->dim1,
-						"M dim does not mach between decomposers for GEMM\n");
-		massert(local_PMD->decom[1]->GridSz2 == local_PMD->decom[2]->GridSz2 &&
-						local_PMD->decom[1]->Tile_map[0]->dim2 == local_PMD->decom[2]->Tile_map[0]->dim2 &&
-						local_PMD->decom[1]->Tile_map[local_PMD->decom[1]->GridSz1*local_PMD->decom[1]->GridSz2-1]->dim2
-						== local_PMD->decom[2]->Tile_map[local_PMD->decom[2]->GridSz1*local_PMD->decom[2]->GridSz2-1]->dim2,
-						"N dim does not mach between decomposers for GEMM\n");
-		massert(local_PMD->decom[0]->GridSz2 == local_PMD->decom[1]->GridSz1 &&
-						local_PMD->decom[0]->Tile_map[0]->dim2 == local_PMD->decom[1]->Tile_map[0]->dim1 &&
-						local_PMD->decom[0]->Tile_map[local_PMD->decom[0]->GridSz1*local_PMD->decom[0]->GridSz2-1]->dim2
-						== local_PMD->decom[1]->Tile_map[local_PMD->decom[1]->GridSz1*local_PMD->decom[1]->GridSz2-1]->dim1,
-						"K dim does not mach between decomposers for GEMM\n");
-	}
-	local_PMD->sk_num = local_PMD->autotuner->subkernel_num;
+void CreateTasksDgemm(PMD_p local_PMD){
+
 #ifdef DEBUG
-	fprintf(stderr, "|-----> CreateSubkernelsDgemm(%p,%d,%d)\n",
-		local_PMD, local_PMD->autotuner->T, local_PMD->sk_num);
+	fprintf(stderr, "|-----> CreateTasksDgemm(%p,%ld,%ld)\n",
+		local_PMD, local_PMD->autotuner->T, local_PMD->autotuner->comp_task_num);
 	fprintf(stderr,"MgridSz = %d, NgridSz = %d, KgridSz = %d\n",
 		local_PMD->decom[0]->GridSz1, local_PMD->decom[1]->GridSz2, local_PMD->decom[0]->GridSz2);
 	fprintf(stderr,"Mlast = %d, Nlast = %d, Klast = %d\n",
@@ -159,169 +141,94 @@ void CreateSubkernelsDgemm(PMD_p local_PMD){
 	local_PMD->decom[1]->Tile_map[local_PMD->decom[1]->GridSz1*local_PMD->decom[1]->GridSz2-1]->dim2,
 	local_PMD->decom[0]->Tile_map[local_PMD->decom[0]->GridSz1*local_PMD->decom[0]->GridSz2-1]->dim2);
 #endif
-
-	local_PMD->subkernel_list = (Subkernel**) malloc(local_PMD->sk_num*sizeof(Subkernel*));
 	gemm_backend_in<double>* initial_dgemm = (gemm_backend_in<double>*) local_PMD->problem_wrap;
-	int current_ctr = 0;
+	//int current_ctr = 0;
 	for (int mi = 0; mi < local_PMD->decom[0]->GridSz1; mi++){
 		for (int ni = 0; ni < local_PMD->decom[1]->GridSz2; ni++){
-			for (int ki = 0; ki < local_PMD->decom[0]->GridSz2; ki++){
-	      		current_ctr = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + 
-					ni*local_PMD->decom[0]->GridSz2 + ki;
-				local_PMD->subkernel_list[current_ctr] = new Subkernel(3,"Dgemm");
-				local_PMD->subkernel_list[current_ctr]->iloc1 = mi;
-				local_PMD->subkernel_list[current_ctr]->iloc2 = ni;
-				local_PMD->subkernel_list[current_ctr]->iloc3 = ki;
-				local_PMD->subkernel_list[current_ctr]->TileList[0] = local_PMD->decom[0]->getTile(mi,ki);
-				local_PMD->subkernel_list[current_ctr]->TileList[1] = local_PMD->decom[1]->getTile(ki,ni);
-				local_PMD->subkernel_list[current_ctr]->TileList[2] = local_PMD->decom[2]->getTile(mi,ni);
-				local_PMD->subkernel_list[current_ctr]->TileList[0]->set_WRP(RONLY);
-				local_PMD->subkernel_list[current_ctr]->TileList[1]->set_WRP(RONLY);
-				if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR"))
-					local_PMD->subkernel_list[current_ctr]->TileList[2]->set_WRP(WR);
-				else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY"))
-					local_PMD->subkernel_list[current_ctr]->TileList[2]->set_WRP(WR_LAZY);
-				else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE"))
-					local_PMD->subkernel_list[current_ctr]->TileList[2]->set_WRP(W_REDUCE);
-				else error("CreateSubkernelsDgemm: Unknown OUTPUT_ALGO_MODE =  %s\n", OUTPUT_ALGO_MODE);
-				local_PMD->subkernel_list[current_ctr]->TileList[2]->W_pending = local_PMD->decom[0]->GridSz2;
-				local_PMD->subkernel_list[current_ctr]->TileList[2]->reduce_mult = initial_dgemm->beta; 
-				local_PMD->subkernel_list[current_ctr]->operation_params = 
-					(void*) malloc(sizeof( gemm_backend_in<double>));
+			Tile2D_p C_tile = local_PMD->decom[2]->getTile(mi,ni);
+			C_tile->W_op_num = local_PMD->decom[0]->GridSz2;
+			C_tile->reduce_mult = initial_dgemm->beta; 
+			C_tile->W_op_dep_num = 3; 
+			C_tile->W_op_name = "Dgemm";
+			C_tile->W_op_params = (void**) malloc(C_tile->W_op_num*sizeof(void*));
+			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
+			C_tile->W_op_dev_id = local_PMD->autotuner->comp_task_unit_id[comp_task_idx];
+			if ((C_tile->WRP == WR_LAZY || C_tile->WRP == W_REDUCE) && C_tile->W_init_loc == C_tile->W_op_dev_id) C_tile->set_WRP(WR);
+			C_tile->W_op_complete = new Event(C_tile->W_op_dev_id);
+			C_tile->W_wb_complete = new Event(C_tile->W_init_loc);
+			C_tile->W_ready = new Event(C_tile->W_init_loc);
+			for (int ki = 0; ki < C_tile->W_op_num; ki++){
+				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
+				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
+				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in<double>));
 				gemm_backend_in<double>*  ptr_ker_translate = 
-					(gemm_backend_in<double>*) local_PMD->subkernel_list[current_ctr]->operation_params;
+					(gemm_backend_in<double>*) C_tile->W_op_params[ki];
 				ptr_ker_translate->TransA = initial_dgemm->TransA;
 				ptr_ker_translate->TransB = initial_dgemm->TransB;
-				ptr_ker_translate->M = local_PMD->subkernel_list[current_ctr]->TileList[2]->dim1;
-				ptr_ker_translate->N = local_PMD->subkernel_list[current_ctr]->TileList[2]->dim2;
-				if (ptr_ker_translate->TransA == 'N') ptr_ker_translate->K = 
-					local_PMD->subkernel_list[current_ctr]->TileList[0]->dim2;
-				else if (ptr_ker_translate->TransA == 'T') ptr_ker_translate->K = 
-					local_PMD->subkernel_list[current_ctr]->TileList[0]->dim1;
-				else error("CreateSubkernelsDgemm: Unknown transpose type\n");
+				ptr_ker_translate->M = C_tile->dim1;
+				ptr_ker_translate->N = C_tile->dim2;
+				if (ptr_ker_translate->TransA == 'N') ptr_ker_translate->K = A_tile->dim2;
+				else if (ptr_ker_translate->TransA == 'T') ptr_ker_translate->K = A_tile->dim1;
+				else error("CreateTasksDgemm: Unknown transpose type\n");
 				ptr_ker_translate->A = NULL;
 				ptr_ker_translate->B = NULL;
 				ptr_ker_translate->C = NULL;
 				ptr_ker_translate->alpha = initial_dgemm->alpha;
-				ptr_ker_translate->beta = initial_dgemm->beta;
+				if (!ki){
+					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
+					else ptr_ker_translate->beta = initial_dgemm->beta;
+				}
+				else ptr_ker_translate->beta = 1.0;
+				ptr_ker_translate->ldA = A_tile->ldim[C_tile->W_op_dev_id];
+				ptr_ker_translate->ldB = B_tile->ldim[C_tile->W_op_dev_id];
+				ptr_ker_translate->ldC = C_tile->ldim[C_tile->W_op_dev_id];
+				//current_ctr = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 
+				//			+ ni*local_PMD->decom[0]->GridSz2 + ki;
+				ptr_ker_translate->A_tile_v = (void*) A_tile; 
+				ptr_ker_translate->B_tile_v = (void*) B_tile; 
+				ptr_ker_translate->C_tile_v = (void*) C_tile; 
+
 			}
 		}
 	}
-
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif
 }
 
-void UpdateSubkernelsDgemm(PMD_p local_PMD){
+void UpdateTasksDgemm(PMD_p local_PMD){
 	gemm_backend_in<double>* initial_dgemm = (gemm_backend_in<double>*) local_PMD->problem_wrap;
-	int current_ctr = 0;
+	//int current_ctr = 0;
 	for (int mi = 0; mi < local_PMD->decom[0]->GridSz1; mi++){
 		for (int ni = 0; ni < local_PMD->decom[1]->GridSz2; ni++){
-			for (int ki = 0; ki < local_PMD->decom[0]->GridSz2; ki++){
-	      		current_ctr = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 
-							+ ni*local_PMD->decom[0]->GridSz2 + ki;
-				local_PMD->subkernel_list[current_ctr]->TileList[2]->W_pending = local_PMD->decom[0]->GridSz2;
-				local_PMD->subkernel_list[current_ctr]->TileList[2]->reduce_mult = initial_dgemm->beta;
-				//local_PMD->subkernel_list[current_ctr]->TileList[2]->W_complete->reset();
-				gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>*) 
-					local_PMD->subkernel_list[current_ctr]->operation_params;
-				//ptr_ker_translate->TransA = initial_dgemm->TransA;
-				//ptr_ker_translate->TransB = initial_dgemm->TransB;
-				//if (ptr_ker_translate->TransA == 'N') ptr_ker_translate->K = 
-				//	local_PMD->subkernel_list[current_ctr]->TileList[0]->dim2;
-				//else if (ptr_ker_translate->TransA == 'T') ptr_ker_translate->K = 
-				//	local_PMD->subkernel_list[current_ctr]->TileList[0]->dim1;
-				//else error("CreateSubkernelsDgemm: Unknown transpose type\n");
+			Tile2D_p C_tile = local_PMD->decom[2]->getTile(mi,ni);
+			C_tile->W_op_fired = 0;
+			C_tile->reduce_mult = initial_dgemm->beta; 
+			C_tile->W_op_complete->reset();
+			C_tile->W_wb_complete->reset();
+			C_tile->W_ready->reset();
+			for (int ki = 0; ki < C_tile->W_op_num; ki++){
+				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
+				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
+				gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>*) C_tile->W_op_params[ki];
 				ptr_ker_translate->A = NULL;
 				ptr_ker_translate->B = NULL;
 				ptr_ker_translate->C = NULL;
 				ptr_ker_translate->alpha = initial_dgemm->alpha;
-				ptr_ker_translate->beta = initial_dgemm->beta;
-
-				int dev_id_idx = local_PMD->subkernel_list[current_ctr]->run_dev_id;
-				local_PMD->subkernel_list[current_ctr]->TileList[0]->try_set_loc_idx(dev_id_idx, 1);
-				local_PMD->subkernel_list[current_ctr]->TileList[1]->try_set_loc_idx(dev_id_idx, 1);
-				local_PMD->subkernel_list[current_ctr]->TileList[2]->try_set_loc_idx(dev_id_idx, 1);
-				if (local_PMD->subkernel_list[current_ctr]->TileList[2]->WRP != WR && 
-					!local_PMD->subkernel_list[current_ctr]->TileList[2]->loc_map[dev_id_idx]) 
-					local_PMD->subkernel_list[current_ctr]->TileList[2]->set_WRP(WR);
+				if (!ki){
+					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
+					else ptr_ker_translate->beta = initial_dgemm->beta;
+				}
+				else ptr_ker_translate->beta = 1.0;
+				ptr_ker_translate->ldA = A_tile->ldim[C_tile->W_op_dev_id];
+				ptr_ker_translate->ldB = B_tile->ldim[C_tile->W_op_dev_id];
+				ptr_ker_translate->ldC = C_tile->ldim[C_tile->W_op_dev_id];
+				//current_ctr = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 
+				//			+ ni*local_PMD->decom[0]->GridSz2 + ki;
 			}
 		}
 	}
 }
-
-void DgemmBindDevice(PMD_p local_PMD, Subkernel* ker, int dev_id){
-	gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>* ) ker->operation_params;
-	ker->run_dev_id = ptr_ker_translate->dev_id = dev_id;
-	CHLSelectDevice(dev_id);
-#ifdef DEBUG
-	fprintf(stderr, "|-----> DgemmBindDevice - Subkernel(dev=%d, id = %d)\n", dev_id, ker->id);
-#endif
-	int dev_id_idx = dev_id;
-	ptr_ker_translate->ldA = ker->TileList[0]->get_chunk_size(dev_id_idx);
-	ptr_ker_translate->ldB = ker->TileList[1]->get_chunk_size(dev_id_idx);
-	ptr_ker_translate->ldC = ker->TileList[2]->get_chunk_size(dev_id_idx);
-	ker->TileList[0]->try_set_loc_idx(dev_id_idx, 1);
-	ker->TileList[1]->try_set_loc_idx(dev_id_idx, 1);
-	ker->TileList[2]->try_set_loc_idx(dev_id_idx, 1);
-	if (ker->TileList[2]->WRP != WR && !ker->TileList[2]->loc_map[dev_id_idx]) 
-		ker->TileList[2]->set_WRP(WR);
-	ker->TileList[2]->W_op_dev = dev_id;
-	if(ker->TileList[2]->W_pending == local_PMD->decom[0]->GridSz2){
-		ker->TileList[2]->W_complete = new Event(dev_id);
-		ker->TileList[2]->W_reduce = new Event(ker->TileList[2]->get_initial_location());
-	}
-	//if(local_PMD->autotuner) if(local_PMD->autotuner->unit_modeler_list[dev_id_idx])
-	//	ker->run_op_estimate(local_PMD->autotuner->unit_modeler_list[dev_id_idx]); 
-#ifdef DEBUG
-	fprintf(stderr, "<-----|\n");
-#endif
-}
-
-void DgemmPrepareLaunch(Subkernel* ker){
-	gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>* ) ker->operation_params;
-	if(!(ker->TileList[2]->W_master_backend_ctr == -42)) 
-	// Means its not the first subkernel using the WR tile
-		ptr_ker_translate->beta = 1.0;
-	else if(WR_LAZY == ker->TileList[2]->WRP || W_REDUCE == ker->TileList[2]->WRP) ptr_ker_translate->beta = 0;
-}
-
-void DgemmUpdatePointers(Subkernel* ker){
-	gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>* ) ker->operation_params;
-	short dev_id_idx = ker->run_dev_id;
-	ptr_ker_translate->A = &ker->TileList[0]->StoreBlock[dev_id_idx]->Adrs;
-	ptr_ker_translate->B = &ker->TileList[1]->StoreBlock[dev_id_idx]->Adrs;
-	ptr_ker_translate->C = &ker->TileList[2]->StoreBlock[dev_id_idx]->Adrs;
-}
-
-#ifdef SUBKERNELS_FIRE_WHEN_READY
-void* subkernel_manager_wrap(void* dummy){
-	int sk_ctr = 0, remaining_sk = PMD_cache[PMD_cache_entries-1]->sk_num; 
-	short sk_fired[PMD_cache[PMD_cache_entries-1]->sk_num] = {0};
-	while (remaining_sk){
-		if(!sk_fired[sk_ctr]){
-			Subkernel * curr = PMD_cache[PMD_cache_entries-1]->subkernel_list[sk_ctr];
-			if(curr->launched) sk_fired[sk_ctr] = curr->check_ready();
-			if(sk_fired[sk_ctr]){
-				DgemmUpdatePointers(curr);
-				DgemmPrepareLaunch(curr);
-				curr->run_ready_operation();
-				remaining_sk--;
-				//fprintf(stderr, "Fired SK %d\n",sk_ctr);
-			}
-		}
-		if (sk_ctr < PMD_cache[PMD_cache_entries-1]->sk_num - 1) sk_ctr++;
-		else{
-			sk_ctr = 0; 
-			usleep(100); // TODO: This exists solely for nsight profiling reasons
-			//fprintf(stderr, "sk_fired = %s, remaining_sk = %d\n",printlist(sk_fired, PMD_cache[PMD_cache_entries-1]->sk_num), remaining_sk);
-		}
-		//fprintf(stderr, "loop %d ",sk_ctr);
-	}
-	return NULL; 
-}
-#endif
 
 /// A dgemm wrapper including auto-tuning of T and cache_size, as well as device management
 ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K, double alpha, double* A, long int ldA,
@@ -418,8 +325,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	void* res;
 	double autotune_timer = 0;
 	long int T; 
-	int remaining_Subkernels = 0;
-	int remaining_Subkernels_dev[CHL_MEMLOCS] = {0};
+	int remaining_tasks = 0;
 
 	if(!reuse_problem_flag){
 		local_PMD->problem_name = "Dgemm";
@@ -455,30 +361,20 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		for (int i = 0; i < CHL_MEMLOCS; i++) current_SAB[i] = NULL;
 		ManageCachesDgemm(local_PMD);
 		T = local_PMD->autotuner->T;
-		local_PMD->decom[0]->InitTileMap(T, T, local_PMD->SAB);
-		local_PMD->decom[1]->InitTileMap(T, T, local_PMD->SAB);
-		local_PMD->decom[2]->InitTileMap(T, T, local_PMD->SAB);
+		local_PMD->decom[0]->InitTileMap(T, T, local_PMD->SAB, RONLY);
+		local_PMD->decom[1]->InitTileMap(T, T, local_PMD->SAB, RONLY);
+		WR_properties C_tile_prop; 
+		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR")) C_tile_prop = WR;
+		else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY")) C_tile_prop = WR_LAZY;
+		else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_prop = W_REDUCE;
+		local_PMD->decom[2]->InitTileMap(T, T, local_PMD->SAB, C_tile_prop);
 #ifdef TEST
 		cpu_timer = csecond() - cpu_timer;
 		fprintf(stderr, "Decomposing data to tiles -> t_tile = %lf ms\n", cpu_timer*1000);
 		cpu_timer = csecond();
 #endif
-		CreateSubkernelsDgemm(local_PMD);
-		remaining_Subkernels = local_PMD->sk_num;
-		for(int d=0; d < local_PMD->autotuner->active_unit_num; d++){
-			if(local_PMD->autotuner->Subkernels_per_unit_num[d] == 0 )
-				error("CHLDgemm: Leftover local_PMD->autotuner->Subkernels_per_unit_num[%d] == 0", d);
-			int dev_id = local_PMD->autotuner->active_unit_id_list[d];
-			remaining_Subkernels_dev[d] =  local_PMD->sk_dev_num[d] = 
-			local_PMD->autotuner->Subkernels_per_unit_num[d];
-			local_PMD->subkernel_dev_list[d] = (Subkernel**) 
-				malloc(local_PMD->autotuner->Subkernels_per_unit_num[d]*sizeof(Subkernel*));
-			for(int sk_ctr = 0; sk_ctr < remaining_Subkernels_dev[d]; sk_ctr++){
-				local_PMD->subkernel_dev_list[d][sk_ctr] = local_PMD->subkernel_list
-					[local_PMD->autotuner->Subkernels_per_unit_list[d][sk_ctr]];
-				DgemmBindDevice(local_PMD, local_PMD->subkernel_dev_list[d][sk_ctr], dev_id);
-			}
-		}
+		CreateTasksDgemm(local_PMD);
+		remaining_tasks = local_PMD->autotuner->task_num;
 	}
 	else{
 		int buffer_freed = 0; 
@@ -497,10 +393,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		fprintf(stderr, "Re-assigning cache blocks to tiles -> t_tile = %lf ms\n", cpu_timer*1000);
 		cpu_timer = csecond();
 #endif
-		UpdateSubkernelsDgemm(local_PMD);
-		remaining_Subkernels = local_PMD->sk_num;
-		for(int d=0; d < local_PMD->autotuner->active_unit_num; d++)
-			remaining_Subkernels_dev[d] =  local_PMD->sk_dev_num[d];
+		UpdateTasksDgemm(local_PMD);
+		remaining_tasks = local_PMD->autotuner->task_num;
 	}
 
 #ifdef TEST
@@ -519,75 +413,16 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 
 	RMInitResources(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
 	//RMInitWS(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
-
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Queue/Handle init: t_resource = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 	double run_timer = cpu_timer; 
 #endif
-#ifdef SUBKERNELS_FIRE_WHEN_READY
-	pthread_t manager_thread_id;
-	s = pthread_create(&manager_thread_id, &attr,
-                                  &subkernel_manager_wrap, NULL);
-	while (remaining_Subkernels){
-		for(int d_ctr=0; d_ctr < local_PMD->autotuner->active_unit_num; d_ctr++){
-			//int d = d_ctr*2 % (local_PMD->autotuner->active_unit_num) + d_ctr*2 / (local_PMD->autotuner->active_unit_num); 
-			//printf("d_ctr(%d) = d(%d)\n", d_ctr, d); 
-			int d = d_ctr;
-			if (remaining_Subkernels_dev[d]){
-				int dev_id = local_PMD->autotuner->active_unit_id_list[d];
-				Subkernel * curr = NULL;
-				if (reuse_problem_flag){
-					for (int sk_ctr = 0; sk_ctr < local_PMD->sk_dev_num[d]; sk_ctr++)
-						if(local_PMD->subkernel_dev_list[d][sk_ctr]->launch_order ==  
-						(local_PMD->sk_dev_num[d] - remaining_Subkernels_dev[d]) + 1)
-							curr = local_PMD->subkernel_dev_list[d][sk_ctr];
-				}
-				else curr = SubkernelSelect(dev_id, local_PMD->subkernel_dev_list[d], 
-					local_PMD->sk_dev_num[d]);
-				if (!curr){
-					warning("PARALiADgemm - dev(%d): Got curr = NULL, repeating search\n", dev_id);
-					continue;
-				}
-				remaining_Subkernels_dev[d]--;
-				remaining_Subkernels--;
-				curr->request_data();
-				curr->launch_order =  local_PMD->sk_dev_num[d] - remaining_Subkernels_dev[d]; 
-				curr->launched = 1; 
-
-			}
-		}
-	}
-	//fprintf(stderr, "You are here\n");
-	s = pthread_join(manager_thread_id, &res);
-	if (s != 0) error("PARALiADgemm: manager_thread_id failed with exit value %d", s);
-#else
-	while (remaining_Subkernels){
-		for(int d=0; d < local_PMD->autotuner->active_unit_num; d++) if (remaining_Subkernels_dev[d]){
-			int dev_id = local_PMD->autotuner->active_unit_id_list[d];
-			Subkernel * curr = NULL;
-			if (reuse_problem_flag){
-				for (int sk_ctr = 0; sk_ctr < local_PMD->sk_dev_num[d]; sk_ctr++)
-					if(local_PMD->subkernel_dev_list[d][sk_ctr]->launch_order ==  
-					( local_PMD->sk_dev_num[d] - remaining_Subkernels_dev[d]) + 1)
-						curr = local_PMD->subkernel_dev_list[d][sk_ctr];
-			}
-			else curr = SubkernelSelect(dev_id, local_PMD->subkernel_dev_list[d], 
-				local_PMD->sk_dev_num[d]);
-			if (!curr){
-				warning("PARALiADgemm - dev(%d): Got curr = NULL, repeating search\n", dev_id);
-				continue;
-			}
-			remaining_Subkernels_dev[d]--;
-			remaining_Subkernels--;
-			DgemmPrepareLaunch(curr);
-			curr->request_data();
-			DgemmUpdatePointers(curr);
-			curr->run_operation();
-			curr->launch_order =  local_PMD->sk_dev_num[d] - remaining_Subkernels_dev[d]; 
-			curr->launched = 1; 
-		}
+	while (remaining_tasks){
+		Ttask_p curr = local_PMD->autotuner->task_list[local_PMD->autotuner->task_num - remaining_tasks];
+		// TODO: execute the given task
+		remaining_tasks--;
 		//usleep(3000);
 	}
 #ifdef TEST
@@ -601,12 +436,9 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	fprintf(stderr, "Writebacks launched -> t_wb_fire = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 #endif
-#endif
-#ifdef SUBKERNELS_FIRE_WHEN_READY
 #ifndef ENABLE_SEND_RECV_OVERLAP
 	sync_recv_queues();
 	local_PMD->decom[2]->WBTileMap();
-#endif
 #endif
 	local_PMD->decom[2]->SyncTileMap();
 	CHLSyncCheckErr();
@@ -680,14 +512,12 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 
 	CHLSelectDevice(prev_dev_id);
-
     local_PMD->decom[0]->resetProperties();
     local_PMD->decom[1]->resetProperties();
     local_PMD->decom[2]->resetProperties();
 	delete local_PMD->decom[0];
 	delete local_PMD->decom[1];
 	delete local_PMD->decom[2];
-
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Unregistering decomposers -> t_unpin = %lf ms\n", cpu_timer*1000);

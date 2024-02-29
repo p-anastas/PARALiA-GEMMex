@@ -42,6 +42,7 @@ ATC::~ATC(){
 	free(active_unit_id_list);
 	free(active_unit_score);
 	free(comp_task_per_unit_num);
+	free(comp_task_unit_id); 
 	for (int idx = 0; idx < task_num; idx++){
 		delete task_list[idx]; 
 	}
@@ -58,6 +59,7 @@ void ATC::reset(){
 		fprintf(stderr,  "|-----> ATC::reset\n");
 #endif
 	free(comp_task_per_unit_num);
+	free(comp_task_unit_id);
 	for (int idx = 0; idx < task_num; idx++){
 		delete task_list[idx]; 
 	}
@@ -302,7 +304,8 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 	Grid_N = N/T + ((N%T) ? 1 : 0);
 	Grid_K = K/T + ((K%T) ? 1 : 0);
 	update_comp_task_num(Grid_M*Grid_N*Grid_K);
-	distribute_tasks(Grid_M, Grid_N, Grid_K);
+	comp_task_unit_id = (int*) malloc(comp_task_num*sizeof(int));
+	distribute_tasks(Grid_M, Grid_N, Grid_K); 
 
 	cpu_timer = csecond() - cpu_timer;
 	if(T!=-1){

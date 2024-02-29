@@ -51,6 +51,7 @@ typedef class ATC{
 	
 		long int comp_task_num; // The total number of compute tasks created by the distribution.
 		long int* comp_task_per_unit_num;  // The number of compute tasks fired per unit.
+		int* comp_task_unit_id;  // The unit id for each compute task. 
 
 		long int task_num; /// The number of tasks to be executed.
 		Ttask_p* task_list; 

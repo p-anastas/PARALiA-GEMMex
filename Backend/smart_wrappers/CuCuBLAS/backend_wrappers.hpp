@@ -19,6 +19,7 @@ public:
 	int M, N, K, ldA, ldB, ldC;
 	VALUETYPE alpha,beta;
 	void **A, **B, **C;
+	void* A_tile_v, *B_tile_v, *C_tile_v;
 	short dev_id;
 };
 

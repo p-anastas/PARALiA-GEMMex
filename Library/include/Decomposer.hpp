@@ -34,7 +34,7 @@ typedef class Decomposer
 	virtual long get_chunk_size();
 	virtual	void set_chunk_size(long value); 
 	virtual long get_mem_size(); 
-	virtual void InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p);
+	virtual void InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop);
 	virtual void Reset(void* new_adrs, int T1, int T2, long new_chunk_size, Buffer_p* init_loc_cache_p);
 
 	void WBTileMap();
@@ -54,7 +54,7 @@ typedef class Decomposer
 }* Decomposer_p;
 
 
-class Decom2D : public Decomposer {
+typedef class Decom2D : public Decomposer {
 	public:
 	int ldim;
 
@@ -63,11 +63,11 @@ class Decom2D : public Decomposer {
 	long get_mem_size(); 
 	// Constructor, sets dim1, dim2, ldim, adrs and derives loc from get_loc(adr)
 	Decom2D(void* adrr, int in_dim1, int in_dim2, int in_ldim, char transpose, dtype_enum dtype_in);
-	void InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p);
+	void InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop);
 	void Reset(void* new_adrs, int T1, int T2, long new_ldim, Buffer_p* init_loc_cache_p);
 	Tile2D_p getTile(int iloc1, int iloc2);
 
 
-};
+}* Decom2D_p;
 
 #endif

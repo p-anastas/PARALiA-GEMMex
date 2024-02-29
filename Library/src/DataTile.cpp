@@ -175,15 +175,26 @@ void Tile2D::run_operation(int W_op_id)
 	if(W_op_queue_ctr == -42)
 		W_op_queue_ctr = get_next_queue_ctr(W_op_dev_id);
 	assigned_exec_queue = exec_queue[W_op_dev_id][W_op_queue_ctr];
+
+	if (!W_op_fired && (WRP == WR_LAZY || WRP == W_REDUCE)){
+		StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE,false);
+		assigned_exec_queue->record_event(StoreBlock[W_op_dev_id]->Available);
+	}
 #ifndef PRODUCTION
 	if (StoreBlock[W_op_dev_id] == NULL)
 		error("Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d): Storeblock is NULL\n",
 			id, GridId1, GridId2, W_op_dev_id);
 #endif
+	// Extract the Cblock buffers from the (now defined) Tiles. 
+	gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>*) W_op_params[W_op_id];
+	ptr_ker_translate->A = &((Tile2D_p)ptr_ker_translate->A_tile_v)->StoreBlock[W_op_dev_id]->Adrs;
+	ptr_ker_translate->B = &((Tile2D_p)ptr_ker_translate->B_tile_v)->StoreBlock[W_op_dev_id]->Adrs;
+	ptr_ker_translate->C = &/*((Tile2D_p)ptr_ker_translate->C_tile_v)->*/StoreBlock[W_op_dev_id]->Adrs;
 	// Make execution queue block until all input dependencies are met. 
-	for (int depidx = 0; depidx < W_op_dep_num; depidx++)
-		assigned_exec_queue->wait_for_event(W_op_dependencies[depidx]);
-	
+	assigned_exec_queue->wait_for_event(((Tile2D_p)ptr_ker_translate->A_tile_v)->StoreBlock[W_op_dev_id]->Available);
+	assigned_exec_queue->wait_for_event(((Tile2D_p)ptr_ker_translate->B_tile_v)->StoreBlock[W_op_dev_id]->Available);
+	assigned_exec_queue->wait_for_event(/*((Tile2D_p)ptr_ker_translate->C_tile_v)->*/StoreBlock[W_op_dev_id]->Available);
+
 	// Fire the W_op_id - ith operation to the queue
 	assigned_exec_queue->run_operation(W_op_params[W_op_id], W_op_name, W_op_dev_id);
 

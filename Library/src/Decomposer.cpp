@@ -59,12 +59,12 @@ void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size,
    #endif
 }
 
-void Decomposer::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p){
+void Decomposer::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop){
     error("Must never be called for parent Decomposer class\n");
     return;
 }
 
-void Decom2D::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p){
+void Decom2D::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop){
   #ifdef DEBUG
   	fprintf(stderr, "|-----> Decom2D::InitTileMap(%d,%d)\n", T1, T2);
   #endif
@@ -109,7 +109,7 @@ void Decom2D::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p){
         Tile_map[current_ctr] = new Tile2D(tile_addr, T2tmp, T1tmp, ldim, itt2, itt1, dtype, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE, true));
       }
       else error("Decom2D::InitTileMap: Unknown transpose type\n");
-
+      Tile_map[current_ctr]->set_WRP(prop);
      }
    }
    #ifdef DEBUG

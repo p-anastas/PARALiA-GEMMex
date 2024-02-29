@@ -17,9 +17,7 @@ public:
 	const char* problem_name;
 	void* problem_wrap; 
 	int decom_num;
-	Decomposer_p decom[10];
-	int task_num; 
-	Ttask_p* task_list; 
+	Decom2D_p decom[10];
 	Buffer_p SAB[64]; 
 
 	void print();
