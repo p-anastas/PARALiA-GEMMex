@@ -5,7 +5,7 @@
 #include "chl_smart_wrappers.hpp"
 #include "Autotuner.hpp"
 #include "DataTile.hpp"
-#include "Subkernel.hpp"
+#include "Resource_manager.hpp"
 
 double get_edge_bw(int dest_loc, int src_loc){
   if(best_grid_edge_active[dest_loc][src_loc]!= -1){

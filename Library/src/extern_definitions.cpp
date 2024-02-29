@@ -1,5 +1,5 @@
 #include "PARALiA.hpp"
-#include "Subkernel.hpp"
+#include "Resource_manager.hpp"
 
 //typedef class ProblemMetadata* PMD_p;
 PMD_p PMD_cache[PROBLEM_MD_CACHE] = {NULL}; 
@@ -23,10 +23,6 @@ void ProblemMetadata::print(){
     fprintf(stderr,"Decomposers (%d)\n", decom_num); 
     for(int idx = 0; idx < decom_num; idx++)
         fprintf(stderr,"Decom %d -> adrs = %p\n", idx, decom[idx]->adrs); 
-    fprintf(stderr,"sk_num: %d\n", sk_num);
-    fprintf(stderr,"subkernel_list: %p\n", subkernel_list); 
-    fprintf(stderr,"sk_dev_num: %s\n", printlist(sk_dev_num, CHL_WORKERS)); 
-    fprintf(stderr,"subkernel_dev_list: %p\n", subkernel_dev_list);
     fprintf(stderr,"SAB: %p\n", SAB);
     fprintf(stderr,"\n------------------------------------\n"); 
 }

@@ -48,15 +48,14 @@ add_library(paralia SHARED
 ${LIBSC_DIR_SRC}/extern_definitions.cpp
 ${LIBSC_DIR_SRC}/DataTile.cpp
 ${LIBSC_DIR_SRC}/Decomposer.cpp
-${LIBSC_DIR_SRC}/Subkernel.cpp
-${LIBSC_DIR_SRC}/Routing.cpp
+${LIBSC_DIR_SRC}/Resource_manager.cpp
 ${LIBSC_DIR_SRC}/Functions/dgemm.cpp
 ${LIBSC_DIR}/${BACKEND}/Decom_backend.cpp
 )
 
 target_link_libraries(paralia ${INTERNAL_LINK_LIB} autotuner chl_grid_amalgamation caching)
 configure_file(${LIBSC_DIR_INC}/PARALiA.hpp ${LIBSC_INSTALL_INC}/PARALiA.hpp COPYONLY)
-configure_file(${LIBSC_DIR_INC}/Subkernel.hpp ${LIBSC_INSTALL_INC}/Subkernel.hpp COPYONLY)
+configure_file(${LIBSC_DIR_INC}/Resource_manager.hpp ${LIBSC_INSTALL_INC}/Resource_manager.hpp COPYONLY)
 configure_file(${LIBSC_DIR_INC}/Decomposer.hpp ${LIBSC_INSTALL_INC}/Decomposer.hpp COPYONLY)
 configure_file(${LIBSC_DIR_INC}/DataTile.hpp ${LIBSC_INSTALL_INC}/DataTile.hpp COPYONLY)
 

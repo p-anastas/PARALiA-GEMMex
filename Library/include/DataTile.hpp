@@ -22,6 +22,18 @@ enum WR_properties{
         W_REDUCE = 5
 };
 
+enum TileTaskType{
+    FETCH = 1,
+    COMPUTE = 2,
+    WRITEBACK = 3
+};
+
+typedef class TileTask{
+    TileTaskType type;
+    long long tile_id; 
+    LinkRoute_p predef_route;
+}* Ttask_p;
+
 typedef class Tile2D{
 public:
     //----------------------------------------------General class-----------------------------------------//

@@ -9,7 +9,7 @@
 #include "Autotuner.hpp"
 #include "Decomposer.hpp"
 #include "DataCaching.hpp"
-#include "Subkernel.hpp"
+#include "Resource_manager.hpp"
 
 typedef class ProblemMetadata{
 public:	
@@ -18,10 +18,8 @@ public:
 	void* problem_wrap; 
 	int decom_num;
 	Decomposer_p decom[10];
-	int sk_num; 
-	Subkernel** subkernel_list; 
-	int sk_dev_num[32]; 
-	Subkernel** subkernel_dev_list[32]; 
+	int task_num; 
+	Ttask_p* task_list; 
 	Buffer_p SAB[64]; 
 
 	void print();

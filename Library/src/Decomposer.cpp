@@ -5,7 +5,7 @@
 ///
 
 #include "Decomposer.hpp"
-#include "Subkernel.hpp"
+#include "Resource_manager.hpp"
 #include "chl_smart_wrappers.hpp"
 
 Decom2D::Decom2D( void* in_adr, int in_dim1, int in_dim2, int in_ldim, char in_transpose, dtype_enum dtype_in){

@@ -9,7 +9,7 @@
 #include "Autotuner.hpp"
 #include "Decomposer.hpp"
 #include "PARALiA.hpp"
-#include "Subkernel.hpp"
+#include "Resource_manager.hpp"
 #include "DataCaching.hpp"
 
 #include <pthread.h>
@@ -47,7 +47,7 @@ void ManageCachesDgemm(PMD_p local_PMD){
 		if(local_PMD->autotuner->cache_limit > 0) {
 			max_cache_sz = local_PMD->autotuner->cache_limit;
 			if (max_cache_sz < 3 * Block_sz)
-				error("PARALiADgemm: Problem cannot run with less memory than %d\n", 3 * Block_sz);
+				error("PARALiADgemm: Problem cannot run with less memory than %lld\n", 3 * Block_sz);
 			long long free_dev_mem, max_dev_mem = 0, prev_DevCache_sz = 0;
 			if (current_SAB[cache_loc] != NULL) prev_DevCache_sz = (long long)
 				current_SAB[cache_loc]->BlockSize* current_SAB[cache_loc]->BlockNum;
@@ -517,8 +517,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	cpu_timer = csecond();
 #endif
 
-	SKInitResources(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
-	//SKInitWS(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
+	RMInitResources(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
+	//RMInitWS(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -649,9 +649,9 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 
 #ifdef QUEUE_REUSE_ENABLE
-	SKCleanResources();
+	RMCleanResources();
 #else 
-	SKFreeResources();
+	RMFreeResources();
 #endif
 
 #ifdef TEST

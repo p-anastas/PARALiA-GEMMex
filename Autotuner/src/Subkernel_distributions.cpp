@@ -479,3 +479,119 @@ fprintf(stderr, "Assigned kernel num to devices kernels (first pass): %s\n",
 #endif
 
 }
+
+/*****************************************************/
+/// PARALia 2.0 - timed queues and blocks
+/*long double Subkernel::run_op_estimate(MD_p modeler){
+	run_op_est_t = modeler->getGPUexecFull(); 
+#ifdef PDEBUG
+	fprintf(stderr, "|-----> Subkernel(dev=%d,id=%d):run_op_estimate() -> run_op_est_t = %lf\n", 
+		run_dev_id, id, run_op_est_t);
+#endif
+	return run_op_est_t; 
+}*/
+/*
+#ifdef SUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING
+Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkernel_list_len){
+#ifdef SERIAL_SUBKERNEL_SELECTION
+	for (int sk_idx = 0; sk_idx < Subkernel_list_len; sk_idx++)
+		if(!Subkernel_list[sk_idx]->launched){
+			Subkernel_list[sk_idx]->prepare_launch(dev_id);
+			return Subkernel_list[sk_idx];
+		}
+	error("SubkernelSelect(SERIAL)\n No sk matched search condition\n");
+#endif
+	Subkernel* curr_sk = NULL;
+	int sk_idx, potential_sks[Subkernel_list_len], tie_list_num = 0, doubletie_list_num = 0; 
+	long double min_ETA = DBL_MAX;
+	if(!Subkernel_list_len) error("SubkernelSelect: Gave 0 subkernel len with list = %p\n", Subkernel_list);
+	for (sk_idx = 0; sk_idx < Subkernel_list_len; sk_idx++)if(!Subkernel_list[sk_idx]->launched){
+		curr_sk = Subkernel_list[sk_idx];
+		long double tmp_ETA = 0; 
+		for (int j = 0; j < curr_sk->TileNum; j++){
+			long double block_ETA = 0; 
+			if ( RONLY == curr_sk->TileList[j]->WRP || WR == curr_sk->TileList[j]->WRP){
+				block_ETA = curr_sk->TileList[j]->ETA_get(dev_id);
+				if(-42 == block_ETA) block_ETA = curr_sk->TileList[j]->ETA_fetch_estimate(dev_id);
+			}
+			tmp_ETA = std::max(block_ETA, tmp_ETA);
+		}
+		if(tmp_ETA < min_ETA){
+		//if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) > NORMALIZE_NEAR_SPLIT_LIMIT && tmp_ETA < min_ETA){
+			min_ETA = tmp_ETA;
+			potential_sks[0] = sk_idx;
+			tie_list_num = 1; 
+		}
+		else if(tmp_ETA == min_ETA){
+		//else if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) <= NORMALIZE_NEAR_SPLIT_LIMIT){
+			potential_sks[tie_list_num++] = sk_idx;
+		}
+	}
+	int most_fired_sks = -1, potential_tied_sks[tie_list_num];
+	if (tie_list_num){
+		potential_tied_sks[0] = potential_sks[0];
+		doubletie_list_num = 1; 
+	}
+	else error("SubkernelSelect\n No sk matched search condition\n");
+	for (int ctr = 0; ctr < tie_list_num; ctr++){
+		curr_sk = Subkernel_list[potential_sks[ctr]];
+		int tmp_fired_sks = 0; 
+		for (int j = 0; j < curr_sk->TileNum; j++){
+			if ( WR_LAZY == curr_sk->TileList[j]->WRP || WR == curr_sk->TileList[j]->WRP
+				|| W_REDUCE == curr_sk->TileList[j]->WRP || WONLY == curr_sk->TileList[j]->WRP){
+				tmp_fired_sks = curr_sk->TileList[j]->fired_times; 
+			}
+		}
+		if(tmp_fired_sks > most_fired_sks){
+			most_fired_sks = tmp_fired_sks;
+			potential_tied_sks[0] = potential_sks[ctr];
+			doubletie_list_num = 1; 
+		}
+		//else if(tmp_fired_sks == most_fired_sks){
+		//else if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) <= NORMALIZE_NEAR_SPLIT_LIMIT){
+		//	potential_tied_sks[doubletie_list_num++] = potential_sks[ctr];
+		//}
+	}
+	int selected_sk_idx = (doubletie_list_num)? 
+		potential_tied_sks[int(rand() % doubletie_list_num)] : doubletie_list_num; 
+	Subkernel_list[selected_sk_idx]->prepare_launch(dev_id);
+	return Subkernel_list[selected_sk_idx];
+}
+#endif
+
+#ifdef SUBKERNEL_SELECT_MIN_RONLY_ETA
+Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkernel_list_len){
+#ifdef SERIAL_SUBKERNEL_SELECTION
+	Subkernel_list[0]->prepare_launch(dev_id);
+	return Subkernel_list[0];
+#endif
+	Subkernel* curr_sk = NULL;
+	int sk_idx;
+	int potential_sks[Subkernel_list_len], tie_list_num = 0; 
+	int max_fetches = -1;
+	if(!Subkernel_list_len) error("SubkernelSelect: Gave 0 subkernel len with list = %p\n", Subkernel_list);
+	for (sk_idx = 0; sk_idx < Subkernel_list_len; sk_idx++){
+		curr_sk = Subkernel_list[sk_idx];
+		int tmp_fetches = 0; 
+		for (int j = 0; j < curr_sk->TileNum; j++){
+			if(RONLY == curr_sk->TileList[j]->WRP)
+				if(curr_sk->TileList[j]->loc_map[(dev_id)] == 0 || 
+					curr_sk->TileList[j]->loc_map[(dev_id)] == 42) tmp_fetches++;
+		}
+		if(tmp_fetches > max_fetches){
+			max_fetches = tmp_fetches;
+			potential_sks[0] = sk_idx;
+			tie_list_num = 1; 
+		}
+		else if(tmp_fetches == max_fetches){
+			potential_sks[tie_list_num++] = sk_idx;
+		}
+	}
+	int selected_sk_idx = (tie_list_num)? potential_sks[int(rand() % tie_list_num)] : tie_list_num; 
+	swap_sk(&(Subkernel_list[0]), &(Subkernel_list[selected_sk_idx])); 
+	Subkernel_list[0]->prepare_launch(dev_id);
+	return Subkernel_list[0];
+}
+#endif
+
+/*****************************************************/
