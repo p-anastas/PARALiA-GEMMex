@@ -8,9 +8,9 @@
 
 #include "Autotuner.hpp"
 
-void CoCoDistributeSubkernelsRoundRobin(ATC_p autotune_controller);
-void CoCoDistributeSubkernelsNaive(ATC_p autotune_controller);
-void CoCoDistributeSubkernelsRoundRobinChunk(ATC_p autotune_controller,  int Chunk_size);
-void CoCoDistributeSubkernelsRoundRobinChunkReverse(ATC_p autotune_controller,  int Chunk_size);
-void CoCoDistributeSubkernels2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, int D2GridSz, int D3GridSz);
+void CoCoDistributeTasksRoundRobin(ATC_p autotune_controller);
+void CoCoDistributeTasksNaive(ATC_p autotune_controller);
+void CoCoDistributeTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_size);
+void CoCoDistributeTasksRoundRobinChunkReverse(ATC_p autotune_controller,  int Chunk_size);
+void CoCoDistributeTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, int D2GridSz, int D3GridSz);
 #endif

@@ -86,7 +86,7 @@ typedef class Grid_amalgamation{
 
 		/// The estimated load of each edge in bytes.
 		long long edge_load[64][64] = {{0}};
-		/// Loads thw estimated load of each edge in bytes. 
+		/// Loads the estimated load of each edge in bytes. 
 		void set_edge_load(long long edge_load_in[64][64]);
 
 		// Estimated bandwidths for a given problem based on its edge_bw and simu_edge_bw being under edge_load.

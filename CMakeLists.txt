@@ -299,7 +299,8 @@ if(NOT $ENV{PARALIA_CXX_PREFIX} STREQUAL "default")
   set (CMAKE_C_COMPILER ${CXX_PREFIX}/bin/gcc)
 endif()
 
-set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp -lm -Wuninitialized -lgomp -lnuma -mavx2")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -fopenmp -lm -lgomp -lnuma -mavx2") 
+#  -Wuninitialized -Wpointer-arith -Wunused-result
 message("PARALiA-GEMMex - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 
 #set(CMAKE_C_FLAGS ${CMAKE_CXX_FLAGS})

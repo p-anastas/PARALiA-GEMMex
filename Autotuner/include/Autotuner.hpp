@@ -17,6 +17,18 @@
 #endif
 #endif
 
+enum TileTaskType{
+    FETCH = 1,
+    COMPUTE = 2,
+    WRITEBACK = 3
+};
+
+typedef class TileTask{
+    TileTaskType type;
+    long long tile_id; 
+    LinkRoute_p predef_route;
+}* Ttask_p;
+
 typedef class ATC{
 	public:
 		long int M, N, K, T; /// The problem dims and tiling size used for 1D/2D Data split to tiles.
@@ -37,9 +49,12 @@ typedef class ATC{
 		double pred_J_pesimistic; /// The predicted Joules the whole operation will require if all overlap fails.
 		double power_delay_pesimistic, energy_delay_pesimistic; /// The predicted power and energy delay products if all overlap fails.
 	
-		int subkernel_num; /// The number of subkernels.
-		int* Subkernels_per_unit_num; /// The number of subkernels derived from a unit's score that that unit unit will fire.
-		int** Subkernels_per_unit_list; /// The dev_id of the unit each subkernels will be fired to. 
+		long int comp_task_num; // The total number of compute tasks created by the distribution.
+		long int* comp_task_per_unit_num;  // The number of compute tasks fired per unit.
+
+		long int task_num; /// The number of tasks to be executed.
+		Ttask_p* task_list; 
+
 		long long cache_limit; /// The 'cache' size allocation limit for all devices in bytes, IF any.
 		Gamalg_p inter_grid; /// The LinkMap representation of the system memory interconnection.
 /********************** Initialization/Modification ***************************/
@@ -48,10 +63,10 @@ typedef class ATC{
 	void reset(); /// Resets controller to default parameters (untuned).
 	int diff_intialized_params_ATC(class ATC* other_ATC); /// Rerurns the number of parameters defined in other_ATC that defer from caller.
 	void mimic_ATC(class ATC* other_ATC); /// Copy all characteristics of another autotune controller, using its modelers.
-	void update_sk_num(long long int subkernel_num_in); /// Updates the autotuner for a given number of subkernels.
+	void update_comp_task_num(long long int task_num_in); /// Updates the autotuner lists for a given number of tasks.
 
 	/// 2D block cyclic distribution
-	void distribute_subkernels(int D1GridSz, int D2GridSz, int D3GridSz);
+	void distribute_tasks(int D1GridSz, int D2GridSz, int D3GridSz);
 /******************************************************************************/
 /****************************** Autotuning ************************************/
 	double autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc, 

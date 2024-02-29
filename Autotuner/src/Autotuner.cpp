@@ -16,16 +16,12 @@ ATC::ATC(){
 #ifdef DEBUG
 		fprintf(stderr,  "|-----> ATC::ATC\n");
 #endif
+	active_memlocs = (int*) malloc (CHL_MEMLOCS*sizeof(int));
 	active_unit_id_list = (int*) malloc(CHL_WORKERS*sizeof(int));
 	active_unit_score = (double*) malloc(CHL_WORKERS*sizeof(double));
-	Subkernels_per_unit_num = (int*) malloc(CHL_WORKERS*sizeof(int));
-	Subkernels_per_unit_list = (int**) malloc(CHL_WORKERS*sizeof(int*));
-	for (int d = 0; d < CHL_WORKERS; d++){
-		active_unit_score[d] = -42.0;
-		Subkernels_per_unit_list[d] = NULL;
-		Subkernels_per_unit_num[d] = 0;
-	}
-	T = active_unit_num = subkernel_num = -1;
+	comp_task_per_unit_num = (long int*) malloc(CHL_WORKERS*sizeof(long int));
+	task_list = NULL;
+	T = active_unit_num = task_num = -1;
 	pred_t = pred_J = power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
 
@@ -42,11 +38,15 @@ ATC::~ATC(){
 #ifdef DEBUG
 		fprintf(stderr,  "|-----> ATC::~ATC\n");
 #endif
+	free(active_memlocs);
 	free(active_unit_id_list);
 	free(active_unit_score);
-	free(Subkernels_per_unit_num);
-	for (int d = 0; d < CHL_WORKERS; d++) free(Subkernels_per_unit_list[d]);
-	free(Subkernels_per_unit_list);
+	free(comp_task_per_unit_num);
+	for (int idx = 0; idx < task_num; idx++){
+		delete task_list[idx]; 
+	}
+	free(task_list);
+	delete inter_grid; 
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
@@ -57,12 +57,13 @@ void ATC::reset(){
 #ifdef DEBUG
 		fprintf(stderr,  "|-----> ATC::reset\n");
 #endif
-	for (int d = 0; d < CHL_WORKERS; d++){
-		free(Subkernels_per_unit_list[d]);
-		Subkernels_per_unit_list[d] = NULL;
-		Subkernels_per_unit_num[d] = 0;
+	free(comp_task_per_unit_num);
+	for (int idx = 0; idx < task_num; idx++){
+		delete task_list[idx]; 
 	}
-	T = active_unit_num = subkernel_num = -1;
+	free(task_list);
+	task_list = NULL;
+	T = active_unit_num = task_num = -1;
 	pred_t = -1.0;
 	cache_limit = 0;
 #ifdef DEBUG
@@ -113,10 +114,19 @@ int ATC::diff_intialized_params_ATC(ATC_p other_ATC){
 }
 
 void ATC::mimic_ATC(ATC_p other_ATC){
-	short lvl = 3;
-	#ifdef DEBUG
-		fprintf(stderr,  "|-----> ATC::mimic_ATC(other_ATC = %p)\n", other_ATC);
-	#endif
+#ifdef DEBUG
+	fprintf(stderr,  "|-----> ATC::mimic_ATC(other_ATC = %p)\n", other_ATC);
+#endif
+	//if(task_num != -1){
+		//for (int idx = 0; idx < task_num; idx++){
+		//	delete task_list[idx]; 
+		//}
+		//free(task_list);
+		//task_list = NULL;	
+		//task_num = -1;
+		reset();
+	//}
+
 	T = other_ATC->T;
 	T_aggregate_sl = other_ATC->T_aggregate_sl;
 	T_imbalance_sl = other_ATC->T_imbalance_sl;
@@ -138,82 +148,55 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	cache_limit = other_ATC->cache_limit;
 	inter_grid->copy(other_ATC->inter_grid);
 
-	if(subkernel_num != -1){
-		for (int d = 0; d < CHL_WORKERS; d++){
-			//fprintf(stderr,"Subkernels_per_unit_list[%d] = %p\n", d, Subkernels_per_unit_list[d]);
-			//free(Subkernels_per_unit_list[d]);
-			//Subkernels_per_unit_num[d] = 0;
-			;//Subkernels_per_unit_list[d] = NULL;
-		} /// TODO: Got some "double free 2cache" error when used in many different mimicked ATCs ->
-			/// potential problem here  ATC::update_sk_num resizing Subkernels_per_unit_list[d] might be solution and/or relevant.
-		subkernel_num = -1;
-	}
-
-	if (other_ATC->subkernel_num != -1){
-		for (int d = 0; d < other_ATC->active_unit_num; d++){
-			Subkernels_per_unit_num[d] = other_ATC->Subkernels_per_unit_num[d];
-			free(Subkernels_per_unit_list[d]);
-			Subkernels_per_unit_list[d] = (int*) malloc(other_ATC->subkernel_num*sizeof(int));
-			for (int sk = 0; sk < other_ATC->subkernel_num; sk++)
-				Subkernels_per_unit_list[d][sk] = other_ATC->Subkernels_per_unit_list[d][sk];
-		}
-		subkernel_num = other_ATC->subkernel_num;
+	if (other_ATC->task_num != -1){
+		task_num = other_ATC->task_num;
+		comp_task_num = other_ATC->comp_task_num;
+		for (int dev = 0; dev < CHL_MEMLOCS; dev++) comp_task_per_unit_num[dev] = other_ATC->comp_task_per_unit_num[dev];
+		task_list = (Ttask_p*) malloc(task_num*sizeof(Ttask_p));
+		for (int sk = 0; sk < task_num; sk++)
+				task_list[sk] = other_ATC->task_list[sk];
 	}
 
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
 }
-
-void ATC::update_sk_num(long long int subkernel_num_in){
+/*
+void ATC::update_comp_task_num(long long int comp_task_num_in){
 	short lvl = 3;
 	#ifdef DEBUG
 		fprintf(stderr,  "|-----> ATC::update_sk_num\n");
 	#endif
-	int prev_sk_num = subkernel_num;
-	subkernel_num = subkernel_num_in;
-	if (prev_sk_num == -1)  for (int d = 0; d < CHL_WORKERS; d++){
-		Subkernels_per_unit_list[d] = (int*) malloc(subkernel_num*sizeof(int));
-		for (int sk = 0; sk < subkernel_num; sk++) Subkernels_per_unit_list[d][sk] = -1;
-	}
-	else if (prev_sk_num < subkernel_num) for (int d = 0; d < CHL_WORKERS; d++){
-		free(Subkernels_per_unit_list[d]);
-		Subkernels_per_unit_list[d] = (int*) malloc(subkernel_num*sizeof(int));
-		for (int sk = 0; sk < subkernel_num; sk++) Subkernels_per_unit_list[d][sk] = -1;
+	int prev_comp_task_num = task_num;
+	task_num = task_num_in;
+	if (prev_task_num == -1) task_list = (Ttask_p*) malloc(task_num*5*sizeof(Ttask_p));
+	else if (prev_task_num < task_num){
+		for (int idx = 0; idx < task_num; idx++) delete task_list[idx]; 
+		free(task_list);
+		task_list = (Ttask_p*) malloc(task_num*5*sizeof(Ttask_p));
 	}
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
 }
 
-void ATC::distribute_subkernels(int D1GridSz, int D2GridSz, int D3GridSz){
+void ATC::distribute_tasks(int D1GridSz, int D2GridSz, int D3GridSz){
 	if (!strcmp(DISTRIBUTION, "ROUND-ROBIN"))
-		CoCoDistributeSubkernelsRoundRobin(this);
+		CoCoDistributeTasksRoundRobin(this);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-NAIVE"))
-		CoCoDistributeSubkernelsNaive(this);
+		CoCoDistributeTasksNaive(this);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN"))
-		CoCoDistributeSubkernelsRoundRobinChunk(this, D3GridSz);
+		CoCoDistributeTasksRoundRobinChunk(this, D3GridSz);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN-REVERSE"))
-		CoCoDistributeSubkernelsRoundRobinChunkReverse(this, D3GridSz);
+		CoCoDistributeTasksRoundRobinChunkReverse(this, D3GridSz);
 	else if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC"))
-		CoCoDistributeSubkernels2DBlockCyclic(this, D1GridSz, D2GridSz, D3GridSz);
-	else error("ATC::distribute_subkernels: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
-	for (int i = 0; i < active_unit_num; i++)
-	if(!Subkernels_per_unit_num[i]) {
-		free(Subkernels_per_unit_list[i]);
-		for (int i_move = i; i_move < active_unit_num - 1; i_move++){
-			active_unit_score[i_move] = active_unit_score[i_move+1];
-			active_unit_id_list[i_move] = active_unit_id_list[i_move+1];
-			Subkernels_per_unit_num[i_move] = Subkernels_per_unit_num[i_move+1];
-			Subkernels_per_unit_list[i_move] = Subkernels_per_unit_list[i_move+1];
-		}
-		i--;
-		active_unit_num--;
-	}
+		CoCoDistributeTasks2DBlockCyclic(this, D1GridSz, D2GridSz, D3GridSz);
+	else error("ATC::distribute_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
 #ifdef PDEBUG
     print();
 #endif
 }
+*/
 /******************************************************************************/
 /****************************** Autotuning ************************************/
 
@@ -251,7 +234,6 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 		for (int i =0; i < active_unit_num; i++)
 			active_unit_id_list[i] = i;
 	}
-	active_memlocs = (int*) malloc (CHL_MEMLOCS*sizeof(int));
 	active_memloc_num = 0;
 	for( int idx = 0; idx < CHL_MEMLOCS; idx++){
 		if (is_in_list(idx, active_unit_id_list, active_unit_num) 
@@ -319,30 +301,30 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 	Grid_M = M/T + ((M%T) ? 1 : 0);
 	Grid_N = N/T + ((N%T) ? 1 : 0);
 	Grid_K = K/T + ((K%T) ? 1 : 0);
-	update_sk_num(Grid_M*Grid_N*Grid_K);
-	distribute_subkernels(Grid_M, Grid_N, Grid_K);
+	update_comp_task_num(Grid_M*Grid_N*Grid_K);
+	distribute_tasks(Grid_M, Grid_N, Grid_K);
 
 	cpu_timer = csecond() - cpu_timer;
 	if(T!=-1){
 		if (T_imbalance_sl > 0) 
-			warning("ATC::optimize_tile -> T = %d: C1 (NO-imbalance) was not satisfied, estimated sl = %lf\n", 
+			warning("ATC::optimize_tile -> T = %ld: C1 (NO-imbalance) was not satisfied, estimated sl = %lf\n", 
 				T, T_imbalance_sl);
 		if (T_remainder_sl > 0) 
-			warning("ATC::optimize_tile -> T = %d: C2 (NO-remainder) was not satisfied, estimated sl = %lf\n", 
+			warning("ATC::optimize_tile -> T = %ld: C2 (NO-remainder) was not satisfied, estimated sl = %lf\n", 
 				T, T_remainder_sl);
 		if (T_small_sl > 0) 
-			warning("ATC::optimize_tile -> T = %d: C3 (T >= %d) was not satisfied, estimated sl = %lf\n", 
+			warning("ATC::optimize_tile -> T = %ld: C3 (T >= %d) was not satisfied, estimated sl = %lf\n", 
 				T, TILE_MIN, T_small_sl);
-		double sl_too_many_sk = 0;
-		if (subkernel_num/active_unit_num > MAX_DESIRED_SK_DEV){
-			sl_too_many_sk = (1.0*subkernel_num/active_unit_num/MAX_DESIRED_SK_DEV)*MAX_DESIRED_SK_DEV_SLOWDOWN;
-			warning("ATC::optimize_tile -> T = %d: C4 (SK_DEV <= %d) was not satisfied, estimated sl = %lf\n", 
-				T, MIN_DESIRED_SK_DEV, sl_too_many_sk);
+		double sl_too_many_tasks = 0;
+		if (comp_task_num/active_unit_num > MAX_DESIRED_SK_DEV){
+			sl_too_many_tasks = (1.0*comp_task_num/active_unit_num/MAX_DESIRED_SK_DEV)*MAX_DESIRED_SK_DEV_SLOWDOWN;
+			warning("ATC::optimize_tile -> T = %ld: C4 (SK_DEV <= %d) was not satisfied, estimated sl = %lf\n", 
+				T, MIN_DESIRED_SK_DEV, sl_too_many_tasks);
 		}
-		fprintf(stderr, "ATC::optimize_tile -> T = %d: estimated sl from overlap = %lf\n", 
-			T, T_sknum_sl - sl_too_many_sk);
+		fprintf(stderr, "ATC::optimize_tile -> T = %ld: estimated sl from overlap = %lf\n", 
+			T, T_sknum_sl - sl_too_many_tasks);
 		if (T_big_sl > 0 ) 
-			warning("ATC::optimize_tile -> T = %d: C5 (T <= %d) was not satisfied, estimated sl = %lf\n", 
+			warning("ATC::optimize_tile -> T = %ld: C5 (T <= %d) was not satisfied, estimated sl = %lf\n", 
 				T, TILE_MAX, T_big_sl);
 	}
 	fprintf(stderr, "====================================\n");
@@ -351,7 +333,7 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 		"\t -> pred_t = %lf ms, pred_J = %lf kJ, pred_PDP = %lf Gflops/J, pred_EDP = %lf Gflops^2/J\n"
 		"\t -> pred_t_pesimistic = %lf ms, pred_J_pesimistic = %lf kJ, PDP_pesimistic = %lf Gflops/J, EDP_pesimistic = %lf Gflops^2/J\n",
 		T, T_aggregate_sl, active_unit_num, printlist<int>(active_unit_id_list, active_unit_num),
-		printlist<int>(Subkernels_per_unit_num, active_unit_num), pred_t*1000, pred_J/1000, power_delay, energy_delay,
+		printlist<long int>(comp_task_per_unit_num, active_unit_num), pred_t*1000, pred_J/1000, power_delay, energy_delay,
 		pred_t_pesimistic*1000, pred_J_pesimistic/1000, power_delay_pesimistic, energy_delay_pesimistic);
 	fprintf(stderr, "====================================\n");
 #ifdef DEBUG
@@ -455,15 +437,11 @@ void ATC::print(){
 	//int ctr = 0, itter = 0;
 	//if (active_unit_num > 0) for (int i = 0; i < active_unit_num; i++) dev_ids_token+=pow(10,idxize(active_unit_id_list[i]));
 	fprintf(stderr, "Autotune controller:\n->T = %ld\n->active_unit_num = %d\n->active_unit_id_list = %s\n->active_unit_score = %s\
-	\n->pred_t = %lf\n->subkernel_num = %ld\n->Subkernels_per_unit_num = %s\n", T, active_unit_num,
+	\n->pred_t = %lf\n->comp_task_num = %ld\n->comp_task_per_unit_num = %s\n->task_num = %ld", T, active_unit_num,
 	printlist<int>(active_unit_id_list, active_unit_num),
 	printlist<double>(active_unit_score, active_unit_num),
-	pred_t, subkernel_num,
-	printlist<int>(Subkernels_per_unit_num, active_unit_num));
- 	if(subkernel_num != -1){
-	for (int d = 0; d < active_unit_num; d++) fprintf(stderr, "Subkernels_per_unit_list[%d] = %s\n", d,
-		printlist<int>(Subkernels_per_unit_list[d], subkernel_num));
-	}
+	pred_t, comp_task_num,
+	printlist<long int>(comp_task_per_unit_num, active_unit_num), task_num);
 	fprintf(stderr, "\n");
 	return;
 }
