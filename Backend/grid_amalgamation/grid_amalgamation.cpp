@@ -96,7 +96,7 @@ void Grid_amalgamation::print_edge_replaced(){
 
 
 void Grid_amalgamation::print_edge_bws(){
-    fprintf(stderr,"\n Grid_amalgamation::print_edge_bws(%d):\n\n      |");
+    fprintf(stderr,"\n Grid_amalgamation::print_edge_bws():\n\n      |");
     for (int d2 = 0; d2 < CHL_MEMLOCS; d2++)
         fprintf(stderr, "  %s  |", mem_name(d2));
     fprintf(stderr, "\n      |");

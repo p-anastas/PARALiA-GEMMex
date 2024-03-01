@@ -43,14 +43,14 @@ double latbw_linear_regression(double* y, double* x, int samples, double* ans_b,
 	fprintf(stderr,"BW-inv estimated by linear regresion:\t t_b = %e ( %lf Gb/s)\n", t_b, (1/t_b)/1e9);
 	long byte_breakpoint = (int) (t_lat/t_b); 
 	if (!use_square_Tiles){
-		fprintf(stderr,"Latency-BW estimated breakpoint:\t b_eq = %d bytes\n", byte_breakpoint/active_unit_num);
-		fprintf(stderr,"75% BW estimated breakpoint:\t\t b_75 = %d bytes\n", byte_breakpoint/active_unit_num*2);
-		fprintf(stderr,"95% BW estimated breakpoint:\t\t b_95 = %d bytes\n\n", byte_breakpoint/active_unit_num*20);
+		fprintf(stderr,"Latency-BW estimated breakpoint:\t b_eq = %ld bytes\n", byte_breakpoint/active_unit_num);
+		fprintf(stderr,"75%% BW estimated breakpoint:\t\t b_75 = %ld bytes\n", byte_breakpoint/active_unit_num*2);
+		fprintf(stderr,"95%% BW estimated breakpoint:\t\t b_95 = %ld bytes\n\n", byte_breakpoint/active_unit_num*20);
 	}
 	else{
 		fprintf(stderr,"Latency-BW estimated breakpoint:\t b_eq = 8-bytes X (%d X %d)\n", (int) sqrt(byte_breakpoint/active_unit_num/8), (int) sqrt(byte_breakpoint/active_unit_num/8));
-		fprintf(stderr,"75% BW estimated breakpoint:\t\t b_75 = 8-bytes X (%d X %d)\n", (int) sqrt(byte_breakpoint/active_unit_num/4), (int) sqrt(byte_breakpoint/active_unit_num/4));
-		fprintf(stderr,"95% BW estimated breakpoint:\t\t b_95 = 8-bytes X (%d X %d)\n\n", (int) sqrt(byte_breakpoint/active_unit_num*20/8), (int) sqrt(byte_breakpoint/active_unit_num*20/8));
+		fprintf(stderr,"75%% BW estimated breakpoint:\t\t b_75 = 8-bytes X (%d X %d)\n", (int) sqrt(byte_breakpoint/active_unit_num/4), (int) sqrt(byte_breakpoint/active_unit_num/4));
+		fprintf(stderr,"95%% BW estimated breakpoint:\t\t b_95 = 8-bytes X (%d X %d)\n\n", (int) sqrt(byte_breakpoint/active_unit_num*20/8), (int) sqrt(byte_breakpoint/active_unit_num*20/8));
 	}
 	double APE = 0; 
 	long long byte_lbw_bp = 0, byte_75pbw_bp = 0, byte_95pbw_bp = 0;
@@ -67,14 +67,14 @@ double latbw_linear_regression(double* y, double* x, int samples, double* ans_b,
 
 	}
 	if (!use_square_Tiles){
-		fprintf(stderr,"Latency-BW empirical breakpoint:\t b_eq = %d bytes\n", byte_lbw_bp/active_unit_num);
-		fprintf(stderr,"75% BW empirical breakpoint:\t\t b_75 = %d bytes\n", byte_75pbw_bp/active_unit_num);
-		fprintf(stderr,"95% BW empirical breakpoint:\t\t b_95 = %d bytes\n\n", byte_95pbw_bp/active_unit_num);
+		fprintf(stderr,"Latency-BW empirical breakpoint:\t b_eq = %lld bytes\n", byte_lbw_bp/active_unit_num);
+		fprintf(stderr,"75%% BW empirical breakpoint:\t\t b_75 = %lld bytes\n", byte_75pbw_bp/active_unit_num);
+		fprintf(stderr,"95%% BW empirical breakpoint:\t\t b_95 = %lld bytes\n\n", byte_95pbw_bp/active_unit_num);
 	}
 	else{
 		fprintf(stderr,"Latency-BW empirical breakpoint:\t b_eq = 8-bytes X (%d X %d)\n", (int) sqrt(byte_lbw_bp/active_unit_num/8), (int) sqrt(byte_lbw_bp/active_unit_num/8));
-		fprintf(stderr,"75% BW empirical breakpoint:\t\t b_75 = 8-bytes X (%d X %d)\n", (int) sqrt(byte_75pbw_bp/active_unit_num/8), (int) sqrt(byte_75pbw_bp/active_unit_num/8));
-		fprintf(stderr,"95% BW empirical breakpoint:\t\t b_95 = 8-bytes X (%d X %d)\n\n", (int) sqrt(byte_95pbw_bp/active_unit_num/8), (int) sqrt(byte_95pbw_bp/active_unit_num/8));
+		fprintf(stderr,"75%% BW empirical breakpoint:\t\t b_75 = 8-bytes X (%d X %d)\n", (int) sqrt(byte_75pbw_bp/active_unit_num/8), (int) sqrt(byte_75pbw_bp/active_unit_num/8));
+		fprintf(stderr,"95%% BW empirical breakpoint:\t\t b_95 = 8-bytes X (%d X %d)\n\n", (int) sqrt(byte_95pbw_bp/active_unit_num/8), (int) sqrt(byte_95pbw_bp/active_unit_num/8));
 	}
 
 	return APE/samples; 

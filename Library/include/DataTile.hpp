@@ -56,8 +56,7 @@ public:
     void set_loc_idx(int loc_idx, int val); // Set the loc_idx element of loc_map to val.
     void try_set_loc_idx(int loc_idx, int val); // Similar but can only set uninitialized values (-42).
 
-    LinkRoute_p in_route;
-    void fetch(); // Fetch block to a list of locations using a predefined route.
+    void fetch(LinkRoute_p in_route); // Fetch block to a list of locations using a predefined route.
 
     //--------------------------------------------Tile properties-----------------------------------------//
     WR_properties WRP; // Defines an enum for the type of the tile. 
@@ -73,10 +72,9 @@ public:
     int W_op_dep_num;
     void** W_op_params;
 	const char* W_op_name;
-    void run_operation(int W_op_id); 
+    void run_operation(int W_op_id, LinkRoute_p lazy_route); 
 
-    LinkRoute_p out_route;
-    void writeback(); // Write back block to initial location using a predefined route.
+    void writeback(LinkRoute_p out_route); // Write back block to initial location using a predefined route.
 
     /// Only applicable for ALGO_WR_LAZY/ALGO_WREDUCE. 
     /// For ALGO_WR_LAZY: C = reduce_mult * C' + C (axpy)
@@ -86,7 +84,7 @@ public:
 
     /// Only for ALGO_WR_LAZY. Fetch C0 to a temp Cblock and perform C = reduce_mult * C' + C
     /// Must be called after W_op_fired = W_op_num and uses the related W_master_backend_ctr queue.
-    void WR_lazy_combine(); 
+    void WR_lazy_combine(LinkRoute_p lazy_route); 
     
     /// Only for ALGO_WREDUCE
     int backup_C_ldim; 

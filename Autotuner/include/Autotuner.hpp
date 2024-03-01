@@ -24,8 +24,10 @@ enum TileTaskType{
 };
 
 typedef class TileTask{
+public:
     TileTaskType type;
-    long long tile_id; 
+    long long DecomIdx, TileIdx, TileIdy;
+	int op_id;
     LinkRoute_p predef_route;
 }* Ttask_p;
 

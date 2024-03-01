@@ -46,7 +46,6 @@ file(MAKE_DIRECTORY ${BENCH_INSTALL}/testLogs)
 add_definitions(-DTESTLIBDIR="${BENCH_INSTALL}/testLogs")
 
 add_library(benchparalia SHARED
-${BENCH_DIR_SRC}/cuBLASXt/cuBLASWrappers.cpp
 ${BENCH_DIR_SRC}/cuBLASXt/cuBLASXtWrappers.cpp
 ${BENCH_DIR_SRC}/testing.cpp
 )

@@ -132,13 +132,13 @@ void Decomposer::DestroyTileMap(){
     }
   free(Tile_map);
 }
-
+/*
 void Decomposer::WBTileMap(){
   for (int itt1 = 0; itt1 < GridSz1; itt1++)
     for (int itt2 = 0 ; itt2 < GridSz2; itt2++)
       Tile_map[itt1*GridSz2 + itt2]->writeback();
 }
-
+*/
 void Decomposer::SyncTileMap(){
   for (int itt1 = 0; itt1 < GridSz1; itt1++)
     for (int itt2 = 0 ; itt2 < GridSz2; itt2++)

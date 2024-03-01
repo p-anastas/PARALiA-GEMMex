@@ -421,7 +421,10 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 	while (remaining_tasks){
 		Ttask_p curr = local_PMD->autotuner->task_list[local_PMD->autotuner->task_num - remaining_tasks];
-		// TODO: execute the given task
+		Tile2D_p target_tile = local_PMD->decom[curr->DecomIdx]->getTile(curr->TileIdx, curr->TileIdy);
+		if (curr->type == FETCH) target_tile->fetch(curr->predef_route);
+		else if (curr->type == COMPUTE) target_tile->run_operation(curr->op_id, curr->predef_route);
+		else if (curr->type == WRITEBACK) target_tile->writeback(curr->predef_route);
 		remaining_tasks--;
 		//usleep(3000);
 	}
@@ -436,10 +439,10 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	fprintf(stderr, "Writebacks launched -> t_wb_fire = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
 #endif
-#ifndef ENABLE_SEND_RECV_OVERLAP
-	sync_recv_queues();
-	local_PMD->decom[2]->WBTileMap();
-#endif
+//#ifndef ENABLE_SEND_RECV_OVERLAP
+//	sync_recv_queues();
+//	local_PMD->decom[2]->WBTileMap();
+//#endif
 	local_PMD->decom[2]->SyncTileMap();
 	CHLSyncCheckErr();
 #ifdef TEST
@@ -493,18 +496,11 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	cpu_timer = csecond();
 #endif
 #ifdef METADATA_REUSE_PROBLEMS
-	for(int i=0; i<local_PMD->sk_num; i++) local_PMD->subkernel_list[i]->reset();
+	;
 #else
-	for(int i=0; i<local_PMD->sk_num; i++) delete local_PMD->subkernel_list[i];
-#ifdef TEST
-	cpu_timer = csecond() - cpu_timer;
-	fprintf(stderr, "Freed Subkernels -> t_invalidate = %lf ms\n", cpu_timer*1000);
-	cpu_timer = csecond();
-#endif
 	local_PMD->decom[0]->DestroyTileMap();
 	local_PMD->decom[1]->DestroyTileMap();
 	local_PMD->decom[2]->DestroyTileMap();
-
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Destroyed Tilemaps -> t_invalidate = %lf ms\n", cpu_timer*1000);

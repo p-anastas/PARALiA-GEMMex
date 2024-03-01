@@ -80,7 +80,7 @@ void Tile2D::try_set_loc_idx(int loc_idx, int val){
     if (loc_map[loc_idx] == -42) loc_map[loc_idx] = val; 
 }
 
-void Tile2D::fetch()
+void Tile2D::fetch(LinkRoute_p in_route)
 {
 #ifdef DEBUG
   fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::fetch(%s)\n", id, GridId1, GridId2,
@@ -161,7 +161,7 @@ inline int get_next_queue_ctr(int dev_id){
 	return exec_queue_ctr[(dev_id)];
 }
 
-void Tile2D::run_operation(int W_op_id)
+void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 {
 #ifdef DEBUG
 	fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d)\n", id, GridId1, GridId2, W_op_dev_id);
@@ -199,7 +199,7 @@ void Tile2D::run_operation(int W_op_id)
 	assigned_exec_queue->run_operation(W_op_params[W_op_id], W_op_name, W_op_dev_id);
 
 	if (++W_op_fired == W_op_num){
-		if (WRP == WR_LAZY) WR_lazy_combine();
+		if (WRP == WR_LAZY) WR_lazy_combine(lazy_route);
 		else if (WRP == W_REDUCE) WReduce_backup_C();
 		W_op_complete->record_to_queue(assigned_exec_queue);
 //#ifdef ENABLE_SEND_RECV_OVERLAP
@@ -214,7 +214,7 @@ void Tile2D::run_operation(int W_op_id)
 #endif
 }
 
-void Tile2D::writeback(){
+void Tile2D::writeback(LinkRoute_p out_route){
 #ifdef DEBUG
 	fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::writeback() : loc_map = %s\n", 
     id, GridId1, GridId2, printlist(loc_map, CHL_MEMLOCS));
@@ -272,10 +272,10 @@ void Tile2D::writeback(){
   return; 
 }
 
-void Tile2D::WR_lazy_combine(){
+void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 	backup_C = StoreBlock[W_op_dev_id];
     StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE,false);
-    fetch();
+    fetch(lazy_route);
 	/// Swap backup_C back to StoreBlock 
 	CBlock_p temp_block = StoreBlock[W_op_dev_id]; 
 	StoreBlock[W_op_dev_id] = backup_C; 
