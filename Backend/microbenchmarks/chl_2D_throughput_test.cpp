@@ -132,7 +132,7 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, "chl_test_mememd: BW microbench loc --> WORKERS ( %d --> %s ): %.2lf GB/s\n", loc, printlist<int>(active_unit_id_list, active_unit_num), temp_bw); 
 	fprintf(stderr, "chl_test_mememd: BW microbench loc <-- WORKERS ( %d <-- %s ): %.2lf GB/s\n", loc, printlist<int>(active_unit_id_list, active_unit_num), temp_rev_bw); 
 	fprintf(stderr, "chl_test_mememd: BW microbench loc <-> WORKERS ( %d <-> %s ): %.2lf GB/s [ -> %.2lf GB/s, <- %.2lf GB/s ]\n", 
-		loc, printlist<int>(active_unit_id_list, active_unit_num), loc, temp_bid_sim, temp_bid, temp_bid_rev); 
+		loc, printlist<int>(active_unit_id_list, active_unit_num), temp_bid_sim, temp_bid, temp_bid_rev); 
 
   	return 0;
 }

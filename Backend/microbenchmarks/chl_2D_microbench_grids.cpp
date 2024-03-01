@@ -99,7 +99,7 @@ int main(const int argc, const char *argv[]) {
 	maxDim/=8;
   	long long ldhost = std::min((int) (2*maxDim), (int) CHLGetMaxDimSqAsset2D(2*2*(CHL_WORKERS), sizeof(double), STEP_TRANS, -1)),
 		lddev = maxDim;
-	fprintf(stderr,"\nchangelink_select_grids: \nSystem = %s\nminDim = %d, maxDim = %d, step = %d(adaptive)\nldhost = %d, lddev = %d\n", 
+	fprintf(stderr,"\nchangelink_select_grids: \nSystem = %s\nminDim = %d, maxDim = %d, step = %d(adaptive)\nldhost = %lld, lddev = %lld\n", 
 		TESTBED, minDim, maxDim, step, ldhost, lddev);
 				fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 
@@ -112,7 +112,7 @@ int main(const int argc, const char *argv[]) {
 		host_buffs[2*dev_id_idx + 1] = CHLMalloc(ldhost*ldhost*elemSize, mem_loc, 1);
 	}
 	timer = csecond() - timer;
-	fprintf(stderr, "Allocation host_buffs size = (%d x %d) x %d complete:\t alloc_timer=%lf ms\n", ldhost, ldhost, elemSize, timer  * 1000);
+	fprintf(stderr, "Allocation host_buffs size = (%lld x %lld) x %d complete:\t alloc_timer=%lf ms\n", ldhost, ldhost, elemSize, timer  * 1000);
 
 	timer = csecond();
 	for(short dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS; dev_id_idx++){
@@ -120,7 +120,7 @@ int main(const int argc, const char *argv[]) {
 		dev_buffs[2*dev_id_idx + 1] = CHLMalloc(lddev*lddev*elemSize, (dev_id_idx), 1);
 	}
 	timer = csecond() - timer;
-	fprintf(stderr, "Allocation dev_buffs size = (%d x %d) x %d complete:\t alloc_timer=%lf ms\n", lddev, lddev, elemSize, timer  * 1000);
+	fprintf(stderr, "Allocation dev_buffs size = (%lld x %lld) x %d complete:\t alloc_timer=%lf ms\n", lddev, lddev, elemSize, timer  * 1000);
 				fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 
 	if(mem_loc == -1) mem_loc = CHL_MEMLOCS - 1;
@@ -342,7 +342,7 @@ int main(const int argc, const char *argv[]) {
   		CHLFree(host_buffs[2*dev_id_idx + 1], ldhost*ldhost*elemSize, -1);
 	}
 	timer = csecond() - timer;
-	fprintf(stderr, "Free host_buffs size = (%d x %d) x %d complete:\t alloc_timer=%lf ms\n", ldhost, ldhost, elemSize, timer  * 1000);
+	fprintf(stderr, "Free host_buffs size = (%lld x %lld) x %d complete:\t alloc_timer=%lf ms\n", ldhost, ldhost, elemSize, timer  * 1000);
 
 	timer = csecond();
 	for(short dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS; dev_id_idx++){
@@ -350,7 +350,7 @@ int main(const int argc, const char *argv[]) {
   		CHLFree(dev_buffs[2*dev_id_idx + 1], lddev*lddev*elemSize, (dev_id_idx));
 	}
 	timer = csecond() - timer;
-	fprintf(stderr, "Free dev_buffs size = (%d x %d) x %d complete:\t alloc_timer=%lf ms\n", lddev, lddev, elemSize, timer  * 1000);
+	fprintf(stderr, "Free dev_buffs size = (%lld x %lld) x %d complete:\t alloc_timer=%lf ms\n", lddev, lddev, elemSize, timer  * 1000);
 	fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
   	return 0;
 }
