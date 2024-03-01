@@ -5,7 +5,7 @@
 ///
 
 #include "Autotuner.hpp"
-#include "Subkernel_distributions.hpp"
+#include "TaskDistribution.hpp"
 
 #include <cfloat> /// For DBL_MAX
 #include <cmath>
@@ -163,19 +163,18 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	fprintf(stderr,  "<-----|\n");
 #endif
 }
-/*
+
 void ATC::update_comp_task_num(long long int comp_task_num_in){
-	short lvl = 3;
-	#ifdef DEBUG
-		fprintf(stderr,  "|-----> ATC::update_sk_num\n");
-	#endif
-	int prev_comp_task_num = task_num;
-	task_num = task_num_in;
-	if (prev_task_num == -1) task_list = (Ttask_p*) malloc(task_num*5*sizeof(Ttask_p));
-	else if (prev_task_num < task_num){
-		for (int idx = 0; idx < task_num; idx++) delete task_list[idx]; 
-		free(task_list);
-		task_list = (Ttask_p*) malloc(task_num*5*sizeof(Ttask_p));
+#ifdef DEBUG
+	fprintf(stderr,  "|-----> ATC::update_sk_num\n");
+#endif
+	int prev_comp_task_num = comp_task_num;
+	comp_task_num = comp_task_num_in;
+	if (prev_comp_task_num == -1) comp_task_unit_id = (int*) malloc(comp_task_num*sizeof(int));
+	else if (prev_comp_task_num < comp_task_num){
+		warning("ATC::update_comp_task_num: updating predefined comp_task_unit_id is untested\n");
+		free(comp_task_unit_id);
+		comp_task_unit_id = (int*) malloc(comp_task_num*sizeof(int));
 	}
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
@@ -184,21 +183,21 @@ void ATC::update_comp_task_num(long long int comp_task_num_in){
 
 void ATC::distribute_tasks(int D1GridSz, int D2GridSz, int D3GridSz){
 	if (!strcmp(DISTRIBUTION, "ROUND-ROBIN"))
-		CoCoDistributeTasksRoundRobin(this);
+		DistributeCompTasksRoundRobin(this);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-NAIVE"))
-		CoCoDistributeTasksNaive(this);
+		DistributeCompTasksNaive(this);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN"))
-		CoCoDistributeTasksRoundRobinChunk(this, D3GridSz);
+		DistributeCompTasksRoundRobinChunk(this, D3GridSz);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN-REVERSE"))
-		CoCoDistributeTasksRoundRobinChunkReverse(this, D3GridSz);
+		DistributeCompTasksRoundRobinChunkReverse(this, D3GridSz);
 	else if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC"))
-		CoCoDistributeTasks2DBlockCyclic(this, D1GridSz, D2GridSz, D3GridSz);
+		DistributeCompTasks2DBlockCyclic(this, D1GridSz, D2GridSz, D3GridSz);
 	else error("ATC::distribute_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
 #ifdef PDEBUG
     print();
 #endif
 }
-*/
+
 /******************************************************************************/
 /****************************** Autotuning ************************************/
 
@@ -303,9 +302,13 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 	Grid_M = M/T + ((M%T) ? 1 : 0);
 	Grid_N = N/T + ((N%T) ? 1 : 0);
 	Grid_K = K/T + ((K%T) ? 1 : 0);
+
+	// Calculate compute tasks and allocate comp_task_unit_id
 	update_comp_task_num(Grid_M*Grid_N*Grid_K);
-	comp_task_unit_id = (int*) malloc(comp_task_num*sizeof(int));
+	// Distribute compute tasks to devices
 	distribute_tasks(Grid_M, Grid_N, Grid_K); 
+	// Calculate (max) total tasks and allocate task_list
+	// Translate compute tasks to sub-tasks based on 1) an ordering algorithm and 2) a routing algorithm. 
 
 	cpu_timer = csecond() - cpu_timer;
 	if(T!=-1){

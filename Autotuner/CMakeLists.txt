@@ -37,8 +37,9 @@ file(MAKE_DIRECTORY ${AUTOTUNE_INSTALL}/testLogs)
 add_definitions(-DTESTDIR="${AUTOTUNE_INSTALL}/testLogs")
 
 add_library(autotuner SHARED
-${AUTOTUNE_DIR_SRC}/Subkernel_distributions.cpp
+${AUTOTUNE_DIR_SRC}/TaskDistribution.cpp
 ${AUTOTUNE_DIR_SRC}/Autotuner.cpp
+${AUTOTUNE_DIR_SRC}/Routing.cpp
 )
 
 target_link_libraries(autotuner ${INTERNAL_LINK_LIB} chl_grid_amalgamation)

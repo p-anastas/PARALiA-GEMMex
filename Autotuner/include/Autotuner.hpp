@@ -68,7 +68,7 @@ typedef class ATC{
 	void mimic_ATC(class ATC* other_ATC); /// Copy all characteristics of another autotune controller, using its modelers.
 	void update_comp_task_num(long long int task_num_in); /// Updates the autotuner lists for a given number of tasks.
 
-	/// 2D block cyclic distribution
+	/// 2D block cyclic distribution is prefered
 	void distribute_tasks(int D1GridSz, int D2GridSz, int D3GridSz);
 /******************************************************************************/
 /****************************** Autotuning ************************************/
