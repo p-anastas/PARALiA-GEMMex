@@ -204,7 +204,7 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
     sprintf(filename, "%s/Benchmark-Results/chl_bw_grid_%d_%d.log", DEPLOYDB, case_id, rev_case_id);
     FILE* fp = fopen(filename, "r");
     if(!fp){
-        warning("Grid_amalgamation::load_edges(%d,%d): File not found\n", case_id, rev_case_id);
+        warning("Grid_amalgamation::load_edges(%d,%d): File %s not found\n", case_id, rev_case_id, filename);
         return 0;
     }
     int tmp_worker, temp_memloc;

@@ -21,7 +21,7 @@ ATC::ATC(){
 	active_unit_score = (double*) malloc(CHL_WORKERS*sizeof(double));
 	comp_task_per_unit_num = (long int*) malloc(CHL_WORKERS*sizeof(long int));
 	task_list = NULL;
-	T = active_unit_num = task_num = -1;
+	T = active_unit_num = task_num = comp_task_num = -1;
 	pred_t = pred_J = power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
 

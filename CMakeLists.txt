@@ -19,6 +19,15 @@ set(PROBLEM_GPU_PERCENTAGE 70)
 message("PARALiA-GEMMex - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
 add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 
+## Define a name for the testbed, to be used for the whole framework setup
+set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
+message("PARALiA-GEMMex - TESTBED_NAME: " ${TESTBED_NAME})
+add_definitions(-DTESTBED="${TESTBED_NAME}")
+
+## Define the workspace where execution of the library (benchmarks & deployment) will be invoked from (e.g. to avoid Disk quota problems in /home)
+set(CD_LOCATION $ENV{CD_FOLDER})
+message("PARALiA-GEMMex - CD_LOCATION: " ${CD_LOCATION})
+
 ###########################################################################################
 #---------------------------Internal resource reuse options-------------------------------#
 ###########################################################################################
@@ -65,8 +74,8 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 ###########################################################################################
@@ -219,13 +228,13 @@ add_definitions(-DPERPER_LIMIT=0.0)
 add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
-#add_definitions(-DDDEBUG)
+add_definitions(-DDDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
-#add_definitions(-DSDEBUG)
+add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
-#add_definitions(-DPDEBUG)
+add_definitions(-DPDEBUG)
 
 #Run Prediction deep debug mode (all autotuner stuff)
 #add_definitions(-DDPDEBUG)
@@ -240,7 +249,7 @@ add_definitions(-DDEBUG)
 #add_definitions(-DUDDEBUG)
 
 #Run in testing mode : details about models, decisions and time spend in operations.
-#add_definitions(-DTEST)
+add_definitions(-DTEST)
 
 #Run in Subkernel testing mode : details about time spend in subkernel operations.
 #add_definitions(-DSTEST)
@@ -265,7 +274,6 @@ add_definitions(-DWS_SZ=0)
 ###########################################################################################
 #-----------------------------------CUDA definitions--------------------------------------#
 ###########################################################################################
-
 
 if(NOT $ENV{PARALIA_CUDA_TOOLKIT_PREFIX} STREQUAL "default")
   set (CUDA_PREFIX $ENV{PARALIA_CUDA_TOOLKIT_PREFIX})
@@ -323,8 +331,6 @@ message("PARALiA-GEMMex - OPENBLAS_LINK: " ${OPENBLAS_LINK})
 #-------------------------------------Start Project---------------------------------------#
 ###########################################################################################
 
-ADD_SUBDIRECTORY (Backend)
-
 project (PARALiA-GEMMex VERSION ${PROJECT_VERSION} DESCRIPTION "A PARALiA implementation of gemm similar to cublasLt functions, for multi-GPU" LANGUAGES CUDA CXX)
 
 message("PARALiA-GEMMex - Project will be installed under build dir.")
@@ -333,6 +339,7 @@ set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
 set (CMAKE_INSTALL_PROJECT ${CMAKE_INSTALL_PREFIX})
 message("PARALiA-GEMMex - CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_PROJECT: " ${CMAKE_INSTALL_PROJECT})
 
+ADD_SUBDIRECTORY (Backend)
 
 set(PROJECT_BENCH_DIR ${PROJECT_SOURCE_DIR}/Benchmarking)
 configure_file(${PROJECT_BENCH_DIR}/Targeted_performance_evaluation.in ${CMAKE_INSTALL_PROJECT}/Targeted_performance_evaluation.sh @ONLY)

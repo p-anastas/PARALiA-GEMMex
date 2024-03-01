@@ -62,15 +62,13 @@ void DistributeCompTasksRoundRobin(ATC_p autotune_controller){
 		autotune_controller->active_unit_id_list[i]);
 	fprintf(stderr, "]\n");
 	fprintf(stderr, "Subker Num : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", 
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%ld ", 
 		autotune_controller->comp_task_per_unit_num[i]);
 	fprintf(stderr, "]\n");
-	for (int i =0; i < autotune_controller->active_unit_num; i++){
-		fprintf(stderr, "Subker Id list for dev_id = %d: [ ", autotune_controller->active_unit_id_list[i]);
-		for (int j =0; j < autotune_controller->comp_task_per_unit_num[i]; j++) fprintf(stderr, "%d ",
-			autotune_controller->Tasks_per_unit_list[i][j]);
-		fprintf(stderr, "]\n");
-	}
+	fprintf(stderr, "Subker Id list: [ ");
+	for (long int i =0; i < autotune_controller->comp_task_num; i++)
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_id[i]);
+	fprintf(stderr, "]\n");
 #endif
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
@@ -83,7 +81,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
   	fprintf(stderr, "|-----> DistributeCompTasksRoundRobinChunk(%p, %d)\n", autotune_controller, Chunk_size);
 #endif
 #ifdef PDEBUG
-	fprintf(stderr, "DistributeCompTasksRoundRobinChunk(%d): Devices = %d (scores = %s), sk_num = %d, sk_buckets = %d\n",
+	fprintf(stderr, "DistributeCompTasksRoundRobinChunk(%d): Devices = %d (scores = %s), task_num = %ld, task_buckets = %ld\n",
 		Chunk_size, autotune_controller->active_unit_num, 
 		printlist<double>(autotune_controller->active_unit_score, autotune_controller->active_unit_num),
 		autotune_controller->comp_task_num, autotune_controller->comp_task_num/Chunk_size);
@@ -109,48 +107,47 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 			sks_accounted_for += autotune_controller->comp_task_per_unit_num[d];
 #ifdef PDEBUG
 		fprintf(stderr, "Assigned kernel num to devices kernels (first pass): %s\n",
-			printlist<int>(autotune_controller->comp_task_per_unit_num, autotune_controller->active_unit_num));
+			printlist<long int>(autotune_controller->comp_task_per_unit_num, autotune_controller->active_unit_num));
 #endif
-  		int sk_ctr = 0, dev_sk_ctr_list[autotune_controller->active_unit_num] = {0}, devidx = 0;
+  		int task_ctr = 0, dev_sk_ctr_list[autotune_controller->active_unit_num] = {0}, devidx = 0;
 		for (int D1 = 0; D1 < autotune_controller->comp_task_num/Chunk_size; D1++){
 			for (int D3 = 0; D3 < Chunk_size; D3++){
 				int full_circle = autotune_controller->active_unit_num;
-				while(dev_sk_ctr_list[devidx] == autotune_controller->comp_task_per_unit_num[devidx] && sk_ctr < sks_accounted_for){ 
+				while(dev_sk_ctr_list[devidx] == autotune_controller->comp_task_per_unit_num[devidx] && task_ctr < sks_accounted_for){ 
 					if(!full_circle) error("DistributeCompTasks2DBlockCyclic: would enter infinite loop due to wrong"
 					"comp_task_per_unit_num, terminating\n");
 					if(devidx == autotune_controller->active_unit_num - 1) devidx = 0;
 					else devidx++;
 					full_circle--;
 				}
-				autotune_controller->comp_task_unit_id[sk_ctr] = autotune_controller->active_unit_id_list[devidx];
-				if(sk_ctr >= sks_accounted_for) autotune_controller->comp_task_per_unit_num[devidx] ++;
+				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
+				if(task_ctr >= sks_accounted_for) autotune_controller->comp_task_per_unit_num[devidx] ++;
 				dev_sk_ctr_list[devidx]++;
 #ifdef PDEBUG
-			fprintf(stderr, "DistributeCompTasksRoundRobinChunk: sk_ctr[%d,%d] = %d, devidx = %d\n",
-				D1, D3, sk_ctr, devidx);
+			fprintf(stderr, "DistributeCompTasksRoundRobinChunk: task_ctr[%d,%d] = %d, devidx = %d\n",
+				D1, D3, task_ctr, devidx);
 #endif
-			sk_ctr++;
+			task_ctr++;
 			}
 			if(devidx == autotune_controller->active_unit_num - 1) devidx = 0;
 			else devidx++;
 		}
 	}
 #ifdef PDEBUG
-	fprintf(stderr, "DistributeCompTasksRoundRobinChunk:\nDistributing %ld Tasks to %d devices\n",
-		autotune_controller->comp_task_num, autotune_controller->active_unit_num);
+	fprintf(stderr, "DistributeCompTasksRoundRobinChunk(Chunk_size=%d):\nDistributing %ld Tasks to %d devices\n",
+		Chunk_size, autotune_controller->comp_task_num, autotune_controller->active_unit_num);
 	fprintf(stderr, "Device Ids : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", autotune_controller->active_unit_id_list[i]);
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", 
+		autotune_controller->active_unit_id_list[i]);
 	fprintf(stderr, "]\n");
 	fprintf(stderr, "Subker Num : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ",
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%ld ", 
 		autotune_controller->comp_task_per_unit_num[i]);
 	fprintf(stderr, "]\n");
-	for (int i =0; i < autotune_controller->active_unit_num; i++){
-		fprintf(stderr, "Subker Id list for dev_id = %d: [ ", autotune_controller->active_unit_id_list[i]);
-		for (int j =0; j < autotune_controller->comp_task_per_unit_num[i]; j++) fprintf(stderr, "%d ",
-			autotune_controller->Tasks_per_unit_list[i][j]);
-		fprintf(stderr, "]\n");
-	}
+	fprintf(stderr, "Subker Id list: [ ");
+	for (long int i =0; i < autotune_controller->comp_task_num; i++)
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_id[i]);
+	fprintf(stderr, "]\n");
 #endif
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
@@ -233,17 +230,17 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		}
 #ifdef PDEBUG
 		fprintf(stderr, "Assigned kernel num to devices kernels (first pass): %s\n",
-			printlist<int>(autotune_controller->comp_task_per_unit_num, autotune_controller->active_unit_num));
+			printlist<long int>(autotune_controller->comp_task_per_unit_num, autotune_controller->active_unit_num));
 #endif
-		int sk_ctr, dev_sk_ctr_list[autotune_controller->active_unit_num] = {0}, devidx = 0;
+		int task_ctr, dev_sk_ctr_list[autotune_controller->active_unit_num] = {0}, devidx = 0;
 		for (int D1 = 0; D1 < D1GridSz_div; D1++)
 		for (int D2 = 0; D2 < D2GridSz_div; D2++)
 		for (int D3 = 0; D3 < D3GridSz; D3++){
-			sk_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
+			task_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
 			devidx = D1/(D1GridSz/D1_parts)*D2_parts + D2/(D2GridSz/D2_parts);
 #ifdef PDEBUG
-			fprintf(stderr, "DistributeCompTasks2DBlockCyclic: sk_ctr[%d,%d,%d] = %d, devidx = %d\n",
-				D1,D2,D3, sk_ctr, devidx);
+			fprintf(stderr, "DistributeCompTasks2DBlockCyclic: task_ctr[%d,%d,%d] = %d, devidx = %d\n",
+				D1,D2,D3, task_ctr, devidx);
 #endif
 			int full_circle = autotune_controller->active_unit_num; 
 			while(dev_sk_ctr_list[devidx] == autotune_controller->comp_task_per_unit_num[devidx]){
@@ -252,19 +249,19 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 				else devidx++;
 				full_circle--; 
 			}
-			autotune_controller->comp_task_unit_id[sk_ctr] = autotune_controller->active_unit_id_list[devidx];
+			autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 			dev_sk_ctr_list[devidx]++;
 		}
 		devidx = 0;
 		for (int D1 = 0; D1 < D1GridSz_div; D1++)
 		for (int D2 = D2GridSz_div; D2 < D2GridSz_div + D2GridSz_mod; D2++){
 			for (int D3 = 0; D3 < D3GridSz; D3++){
-				sk_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
+				task_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
 #ifdef PDEBUG
-				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D1-mod part\n sk_ctr[%d,%d,%d] = %d, devidx = %d\n",
-					D1,D2,D3, sk_ctr, devidx);
+				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D1-mod part\n task_ctr[%d,%d,%d] = %d, devidx = %d\n",
+					D1,D2,D3, task_ctr, devidx);
 #endif
-				autotune_controller->comp_task_unit_id[sk_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				dev_sk_ctr_list[devidx]++;
 			}
 			autotune_controller->comp_task_per_unit_num[devidx] += D3GridSz;
@@ -274,12 +271,12 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		for (int D1 = D1GridSz_div; D1 < D1GridSz_div + D1GridSz_mod; D1++)
 		for (int D2 = 0; D2 < D2GridSz_div; D2++){
 			for (int D3 = 0; D3 < D3GridSz; D3++){
-				sk_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
+				task_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
 #ifdef PDEBUG
 				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D2-mod part\nsk_ctr[%d,%d,%d] = %d, devidx = %d\n",
-					D1,D2,D3, sk_ctr, devidx);
+					D1,D2,D3, task_ctr, devidx);
 #endif
-				autotune_controller->comp_task_unit_id[sk_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				dev_sk_ctr_list[devidx]++;
 			}
 			autotune_controller->comp_task_per_unit_num[devidx] += D3GridSz;
@@ -289,12 +286,12 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		for (int D1 = D1GridSz_div; D1 < D1GridSz_div + D1GridSz_mod; D1++)
 		for (int D2 = D2GridSz_div; D2 < D2GridSz_div + D2GridSz_mod; D2++){
 			for (int D3 = 0; D3 < D3GridSz; D3++){
-				sk_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
+				task_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
 #ifdef PDEBUG
 				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D1 & D2 mod part\nsk_ctr[%d,%d,%d] = %d, devidx = %d\n",
-					D1,D2,D3, sk_ctr, devidx);
+					D1,D2,D3, task_ctr, devidx);
 #endif
-				autotune_controller->comp_task_unit_id[sk_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				dev_sk_ctr_list[devidx]++;
 			}
 			autotune_controller->comp_task_per_unit_num[devidx] += D3GridSz;
@@ -306,18 +303,17 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 	fprintf(stderr, "DistributeCompTasks2DBlockCyclic:\nDistributing %ld Tasks to %d devices\n",
 		autotune_controller->comp_task_num, autotune_controller->active_unit_num);
 	fprintf(stderr, "Device Ids : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", autotune_controller->active_unit_id_list[i]);
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", 
+		autotune_controller->active_unit_id_list[i]);
 	fprintf(stderr, "]\n");
 	fprintf(stderr, "Subker Num : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ",
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%ld ", 
 		autotune_controller->comp_task_per_unit_num[i]);
 	fprintf(stderr, "]\n");
-	for (int i =0; i < autotune_controller->active_unit_num; i++){
-		fprintf(stderr, "Subker Id list for dev_id = %d: [ ", autotune_controller->active_unit_id_list[i]);
-		for (int j =0; j < autotune_controller->comp_task_per_unit_num[i]; j++) fprintf(stderr, "%d ",
-			autotune_controller->Tasks_per_unit_list[i][j]);
-		fprintf(stderr, "]\n");
-	}
+	fprintf(stderr, "Subker Id list: [ ");
+	for (long int i =0; i < autotune_controller->comp_task_num; i++)
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_id[i]);
+	fprintf(stderr, "]\n");
 #endif
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
@@ -339,7 +335,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 #ifdef SUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING
 Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkernel_list_len){
 #ifdef SERIAL_SUBKERNEL_SELECTION
-	for (int sk_idx = 0; sk_idx < Subkernel_list_len; sk_idx++)
+	for (int task_idx = 0; task_idx < Subkernel_list_len; task_idx++)
 		if(!Subkernel_list[sk_idx]->launched){
 			Subkernel_list[sk_idx]->prepare_launch(dev_id);
 			return Subkernel_list[sk_idx];
@@ -347,10 +343,10 @@ Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkerne
 	error("SubkernelSelect(SERIAL)\n No sk matched search condition\n");
 #endif
 	Subkernel* curr_sk = NULL;
-	int sk_idx, potential_sks[Subkernel_list_len], tie_list_num = 0, doubletie_list_num = 0; 
+	int task_idx, potential_sks[Subkernel_list_len], tie_list_num = 0, doubletie_list_num = 0; 
 	long double min_ETA = DBL_MAX;
 	if(!Subkernel_list_len) error("SubkernelSelect: Gave 0 subkernel len with list = %p\n", Subkernel_list);
-	for (sk_idx = 0; sk_idx < Subkernel_list_len; sk_idx++)if(!Subkernel_list[sk_idx]->launched){
+	for (sk_idx = 0; task_idx < Subkernel_list_len; task_idx++)if(!Subkernel_list[sk_idx]->launched){
 		curr_sk = Subkernel_list[sk_idx];
 		long double tmp_ETA = 0; 
 		for (int j = 0; j < curr_sk->TileNum; j++){
@@ -364,12 +360,12 @@ Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkerne
 		if(tmp_ETA < min_ETA){
 		//if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) > NORMALIZE_NEAR_SPLIT_LIMIT && tmp_ETA < min_ETA){
 			min_ETA = tmp_ETA;
-			potential_sks[0] = sk_idx;
+			potential_sks[0] = task_idx;
 			tie_list_num = 1; 
 		}
 		else if(tmp_ETA == min_ETA){
 		//else if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) <= NORMALIZE_NEAR_SPLIT_LIMIT){
-			potential_sks[tie_list_num++] = sk_idx;
+			potential_sks[tie_list_num++] = task_idx;
 		}
 	}
 	int most_fired_sks = -1, potential_tied_sks[tie_list_num];
@@ -411,11 +407,11 @@ Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkerne
 	return Subkernel_list[0];
 #endif
 	Subkernel* curr_sk = NULL;
-	int sk_idx;
+	int task_idx;
 	int potential_sks[Subkernel_list_len], tie_list_num = 0; 
 	int max_fetches = -1;
 	if(!Subkernel_list_len) error("SubkernelSelect: Gave 0 subkernel len with list = %p\n", Subkernel_list);
-	for (sk_idx = 0; sk_idx < Subkernel_list_len; sk_idx++){
+	for (sk_idx = 0; task_idx < Subkernel_list_len; task_idx++){
 		curr_sk = Subkernel_list[sk_idx];
 		int tmp_fetches = 0; 
 		for (int j = 0; j < curr_sk->TileNum; j++){
@@ -425,11 +421,11 @@ Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkerne
 		}
 		if(tmp_fetches > max_fetches){
 			max_fetches = tmp_fetches;
-			potential_sks[0] = sk_idx;
+			potential_sks[0] = task_idx;
 			tie_list_num = 1; 
 		}
 		else if(tmp_fetches == max_fetches){
-			potential_sks[tie_list_num++] = sk_idx;
+			potential_sks[tie_list_num++] = task_idx;
 		}
 	}
 	int selected_sk_idx = (tie_list_num)? potential_sks[int(rand() % tie_list_num)] : tie_list_num; 

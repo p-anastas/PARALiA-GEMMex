@@ -1,37 +1,4 @@
 ###########################################################################################
-#---------------------------------Project-wide Options------------------------------------#
-###########################################################################################
-
-cmake_minimum_required (VERSION 3.10)
-
-## Define a name for the backend library wrappers/implementations used in this build, Currently implemented only with CuCuBLAS(==CUDA+CUBLAS)
-set(BACKEND "CuCuBLAS")
-message("PARALIA - Backend - BACKEND: " ${BACKEND})
-add_definitions(-DBACKEND="${BACKEND}")
-## Define the project version (used in logfiles for result testing)
-
-if(NOT DEFINED PROJECT_VERSION)
-  set(PROJECT_VERSION "0.1")
-endif()
-message("PARALIA - Backend - PROJECT_VERSION: " ${PROJECT_VERSION})
-add_definitions(-DVERSION="${PROJECT_VERSION}")
-
-## Define a name for the testbed, to be used for the whole framework setup
-set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
-message("PARALIA - Backend - TESTBED_NAME: " ${TESTBED_NAME})
-add_definitions(-DTESTBED="${TESTBED_NAME}")
-set(TESTBED_NAME $ENV{PARALIA_SYSTEM} PARENT_SCOPE)
-
-## Define the workspace where execution of the library (benchmarks & deployment) will be invoked from (e.g. to avoid Disk quota problems in /home)
-set(CD_LOCATION $ENV{CD_FOLDER})
-message("PARALIA - Backend - CD_LOCATION: " ${CD_LOCATION})
-
-## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
-set(PROBLEM_GPU_PERCENTAGE 70)
-message("PARALIA - Backend - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
-add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
-
-###########################################################################################
 #----------------------------------DEBUG/TEST Options-------------------------------------#
 ###########################################################################################
 
@@ -68,30 +35,17 @@ add_definitions(-DNORMALIZE_NEAR_SPLIT_LIMIT=0.05)
 add_definitions(-DWS_SZ=0)
 
 ###########################################################################################
-#-------------------------------------Start Project---------------------------------------#
-###########################################################################################
-
-project (PARALIA-Backend VERSION ${PROJECT_VERSION} DESCRIPTION "PARALIA - Backend interconnect benchmarks" LANGUAGES CUDA CXX)
-
-if($ENV{PARALIA_INSTALL_PREFIX} STREQUAL "default")
-  message("PARALIA - Backend - PARALIA_INSTALL_PREFIX not provided, project will be installed under build dir.")
-  set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
-else()
-  set (CMAKE_INSTALL_PREFIX $ENV{PARALIA_INSTALL_PREFIX})
-endif()
-set (CMAKE_INSTALL_PROJECT ${CMAKE_INSTALL_PREFIX})
-message("PARALIA - Backend - CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_PROJECT: " ${CMAKE_INSTALL_PROJECT})
-
-###########################################################################################
 #----------------------------------------chl_libs-----------------------------------------#
 ###########################################################################################
 
+set (PARALIA_BACKEND_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Backend)
+message( "PARALIA - Backend - PARALIA_BACKEND_SOURCE_DIR = " ${PARALIA_BACKEND_SOURCE_DIR} )
 
-message( "PARALIA - Backend - Included smart_wrappers DIR: " ${PROJECT_SOURCE_DIR}/smart_wrappers )
-include_directories(${PROJECT_SOURCE_DIR}/smart_wrappers)
+message( "PARALIA - Backend - Included smart_wrappers DIR: " ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers )
+include_directories(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers)
 
-message( "PARALIA - Backend - Included grid_amalgamation DIR: " ${PROJECT_SOURCE_DIR}/grid_amalgamation )
-include_directories(${PROJECT_SOURCE_DIR}/grid_amalgamation)
+message( "PARALIA - Backend - Included grid_amalgamation DIR: " ${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation )
+include_directories(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation)
 
 set (PARALIA_INSTALL ${CMAKE_INSTALL_PROJECT}/PARALIA_Backend)
 file(MAKE_DIRECTORY ${PARALIA_INSTALL})
@@ -112,29 +66,29 @@ add_definitions(-DSCONFIG_PATH="$ENV{PARALIA_SCONFIG_FILE_PATH}")
 message( "PARALIA - Backend - SCONFIG_PATH: " $ENV{PARALIA_SCONFIG_FILE_PATH})
 
 add_library(chl_smart_wrappers SHARED
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/general_utils.cpp
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/data_helpers.cpp
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/numa_awareness.cpp
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_util_wrappers.cu
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_class_wrappers.cu
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_data_wrappers.cu
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_lib_wrappers.cu
-  ${PROJECT_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_routine_wrappers.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/general_utils.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/data_helpers.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/numa_awareness.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_util_wrappers.cu
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_class_wrappers.cu
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_data_wrappers.cu
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_lib_wrappers.cu
+  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_routine_wrappers.cpp
 )
 
 target_link_libraries(chl_smart_wrappers ${INTERNAL_LINK_LIB} ${OPENBLAS_LINK})
 
 add_library(chl_grid_amalgamation SHARED
-  ${PROJECT_SOURCE_DIR}/grid_amalgamation/chain_transfer.cpp
-  ${PROJECT_SOURCE_DIR}/grid_amalgamation/grid_amalgamation.cpp
-  ${PROJECT_SOURCE_DIR}/grid_amalgamation/problem_comm_translate.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation/chain_transfer.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation/grid_amalgamation.cpp
+  ${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation/problem_comm_translate.cpp
 )
 
 target_link_libraries(chl_grid_amalgamation ${INTERNAL_LINK_LIB} chl_smart_wrappers)
 
-configure_file(${PROJECT_SOURCE_DIR}/smart_wrappers/smart_wrappers.hpp ${PARALIA_INSTALL_INC}/chl_smart_wrappers.hpp COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/grid_amalgamation/grid_amalgamation.hpp ${PARALIA_INSTALL_INC}/chl_grid_amalgamation.hpp COPYONLY)
-configure_file(${PROJECT_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_wrappers.hpp ${PARALIA_INSTALL_INC}/backend_wrappers.hpp COPYONLY)
+configure_file(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/smart_wrappers.hpp ${PARALIA_INSTALL_INC}/chl_smart_wrappers.hpp COPYONLY)
+configure_file(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation/grid_amalgamation.hpp ${PARALIA_INSTALL_INC}/chl_grid_amalgamation.hpp COPYONLY)
+configure_file(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_wrappers.hpp ${PARALIA_INSTALL_INC}/backend_wrappers.hpp COPYONLY)
 
 ###########################################################################################
 #------------------------------------microbenchmarks--------------------------------------#
@@ -156,21 +110,21 @@ message("PARALIA - Backend - Database Builder - Included (Boost) DIR: " ${BOOSTO
 include_directories(${PARALIA_INSTALL_INC})
 message( "PARALIA - Backend - Database Builder - Included DIR: " ${PARALIA_INSTALL_INC} )
 
-include_directories(${PROJECT_SOURCE_DIR}/microbenchmarks)
-message( "PARALIA - Backend - Included microbenchmarks DIR: " ${PROJECT_SOURCE_DIR}/microbenchmarks)
+include_directories(${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks)
+message( "PARALIA - Backend - Included microbenchmarks DIR: " ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks)
 
-set(NVEMAPI_PREFIX "${PROJECT_SOURCE_DIR}/nvidia-energy-measure")
+set(NVEMAPI_PREFIX "${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure")
 set (NVEMAPI_INCLUDE_DIRS ${NVEMAPI_PREFIX}/include) # -L${CUDA_LD}
 include_directories(${NVEMAPI_INCLUDE_DIRS} )
 message( "PARALIA - Backend - NVEMAPI_INCLUDE_DIRS: " ${NVEMAPI_INCLUDE_DIRS} )
-ADD_SUBDIRECTORY (${PROJECT_SOURCE_DIR}/nvidia-energy-measure)
+ADD_SUBDIRECTORY (${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure)
 
-add_executable (CHLMicrobench2DGrids ${PROJECT_SOURCE_DIR}/microbenchmarks/chl_2D_microbench_grids.cpp ${PROJECT_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (CHLTestGamalgGEMM ${PROJECT_SOURCE_DIR}/microbenchmarks/chl_test_gamalg_gemm.cpp ${PROJECT_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (CHLTestMemlocs ${PROJECT_SOURCE_DIR}/microbenchmarks/chl_test_memloc_numbering.cpp ${PROJECT_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (CHLTest2DThroughput ${PROJECT_SOURCE_DIR}/microbenchmarks/chl_2D_throughput_test.cpp ${PROJECT_SOURCE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (CHLMicrobench2DGrids ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_microbench_grids.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (CHLTestGamalgGEMM ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_test_gamalg_gemm.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (CHLTestMemlocs ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_test_memloc_numbering.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (CHLTest2DThroughput ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_throughput_test.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
 
-#add_executable (RunCuCuBlasLinkBenchGPUs ${PROJECT_SOURCE_DIR}/microbenchmarks/transfer_link_microbench_GPUs.cpp )
+#add_executable (RunCuCuBlasLinkBenchGPUs ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/transfer_link_microbench_GPUs.cpp )
 
 target_link_libraries(CHLMicrobench2DGrids ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 target_link_libraries(CHLTestGamalgGEMM ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)

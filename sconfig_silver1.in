@@ -1,6 +1,6 @@
 DEV_NUM=2
-NUMA_HW_NUM=1
+NUMA_HW_NUM=2
 NIC_NUM=2
-nic_at_dev=[ 0 1 ]
+nic_at_dev=[ 0 1]
 numa_at_dev=[ 0 1]
 HW_THREADS=28

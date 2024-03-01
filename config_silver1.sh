@@ -6,7 +6,7 @@
 #--------------------------------------------------------------Basic----------------------------------------------------------------#
 
 # CHECKME: A desired name for the testbed to be used for your build-dirs and logfiles.
-system="karol_8A100"
+system="silver1_2V100"
 export PARALIA_SYSTEM=${system}
 
 # CHECKME: A folder to change to before firing benchmarks, to avoid disk errors. 
@@ -14,7 +14,7 @@ export PARALIA_CD_FOLDER=/mnt/proj1/dd-23-129
 
 # CHECKME: A file that contains information found by numactl and nvidia-smi in a tidied form.
 # FIXME: Currently must be defined by the user, will be automated later
-export PARALIA_SCONFIG_FILE_PATH="/home/users/panastas/PhD_stuff/PARALiA-GEMMex/sconfig_karol.in"
+export PARALIA_SCONFIG_FILE_PATH="/home/users/panastas/PhD_stuff/PARALiA-GEMMex/sconfig_silver1.in"
 
 # CHECKME: Define cuda architecture (Tesla K40 = 35, GTX 1060/70 = 61,) P100 = 60, V100 = 70, A100 = 80
 export PARALIA_CUDA_ARCH=70

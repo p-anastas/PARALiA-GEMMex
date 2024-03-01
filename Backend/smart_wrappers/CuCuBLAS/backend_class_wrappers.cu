@@ -483,7 +483,7 @@ void Event::reset(){
 #ifdef UDDEBUG
 	fprintf(stderr, "[dev_id=%3d] Event(%d)::reset()\n", dev_id, id);
 #endif
-	sync_barrier();
+	if (status == RECORDED) sync_barrier();
 	cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
 #ifndef PRODUCTION
 	massert(cudaSuccess == err, "[dev_id=%3d] Event(%d)::reset - %s\n", dev_id, id, cudaGetErrorString(err));
