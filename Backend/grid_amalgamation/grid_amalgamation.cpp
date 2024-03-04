@@ -33,7 +33,7 @@ void system_gamalg_init_from_DB(){
                 system_gamalg_ctr++;
             }
             else{ 
-#ifdef DCLDEBUG
+#ifdef CLDEBUG
                 fprintf(stderr,"system_gamalg_init_from_DB(): Combination (case_id = %d, rev_case_id = %d) not found in DB\n", case_id, rev_case_id);
 #endif
                 delete temp_gamalgs[system_gamalg_ctr];
@@ -194,7 +194,7 @@ void log_results_bid(char* filename, int numDev, int* case_id_list, int* rev_cas
 
 int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
     char *filename = (char *) malloc(1024 * sizeof(char));
-#ifdef DCLDEBUG
+#ifdef CLDEBUG
     fprintf(stderr, "Grid_amalgamation::load_edges(%d,%d)\n", case_id, rev_case_id);
 #endif
     int active_unit_num, active_unit_id_list[CHL_WORKERS];

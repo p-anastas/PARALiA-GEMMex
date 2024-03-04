@@ -10,7 +10,27 @@
 #include <cfloat> /// For DBL_MAX
 #include <cmath>
 
-/********************** Initialization/Modification ***************************/
+TileTask::TileTask(TileTaskType type_in, int DecomIdx_in, int TileIdx_in, 
+	int TileIdy_in, int op_id_in, LinkRoute_p predef_route_in){
+	type = type_in;
+	DecomIdx = DecomIdx_in;
+	TileIdx = TileIdx_in; 
+	TileIdy = TileIdy_in; 
+	op_id = op_id_in;
+	predef_route = predef_route_in;
+	print();
+}
+
+void TileTask::print(){
+	fprintf(stderr,  "| --------- |\n");
+	if(type == FETCH) fprintf(stderr,  "| --FETCH-- |\n");
+	else if(type == COMPUTE) fprintf(stderr,  "| -COMPUTE- |\n");
+	else if(type == WRITEBACK) fprintf(stderr,  "| WRITEBACK |\n");
+	fprintf(stderr,  "| %1d.[%2d,%2d] |\n", DecomIdx, TileIdx, TileIdy);
+	fprintf(stderr,  "|  Oper=%2d  |\n", op_id);
+	fprintf(stderr,  "| %9s |\n", printlist<int>(predef_route->hop_uid_list, predef_route->hop_num));
+}
+
 ATC::ATC(){
 	short lvl = 2;
 #ifdef DEBUG
@@ -66,12 +86,18 @@ void ATC::reset(){
 #endif
 	free(comp_task_per_unit_num);
 	free(comp_task_unit_list);
+	for (int idx = 0; idx < active_unit_num; idx++){
+		free(comp_task_per_unit_list[idx]); 
+	}
+	free(comp_task_per_unit_list); 
+	comp_task_per_unit_list = NULL;
 	for (int idx = 0; idx < task_num; idx++){
 		delete task_list[idx]; 
 	}
 	free(task_list);
 	task_list = NULL;
-	T = active_unit_num = task_num = -1;
+	delete inter_grid;
+	T = active_unit_num = task_num = comp_task_num = -1;
 	pred_t = -1.0;
 	cache_limit = 0;
 #ifdef DEBUG
@@ -125,15 +151,8 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 #ifdef DEBUG
 	fprintf(stderr,  "|-----> ATC::mimic_ATC(other_ATC = %p)\n", other_ATC);
 #endif
-	//if(task_num != -1){
-		//for (int idx = 0; idx < task_num; idx++){
-		//	delete task_list[idx]; 
-		//}
-		//free(task_list);
-		//task_list = NULL;	
-		//task_num = -1;
-		reset();
-	//}
+	// TODO: Is this needed?
+	//reset();
 	T = other_ATC->T;
 	T_aggregate_sl = other_ATC->T_aggregate_sl;
 	T_imbalance_sl = other_ATC->T_imbalance_sl;
@@ -153,20 +172,22 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	power_delay_pesimistic = other_ATC->power_delay_pesimistic;
 	energy_delay_pesimistic = other_ATC->energy_delay_pesimistic;
 	cache_limit = other_ATC->cache_limit;
-	inter_grid->copy(other_ATC->inter_grid);
+	// The following is not implemented
+	//inter_grid->copy(other_ATC->inter_grid);
 
 	if (other_ATC->task_num != -1){
 		task_num = other_ATC->task_num;
 		update_comp_task_num(other_ATC->comp_task_num);
-		for (int taskidx = 0; taskidx < comp_task_num; taskidx++) 
+		for (long int taskidx = 0; taskidx < comp_task_num; taskidx++) 
 			comp_task_unit_list[taskidx] = other_ATC->comp_task_unit_list[taskidx];
-		for (int dev = 0; dev < CHL_MEMLOCS; dev++) 
+		for (int dev = 0; dev < CHL_WORKERS; dev++) 
 			comp_task_per_unit_num[dev] = other_ATC->comp_task_per_unit_num[dev];
-		for (int dev = 0; dev < active_unit_num; dev++){
-			for (int dev_idx = 0; dev_idx < comp_task_per_unit_num[dev]; dev_idx++)
-			comp_task_per_unit_list[dev][dev_idx] = other_ATC->comp_task_per_unit_list[dev][dev_idx];
-		}
-		task_list = (Ttask_p*) malloc(task_num*sizeof(Ttask_p));
+		for (int dev_id = 0; dev_id < active_unit_num; dev_id++)
+			for (long int task_comp_idx = 0; task_comp_idx < comp_task_per_unit_num[dev_id]; task_comp_idx++)
+				comp_task_per_unit_list[dev_id][task_comp_idx] = 
+					other_ATC->comp_task_per_unit_list[dev_id][task_comp_idx];
+			
+		if(!task_list) task_list = (Ttask_p*) malloc(task_num*sizeof(Ttask_p));
 		for (int sk = 0; sk < task_num; sk++) task_list[sk] = other_ATC->task_list[sk];
 	}
 
@@ -175,9 +196,9 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 #endif
 }
 
-void ATC::update_comp_task_num(long long int comp_task_num_in){
+void ATC::update_comp_task_num(long int comp_task_num_in){
 #ifdef DEBUG
-	fprintf(stderr,  "|-----> ATC::update_sk_num\n");
+	fprintf(stderr,  "|-----> ATC::update_comp_task_num\n");
 #endif
 	int prev_comp_task_num = comp_task_num;
 	comp_task_num = comp_task_num_in;
@@ -197,6 +218,7 @@ void ATC::update_comp_task_num(long long int comp_task_num_in){
 		for(int dev_id = 0; dev_id < active_unit_num; dev_id++)
 			comp_task_per_unit_list[dev_id] = (int*) malloc(comp_task_num*sizeof(int));
 	}
+	else error("ATC::update_comp_task_num was not updated correctly\n");
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
@@ -260,16 +282,56 @@ void ATC::initialize_tasks(){
 				else C_tile_loc_map[im][in][loc] = -42;
 		}
 	}
-	long int task_ctr = 0;
-	for (long int cidx = 0 ; cidx < comp_task_num; cidx++){
-		int im = cidx/Grid_N, in = cidx%Grid_N, target_dev = comp_task_unit_list[task_ctr];
-		for(int ik = 0; ik < Grid_K; ik++)
-		task_ctr++;
-	}
 }
 
-/******************************************************************************/
-/****************************** Autotuning ************************************/
+void ATC::optimize_tasks_serial(){
+	long int comp_task_ctr, task_ctr = comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	while (comp_task_ctr < comp_task_num){
+		for(int ik = 0; ik < Grid_K; ik++){
+			for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+				if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+				int dev_id = active_unit_id_list[dev_idx]; 
+				int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]++]/Grid_K;
+				int im = comp_task_idx/Grid_N, in = comp_task_idx%Grid_N;
+				if(A_tile_loc_map[im][ik][dev_id]!= 0 && A_tile_loc_map[im][ik][dev_id]!= 42){
+					A_tile_loc_map[im][ik][dev_id] = 2; 
+					long int size = T*T*elemSize;
+					LinkRoute_p A_tile_route = new LinkRoute();
+					A_tile_route->optimize(A_tile_loc_map[im][ik], size);
+					task_list[task_ctr++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
+				}
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
+					B_tile_loc_map[ik][in][dev_id] = 2; 
+					long int size = T*T*elemSize;
+					LinkRoute_p B_tile_route = new LinkRoute();
+					B_tile_route->optimize(B_tile_loc_map[ik][in], size);
+					task_list[task_ctr++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
+				}
+				LinkRoute_p C_tile_route = new LinkRoute();
+				if(C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
+					C_tile_loc_map[im][in][dev_id] = 2; 
+					long int size = T*T*elemSize;
+					C_tile_route->optimize(C_tile_loc_map[im][in], size);
+					if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR"))
+						task_list[task_ctr++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
+				}
+				task_list[task_ctr++] = new TileTask(COMPUTE, 2, im, in, ik, C_tile_route);
+				if(ik == Grid_K - 1 && C_tile_loc_map[im][in][dev_id]){
+					long int size = T*T*elemSize;
+					LinkRoute_p C_tile_out_route = new LinkRoute();
+					C_tile_out_route->optimize_reverse(C_tile_loc_map[im][in], size);
+					task_list[task_ctr++] = new TileTask(WRITEBACK, 2, im, in, 0, C_tile_out_route);
+				}
+				comp_task_ctr++;
+			}
+		}
+	}
+	task_num = task_ctr;
+}
+
+void ATC::optimize_tasks(){
+	if(!strcmp(TASK_ORDER, "SERIAL")) optimize_tasks_serial();
+}
 
 double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
     int M_in, int N_in, int K_in, int elemSize){
@@ -536,114 +598,3 @@ const char* ATC::print_csv(){
 	sprintf(outstring, "%ld,%d,%d,%lld",  T, active_unit_num, dev_ids_token, cache_limit);
 	return outstring;
 }
-
-/******************************************************************************/
-
-/* FIXME: DEPRECATED - kept for future model-based T selection update if needed
-double ATC::optimize_tile_modelBased(ATC_p autotune_controller, short used_devs, short* used_dev_ids,
-	int* dev_idx_ignore, MD_p* unit_modeler_list){
-	short lvl = 3;
-#ifdef DEBUG
-	fprintf(stderr,  "||-----> ATC::optimize_tile_modelBased(used_devs=%d, used_dev_ids= [ ", used_devs);
-	for (int i =0; i < used_devs; i++) fprintf(stderr, "%d ", used_dev_ids[i]);
-	fprintf(stderr, "]\n");
-#endif
-#ifdef TEST
-	double timer = csecond();
-#endif
-	short first_model_idx = (used_dev_ids[0] == -1) ? LOC_NUM - 1 : used_dev_ids[0];
-	MD_p model = unit_modeler_list[first_model_idx];
-	active_unit_score = NULL;
-	int best_idx = -1;
-	double temp_score = 0;
-
-	long int min_T = 0, max_allowed_T = 0, ctr = 0;
-	max_allowed_T = CoCopeLiaMaxT(model);
-	min_T = CoCopeLiaMinT(model);
-#ifdef PDEBUG
-		fprintf(stderr,  "min_T = %ld, max_allowed_T = %ld\n",
-			min_T, max_allowed_T);
-#endif
-	if (min_T > max_allowed_T){
-		outparams->T = max_allowed_T;
-		// FIXME: Undefined expected performance for tiles < than the smaller microbenchmark
-		outparams->pred_t = 0;
-#ifdef PDEBUG
-		fprintf(stderr,  "min_T = %ld > max_allowed_T = %ld: returning T = %ld",
-			min_T, max_allowed_T, max_allowed_T);
-#endif
-		return outparams;
-	}
-	double temp_t, min_overlap_t = 10000000;
-	long int prev_trial_T = 0;
-
-	int lines = CoCoPeLiaGPUexecGetLines(model);
-	for (ctr = 0 ; ctr < lines ; ctr++){
-		long int trial_T = CoCoPeLiaGPUexecGetElem(model, ctr);
-		if (trial_T > max_allowed_T) break;
-		if (trial_T ==  prev_trial_T) continue;
-
-		double temp_overlap_t = 0;
-		for(int idx = 0; idx < used_devs; idx++){
-			if(dev_idx_ignore[idx]) continue;
-			short cur_dev_id = used_dev_ids[idx], cur_dev_idx = (cur_dev_id == -1)? LOC_NUM - 1 : cur_dev_id;
-			model = unit_modeler_list[cur_dev_idx];
-			ModelType used_model;
-			switch(model->problem){
-				case BLAS1:
-					used_model = COCOPELIA_BIDIRECTIONAL;
-					break;
-				case BLAS2:
-					used_model = COCOPELIA_BIDIRECTIONAL;
-					break;
-				case BLAS3:
-					used_model = COCOPELIA_REUSE;
-					break;
-				default:
-					error("ATC::optimize_tile_modelBased:\
-					model->problem switch default reached\n");
-			}
-				temp_t = CoCoPeLiaModelPredict(model, trial_T, used_model);
-				double imb_time_multiplier = 1.0, reduce_time_multiplier = 1.0;
-#ifdef TILE_IMBALANCE_PENALTY
-					if (model->D1 != -1 && (model->D1%trial_T)) imb_time_multiplier+=TILE_IMBALANCE_PENALTY;
-					if (model->D2 != -1 && (model->D2%trial_T)) imb_time_multiplier+=TILE_IMBALANCE_PENALTY;
-					if (model->D3 != -1 && (model->D3%trial_T)) imb_time_multiplier+=TILE_IMBALANCE_PENALTY;
-#endif
-#ifdef REDUCE_PENALTY
-					if ((model->D1/trial_T + ((model->D1%trial_T)? 1 : 0))*(model->D2/trial_T + ((model->D2%trial_T)? 1 : 0))
-						*(model->D3/trial_T + ((model->D3%trial_T)? 1 : 0)) % used_devs) reduce_time_multiplier+=REDUCE_PENALTY;
-#endif
-			temp_t *= imb_time_multiplier *reduce_time_multiplier;
-			if(temp_t > 0) temp_overlap_t = fmax(temp_overlap_t, temp_t);
-			else error("CoCoPeLiaModelPredict(%p(dev_id = %d, (idx = %d )), trial_T = %ld): negative prediction temp_t = %lf\n",
-				model, cur_dev_id, cur_dev_idx, trial_T, temp_t);
-#ifdef PDEBUG
-			fprintf(stderr,  "CoCoPeLiaModelPredict(%p) for dev_id = %d (idx = %d ) with trial_T = %ld: temp_overlap_t = %lf, temp_t = %lf\n",
-				model, cur_dev_id, cur_dev_idx, trial_T, temp_overlap_t, temp_t);
-#endif
-		}
-		if (temp_overlap_t < min_overlap_t){
-			min_overlap_t = temp_overlap_t;
-			min_T = trial_T;
-		}
-		prev_trial_T = trial_T;
-	}
-	outparams->T = min_T;
-	outparams->pred_t = min_overlap_t;
-#ifdef PDEBUG
-	fprintf(stderr,  "====================================\n");
-	fprintf(stderr,  "Predict T=%ld : t_pred = %lf\n", outparams->T, outparams->pred_t);
-#endif
-#ifdef TEST
-	timer = csecond() - timer;
-	fprintf(stderr,  "Tile selection time:%lf ms\n", timer*1000);
-	fprintf(stderr,  "<-----|\n");
-#endif
-#ifdef DEBUG
-	fprintf(stderr,  "outparams->T = %ld\n : outparams->pred_t = %lf ms\n", outparams->T, outparams->pred_t);
-	fprintf(stderr,  "<-----|\n");
-#endif
-	return outparams;
-}
-*/

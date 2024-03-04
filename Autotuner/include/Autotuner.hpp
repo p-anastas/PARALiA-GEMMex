@@ -26,15 +26,19 @@ enum TileTaskType{
 typedef class TileTask{
 public:
     TileTaskType type;
-    long long DecomIdx, TileIdx, TileIdy;
+    int DecomIdx, TileIdx, TileIdy;
 	int op_id;
     LinkRoute_p predef_route;
+	TileTask(TileTaskType type_in, int DecomIdx_in, int TileIdx_in, 
+		int TileIdy_in, int op_id_in, LinkRoute_p predef_route_in);
+	void print();
 }* Ttask_p;
 
 typedef class ATC{
 	public:
 		long int M, N, K, T; /// The problem dims and tiling size used for 1D/2D Data split to tiles.
 		int A_loc, B_loc, C_loc, D_loc; /// The initial locations of the matrices
+		int elemSize; /// The size in bytes of each element of A, B, C, D
 		long int Grid_M, Grid_N, Grid_K; /// The resulting grid sizes from the tiling.
 		/// Slowdowns for the selected T that can be used for model adjustment
 		double T_aggregate_sl, T_imbalance_sl, T_remainder_sl, T_small_sl, T_sknum_sl, T_big_sl;
@@ -90,11 +94,12 @@ typedef class ATC{
 	void set_T_slowdowns(double* slowdowns);
 /******************************************************************************/
 /********************** Route & distribution autotuning ***********************/
-	void update_comp_task_num(long long int task_num_in); /// Updates the autotuner lists for a given number of tasks.
+	void update_comp_task_num(long int task_num_in); /// Updates the autotuner lists for a given number of tasks.
 	/// 2D block cyclic distribution is prefered
 	void distribute_comp_tasks();
 	void initialize_tasks();
 	void optimize_tasks();
+	void optimize_tasks_serial();
 /******************************************************************************/
 /**************************** Helper Fuctions *********************************/
 	void print(); /// Print the characteristics of the autotune controller to stderr

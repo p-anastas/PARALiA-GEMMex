@@ -33,9 +33,22 @@ void reseTTEST(){
 }
 #endif
 
+void LinkRoute::print(){
+	fprintf(stderr,  "LinkRoute(%p)::print (hop_num = %d)\n", this, hop_num);
+	fprintf(stderr,  "hop_uid_list = %s\n", printlist<int>(hop_uid_list, hop_num));
+	fprintf(stderr,  "hop_ldim_list = %s\n", printlist<int>(hop_ldim_list, hop_num));
+	fprintf(stderr,  "hop_buf_list = %s\n", printlist<void*>(hop_buf_list, hop_num));
+	fprintf(stderr,  "hop_cqueue_list = %s\n", printlist<void*>((void**)hop_cqueue_list, hop_num-1));
+	fprintf(stderr,  "hop_event_list = %s\n", printlist<void*>((void**)hop_event_list, hop_num-1));
+}
+
 //#define SPLIT_2D_ROWISE
 void FasTCHLMemcpy2DAsync(LinkRoute_p roadMap, long int rows, long int cols, short elemSize){
 	if(roadMap->hop_num - roadMap->starting_hop < 2) error("FasTCHLMemcpy2DAsync: Cannot copy with less than 2 locations\n");
+#ifdef DDEBUG
+	fprintf(stderr, "FasTCHLMemcpy2DAsync(%p, %ld, %ld, %d)\n",
+		roadMap, rows, cols, elemSize);
+#endif	
 #ifdef TTEST
 	while(__sync_lock_test_and_set(&hop_log_lock, 1));
 	if (roadMap->hop_num > 5) error("FasTCHLMemcpy2DAsync(dest = %d, src = %d) exeeded 5 hops in TTEST Mode\n",

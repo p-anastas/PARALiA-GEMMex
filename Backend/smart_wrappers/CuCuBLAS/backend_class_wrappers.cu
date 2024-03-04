@@ -377,6 +377,7 @@ Event::Event(int dev_id_in)
 #ifdef UDDEBUG
 	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::Event()\n", dev_id_in, Event_num_loc[dev_id_in]);
 #endif
+	CHLSelectDevice(dev_id_in);
 	event_backend_ptr = malloc(sizeof(cudaEvent_t));
 	id = Event_num_loc[dev_id_in];
 	Event_num_loc[dev_id_in]++;
@@ -484,15 +485,17 @@ void Event::reset(){
 	fprintf(stderr, "[dev_id=%3d] Event(%d)::reset()\n", dev_id, id);
 #endif
 	if (status == RECORDED) sync_barrier();
-	cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
+	if (status == COMPLETE){
+		cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
 #ifndef PRODUCTION
-	massert(cudaSuccess == err, "[dev_id=%3d] Event(%d)::reset - %s\n", dev_id, id, cudaGetErrorString(err));
+		massert(cudaSuccess == err, "[dev_id=%3d] Event(%d)::reset - %s\n", dev_id, id, cudaGetErrorString(err));
 #endif
-	err = cudaEventCreate(( cudaEvent_t*) event_backend_ptr);
+		err = cudaEventCreate(( cudaEvent_t*) event_backend_ptr);
 #ifndef PRODUCTION
-	massert(cudaSuccess == err, "Event::Event() - %s\n", cudaGetErrorString(err));
+		massert(cudaSuccess == err, "Event::Event() - %s\n", cudaGetErrorString(err));
 #endif
-	status = UNRECORDED;
+		status = UNRECORDED;
+	}
 #ifdef UDDEBUG
 	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::reset()\n", dev_id, id);
 #endif

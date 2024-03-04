@@ -112,6 +112,7 @@ const char *printlist(VALUETYPE *list, int length)
 	else if (std::is_same<VALUETYPE, long long>::value) printfCmd += "%lld";
 	else if (std::is_same<VALUETYPE, float>::value) printfCmd += "%3.3f";
 	else if (std::is_same<VALUETYPE, double>::value) printfCmd += "%3.3lf";
+	else if (std::is_same<VALUETYPE, void*>::value) printfCmd += "%p";
 	for (int i =0; i < length; i++) sprintf(outstring + strlen(outstring), printfCmd.c_str(), list[i]);
 	sprintf(outstring + strlen(outstring), " ]");
 	return outstring;
@@ -123,6 +124,8 @@ template const char *printlist<int>(int *list, int length);
 template const char *printlist<short>(short *list, int length);
 template const char *printlist<long>(long *list, int length);
 template const char *printlist<long long>(long long *list, int length);
+template const char *printlist<void*>(void** list, int length);
+
 
 
 double dabs(double x){

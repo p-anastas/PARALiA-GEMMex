@@ -146,10 +146,11 @@ add_definitions(-DDISTRIBUTION="2D-BLOCK-CYCLIC")
 #Select which optimize_tasks() algorithm to use for selecting the order of firing.
 
 #--------------------------------Tested (production)--------------------------------------#
-#add_definitions(-DSERIAL_SUBKERNEL_SELECTION)
+add_definitions(-DTASK_ORDER="SERIAL")
 
 #--------------------------------------Experimental----------------------------------------#
-add_definitions(-DSUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING)
+#add_definitions(-DTASK_ORDER="FETCH_ETA_PLUS_MIN_PENDING")
+
 
 ###########################################################################################
 #--------------------------------Fetch routing options--------------------------------#
@@ -159,13 +160,13 @@ add_definitions(-DSUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING)
 #--------------------------------Tested (production)--------------------------------------#
 
 #--------------------------------------Experimental----------------------------------------#
-#add_definitions(-DP2P_FETCH_FROM_INIT)
+add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_INIT")
 #add_definitions(-DP2P_FETCH_FROM_GPU_SERIAL)
 #add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE)
 #add_definitions(-DCHAIN_FETCH_SERIAL)
 #add_definitions(-DCHAIN_FETCH_RANDOM)
 #add_definitions(-DCHAIN_FETCH_TIME)
-add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
+#add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
 
 ## An extra heuristic to avoid only trusting QUEUE_ETAs for route selection
 ## Since some routes migh result in extremely low botlenecks due to serialization
@@ -186,9 +187,9 @@ add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
 ## Improves bandwidth, but adds (extra) network load to fast lanes. Currently not integrated in already-chained transfers.
 #add_definitions(-DENABLE_TRANSFER_HOPS)
 
-#add_definitions(-DHOP_FETCH_BANDWIDTH)
+add_definitions(-DWB_ROUTING="P2P_TO_INIT")
 #add_definitions(-DHOP_FETCH_QUEUE_WORKLOAD)
-add_definitions(-DHOP_FETCH_BW_PLUS_ETA)
+#add_definitions(-DHOP_FETCH_BW_PLUS_ETA)
 
 ###########################################################################################
 #---------------------------------Optimization targets------------------------------------#
@@ -239,6 +240,9 @@ add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
 add_definitions(-DDDEBUG)
+
+#Run Grid amalgamantion debug mode
+#add_definitions(-DCLDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
 add_definitions(-DSDEBUG)

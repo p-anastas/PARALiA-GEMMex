@@ -33,7 +33,8 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 	GridId1 = inGrid1;
 	GridId2 = inGrid2;
 	id = Tile2D_num;
-	W_op_dev_id = W_op_queue_ctr = W_op_num = W_op_fired = -42;
+	W_op_dev_id = W_op_queue_ctr = W_op_num = -42;
+	W_op_fired = 0; 
 	W_op_complete = W_ready = NULL;
 	W_op_params = NULL; 
 	W_op_dep_num = 0; 
@@ -99,14 +100,17 @@ void Tile2D::fetch(LinkRoute_p in_route)
 #endif 
 		if(WRP == RONLY) block_ptr[inter_hop] = StoreBlock[(in_route->hop_uid_list[inter_hop])] = 
 			current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE,false);
-		else block_ptr[inter_hop] = current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
+		else{
+			block_ptr[inter_hop] = current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
+			if(inter_hop == in_route->hop_num - 1) StoreBlock[(in_route->hop_uid_list[inter_hop])] = block_ptr[inter_hop];
+		}
 		in_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
 		in_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
 		in_route->hop_cqueue_list[inter_hop-1] = 
-		recv_queues[(in_route->hop_uid_list[inter_hop])]
-		[(in_route->hop_uid_list[inter_hop-1])];
+			recv_queues[(in_route->hop_uid_list[inter_hop])][(in_route->hop_uid_list[inter_hop-1])];
 	}
 	// Wait until the source of the transfer has the data available (might be obsolete based on implementation)
+	//in_route->print();
 	in_route->hop_cqueue_list[0]->wait_for_event(block_ptr[0]->Available);
 
 	// Fire the full transfer chain described by in_route
@@ -182,7 +186,7 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 	}
 #ifndef PRODUCTION
 	if (StoreBlock[W_op_dev_id] == NULL)
-		error("Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d): Storeblock is NULL\n",
+		error("Tile2D(%d:[%d,%d])::run_operation(W_op_dev_id=%d): Write storeblock is NULL\n",
 			id, GridId1, GridId2, W_op_dev_id);
 #endif
 	// Extract the Cblock buffers from the (now defined) Tiles. 
@@ -197,8 +201,8 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 
 	// Fire the W_op_id - ith operation to the queue
 	assigned_exec_queue->run_operation(W_op_params[W_op_id], W_op_name, W_op_dev_id);
-
-	if (++W_op_fired == W_op_num){
+	W_op_fired++;
+	if (W_op_fired == W_op_num){
 		if (WRP == WR_LAZY) WR_lazy_combine(lazy_route);
 		else if (WRP == W_REDUCE) WReduce_backup_C();
 		W_op_complete->record_to_queue(assigned_exec_queue);
@@ -254,6 +258,7 @@ void Tile2D::writeback(LinkRoute_p out_route){
 		out_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
     	out_route->hop_cqueue_list[inter_hop-1] = wb_queues[(out_route->hop_uid_list[inter_hop])][(out_route->hop_uid_list[inter_hop-1])];
     }
+	out_route->print();
 	/// Wait for all operations on the tile to be complete 
     out_route->hop_cqueue_list[0]->wait_for_event(W_op_complete);
 
@@ -370,7 +375,8 @@ void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_blo
 #ifdef DDEBUG
 	fprintf(stderr, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
 #endif
-	W_op_dev_id = W_op_queue_ctr = W_op_num = W_op_fired = -42;
+	W_op_dev_id = W_op_queue_ctr = W_op_num = -42;
+	W_op_fired = 0; 
 	W_op_complete = W_ready = NULL;
 	W_op_params = NULL; 
 	W_op_dep_num = 0; 

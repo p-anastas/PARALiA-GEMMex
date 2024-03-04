@@ -22,35 +22,54 @@ double get_edge_bw(int dest_loc, int src_loc){
 	return -1.0; // Should never reach, just to remove warning
 }
 
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-  error("LinkRoute::optimize: Not implemented for PARALiA 3.0");
-  return 0;
+long double LinkRoute::optimize(int* loc_map, long int size){
+	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_INIT")) return optimize_p2p_init(loc_map, size);
+	else error("LinkRoute::optimize() -> %s not implemented", FETCH_ROUTING);
+	return 0;
 }
-/*
-// Naive fetch from initial data loc every time
-// Similar to cuBLASXt
-#ifdef P2P_FETCH_FROM_INIT 
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
+
+// Naive fetch from initial data loc every time. Similar to cuBLASXt
+long double LinkRoute::optimize_p2p_init(int* loc_map, long int size){
 #ifdef DEBUG
 	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
 #endif
-  DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-  hop_num = 2;
-  int start_hop = -42, end_hop = -42;
-  for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++)
-  {
-	  if(transfer_tile->loc_map[ctr] == 0) start_hop = ctr;
-	  if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
-  }
-  hop_uid_list[0] = start_hop;
-  hop_uid_list[1] = end_hop;
+	hop_num = 2;
+	int start_hop = -42, end_hop = -42;
+	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++)
+	{
+		if(loc_map[ctr] == 0) start_hop = ctr;
+		if(loc_map[ctr] == 2) end_hop = ctr;
+	}
+	hop_uid_list[0] = start_hop;
+	hop_uid_list[1] = end_hop;
+	starting_hop = 0; 
+	loc_map[end_hop] = 42;
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif
-  return 0;
+	return 0;
 }
-#endif
 
+long double LinkRoute::optimize_reverse(int* loc_map, long int size){
+	if(!strcmp(WB_ROUTING, "P2P_TO_INIT")) return optimize_reverse_p2p_init(loc_map, size);
+	else error("LinkRoute::optimize_reverse() -> %s not implemented", WB_ROUTING);
+	return 0;
+}
+
+long double LinkRoute::optimize_reverse_p2p_init(int* loc_map, long int size){
+	hop_num = 2;
+	int start_hop = -42, end_hop = -42;
+	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++)
+	{
+		if(loc_map[ctr] == 42) start_hop = ctr;
+		if(loc_map[ctr] == 0) end_hop = ctr;
+	}
+	hop_uid_list[0] = start_hop;
+	hop_uid_list[1] = end_hop;
+	starting_hop = 0; 
+	return 0;
+}
+/*
 // Outdated fetch with preference to GPU tiles but with simple serial search for src
 // Similar to BLASX behaviour when its assumed topology does not fit to the interconnect
 #ifdef P2P_FETCH_FROM_GPU_SERIAL 

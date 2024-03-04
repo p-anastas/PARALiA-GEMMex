@@ -32,12 +32,19 @@ public:
 	CQueue_p hop_cqueue_list[64-1];
 	Event_p hop_event_list[64-1];
 	
-	// Target: 0/42 -> 2 [+1] 
-	long double optimize(void* transfer_tile_wrapped, int update_ETA_flag);
-	// Target: 42 -> 0 
-	long double optimize_reverse(void* transfer_tile_wrapped, int update_ETA_flag); 
-	// Target: SRC -> ? -> dest 
-	long double optimize_hop_route(void* transfer_tile_wrapped, int update_ETA_flag, int dest_loc, int src_loc); 
+	/// Target: 0/42 -> 2 [+1] wrapper
+	long double optimize(int* loc_map, long int size);
+	// Specific implementations
+	long double optimize_p2p_init(int* loc_map, long int size);
+
+	/// Target: 42 -> 0 wrapper
+	long double optimize_reverse(int* loc_map, long int size);
+	// Specific implementations
+	long double optimize_reverse_p2p_init(int* loc_map, long int size);
+	
+	/// Target: SRC -> ? -> dest 
+	//long double optimize_hop_route(void* transfer_tile_wrapped, int update_ETA_flag, int dest_loc, int src_loc); 
+	void print();
 }* LinkRoute_p;
 
 // A memcpy implementation using multiple units as intermendiate hops for a better transfer bandwidth
