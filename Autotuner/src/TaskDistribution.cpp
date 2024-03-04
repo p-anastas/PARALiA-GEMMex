@@ -20,7 +20,7 @@ void DistributeCompTasksRoundRobin(ATC_p autotune_controller){
 			pred_active_unit_num, autotune_controller->comp_task_num, autotune_controller->active_unit_num);
 		for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
 			autotune_controller->comp_task_per_unit_num[d] = 1;
-			autotune_controller->comp_task_unit_id[d] = autotune_controller->active_unit_id_list[d];
+			autotune_controller->comp_task_unit_list[d] = autotune_controller->active_unit_id_list[d];
 		}
   	}
 	else{
@@ -47,7 +47,7 @@ void DistributeCompTasksRoundRobin(ATC_p autotune_controller){
 			if(total_sk_ctr == autotune_controller->comp_task_num) break;
 			else if(dev_sk_ctr_list[devidx] == autotune_controller->comp_task_per_unit_num[devidx]) continue;
 			else{
-				autotune_controller->comp_task_unit_id[total_sk_ctr] = devidx;
+				autotune_controller->comp_task_unit_list[total_sk_ctr] = devidx;
 				dev_sk_ctr_list[devidx]++;
 				total_sk_ctr++;
 			}
@@ -67,7 +67,7 @@ void DistributeCompTasksRoundRobin(ATC_p autotune_controller){
 	fprintf(stderr, "]\n");
 	fprintf(stderr, "Subker Id list: [ ");
 	for (long int i =0; i < autotune_controller->comp_task_num; i++)
- 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_id[i]);
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_list[i]);
 	fprintf(stderr, "]\n");
 #endif
 #ifdef DEBUG
@@ -94,7 +94,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 	for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
 		autotune_controller->comp_task_per_unit_num[d] = Chunk_size;
 		for (int idx3 = 0; idx3 < Chunk_size; idx3++)
-			autotune_controller->comp_task_unit_id[d*Chunk_size + idx3] = autotune_controller->active_unit_id_list[d];
+			autotune_controller->comp_task_unit_list[d*Chunk_size + idx3] = autotune_controller->active_unit_id_list[d];
 	}
 	}
   	else{
@@ -120,7 +120,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 					else devidx++;
 					full_circle--;
 				}
-				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_list[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				if(task_ctr >= sks_accounted_for) autotune_controller->comp_task_per_unit_num[devidx] ++;
 				dev_sk_ctr_list[devidx]++;
 #ifdef PDEBUG
@@ -146,7 +146,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 	fprintf(stderr, "]\n");
 	fprintf(stderr, "Subker Id list: [ ");
 	for (long int i =0; i < autotune_controller->comp_task_num; i++)
- 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_id[i]);
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_list[i]);
 	fprintf(stderr, "]\n");
 #endif
 #ifdef DEBUG
@@ -204,7 +204,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
 	  		autotune_controller->comp_task_per_unit_num[d] = D3GridSz;
 	  		for (int idx3 = 0; idx3 < D3GridSz; idx3++)
-				autotune_controller->comp_task_unit_id[d*D3GridSz + idx3] = autotune_controller->active_unit_id_list[d];
+				autotune_controller->comp_task_unit_list[d*D3GridSz + idx3] = autotune_controller->active_unit_id_list[d];
 		}
   	}
   	else{
@@ -249,7 +249,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 				else devidx++;
 				full_circle--; 
 			}
-			autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
+			autotune_controller->comp_task_unit_list[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 			dev_sk_ctr_list[devidx]++;
 		}
 		devidx = 0;
@@ -261,7 +261,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D1-mod part\n task_ctr[%d,%d,%d] = %d, devidx = %d\n",
 					D1,D2,D3, task_ctr, devidx);
 #endif
-				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_list[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				dev_sk_ctr_list[devidx]++;
 			}
 			autotune_controller->comp_task_per_unit_num[devidx] += D3GridSz;
@@ -276,7 +276,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D2-mod part\nsk_ctr[%d,%d,%d] = %d, devidx = %d\n",
 					D1,D2,D3, task_ctr, devidx);
 #endif
-				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_list[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				dev_sk_ctr_list[devidx]++;
 			}
 			autotune_controller->comp_task_per_unit_num[devidx] += D3GridSz;
@@ -291,7 +291,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 				fprintf(stderr, "DistributeCompTasks2DBlockCyclic: D1 & D2 mod part\nsk_ctr[%d,%d,%d] = %d, devidx = %d\n",
 					D1,D2,D3, task_ctr, devidx);
 #endif
-				autotune_controller->comp_task_unit_id[task_ctr] = autotune_controller->active_unit_id_list[devidx];
+				autotune_controller->comp_task_unit_list[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 				dev_sk_ctr_list[devidx]++;
 			}
 			autotune_controller->comp_task_per_unit_num[devidx] += D3GridSz;
@@ -312,7 +312,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 	fprintf(stderr, "]\n");
 	fprintf(stderr, "Subker Id list: [ ");
 	for (long int i =0; i < autotune_controller->comp_task_num; i++)
- 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_id[i]);
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_list[i]);
 	fprintf(stderr, "]\n");
 #endif
 #ifdef DEBUG

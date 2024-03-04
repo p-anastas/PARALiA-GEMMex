@@ -186,9 +186,9 @@ void Decomposer::DrawTileMap(){
       for (int itt2 = 0 ; itt2 < GridSz2; itt2++)
         fprintf(stderr, "| - - - - - - - - - - -|");
       fprintf(stderr, "\n");
-      for (int itt2 = 0 ; itt2 < GridSz2; itt2++)
-        fprintf(stderr, "%s", printlist<int>(Tile_map[itt1*GridSz2 + itt2]->loc_map, CHL_MEMLOCS));
-      fprintf(stderr, "\n");
+      //for (int itt2 = 0 ; itt2 < GridSz2; itt2++)
+      //  fprintf(stderr, "%s", printlist<int>(Tile_map[itt1*GridSz2 + itt2]->loc_map, CHL_MEMLOCS));
+      //fprintf(stderr, "\n");
     }
     for (int itt2 = 0 ; itt2 < GridSz2; itt2++)
      fprintf(stderr, "|______________________|");

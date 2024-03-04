@@ -97,8 +97,8 @@ char* CoCoImplementationPrint(){
 #ifdef CHAIN_FETCH_QUEUE_WORKLOAD
 	sprintf(string_helper, "_R-CHAIN-QUEUE-ETA");
 	strcat(string_out, string_helper);
-	sprintf(string_helper, "-CO-%d", BANDWIDTH_DIFFERENCE_CUTTOF_RATIO);
-	strcat(string_out, string_helper);
+	//sprintf(string_helper, "-CO-%d", BANDWIDTH_DIFFERENCE_CUTTOF_RATIO);
+	//strcat(string_out, string_helper);
 #endif
 #ifdef ENABLE_TRANSFER_HOPS
 #ifdef HOP_FETCH_BANDWIDTH
@@ -116,8 +116,8 @@ char* CoCoImplementationPrint(){
 	sprintf(string_helper, "HOPS-%d-%.2lf", MAX_ALLOWED_HOPS, HOP_PENALTY);
 	strcat(string_out, string_helper);
 #endif
-	sprintf(string_helper, "_RTI-%d", RATIO_TUNE_ITTER);
-	strcat(string_out, string_helper);
+	//sprintf(string_helper, "_RTI-%d", RATIO_TUNE_ITTER);
+	//strcat(string_out, string_helper);
 #ifdef REORDER_DEVICES
 	sprintf(string_helper, "_DEV-REORDER");
 	strcat(string_out, string_helper);

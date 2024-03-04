@@ -21,6 +21,8 @@ ATC::ATC(){
 	active_unit_score = (double*) malloc(CHL_WORKERS*sizeof(double));
 	comp_task_per_unit_num = (long int*) malloc(CHL_WORKERS*sizeof(long int));
 	task_list = NULL;
+	comp_task_unit_list = NULL;
+	comp_task_per_unit_list = NULL;
 	T = active_unit_num = task_num = comp_task_num = -1;
 	pred_t = pred_J = power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
@@ -42,7 +44,11 @@ ATC::~ATC(){
 	free(active_unit_id_list);
 	free(active_unit_score);
 	free(comp_task_per_unit_num);
-	free(comp_task_unit_id); 
+	free(comp_task_unit_list); 
+	for (int idx = 0; idx < active_unit_num; idx++){
+		free(comp_task_per_unit_list[idx]); 
+	}
+	free(comp_task_per_unit_list); 
 	for (int idx = 0; idx < task_num; idx++){
 		delete task_list[idx]; 
 	}
@@ -59,7 +65,7 @@ void ATC::reset(){
 		fprintf(stderr,  "|-----> ATC::reset\n");
 #endif
 	free(comp_task_per_unit_num);
-	free(comp_task_unit_id);
+	free(comp_task_unit_list);
 	for (int idx = 0; idx < task_num; idx++){
 		delete task_list[idx]; 
 	}
@@ -128,7 +134,6 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 		//task_num = -1;
 		reset();
 	//}
-
 	T = other_ATC->T;
 	T_aggregate_sl = other_ATC->T_aggregate_sl;
 	T_imbalance_sl = other_ATC->T_imbalance_sl;
@@ -152,11 +157,17 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 
 	if (other_ATC->task_num != -1){
 		task_num = other_ATC->task_num;
-		comp_task_num = other_ATC->comp_task_num;
-		for (int dev = 0; dev < CHL_MEMLOCS; dev++) comp_task_per_unit_num[dev] = other_ATC->comp_task_per_unit_num[dev];
+		update_comp_task_num(other_ATC->comp_task_num);
+		for (int taskidx = 0; taskidx < comp_task_num; taskidx++) 
+			comp_task_unit_list[taskidx] = other_ATC->comp_task_unit_list[taskidx];
+		for (int dev = 0; dev < CHL_MEMLOCS; dev++) 
+			comp_task_per_unit_num[dev] = other_ATC->comp_task_per_unit_num[dev];
+		for (int dev = 0; dev < active_unit_num; dev++){
+			for (int dev_idx = 0; dev_idx < comp_task_per_unit_num[dev]; dev_idx++)
+			comp_task_per_unit_list[dev][dev_idx] = other_ATC->comp_task_per_unit_list[dev][dev_idx];
+		}
 		task_list = (Ttask_p*) malloc(task_num*sizeof(Ttask_p));
-		for (int sk = 0; sk < task_num; sk++)
-				task_list[sk] = other_ATC->task_list[sk];
+		for (int sk = 0; sk < task_num; sk++) task_list[sk] = other_ATC->task_list[sk];
 	}
 
 #ifdef DEBUG
@@ -170,46 +181,109 @@ void ATC::update_comp_task_num(long long int comp_task_num_in){
 #endif
 	int prev_comp_task_num = comp_task_num;
 	comp_task_num = comp_task_num_in;
-	if (prev_comp_task_num == -1) comp_task_unit_id = (int*) malloc(comp_task_num*sizeof(int));
+	if (prev_comp_task_num == -1){
+		comp_task_unit_list = (int*) malloc(comp_task_num*sizeof(int));
+		comp_task_per_unit_list = (int**) malloc(active_unit_num*sizeof(int*));
+		for(int dev_id = 0; dev_id < active_unit_num; dev_id++) 
+			comp_task_per_unit_list[dev_id] = (int*) malloc(comp_task_num*sizeof(int));
+	}
 	else if (prev_comp_task_num < comp_task_num){
-		warning("ATC::update_comp_task_num: updating predefined comp_task_unit_id is untested\n");
-		free(comp_task_unit_id);
-		comp_task_unit_id = (int*) malloc(comp_task_num*sizeof(int));
+		warning("ATC::update_comp_task_num: updating predefined comp_task_unit_list is untested\n");
+		free(comp_task_unit_list);
+		for(int dev_id = 0; dev_id < active_unit_num; dev_id++) free(comp_task_per_unit_list[dev_id]);
+		free(comp_task_per_unit_list);
+		comp_task_unit_list = (int*) malloc(comp_task_num*sizeof(int));
+		comp_task_per_unit_list = (int**) malloc(active_unit_num*sizeof(int*));
+		for(int dev_id = 0; dev_id < active_unit_num; dev_id++)
+			comp_task_per_unit_list[dev_id] = (int*) malloc(comp_task_num*sizeof(int));
 	}
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
 }
 
-void ATC::distribute_tasks(int D1GridSz, int D2GridSz, int D3GridSz){
+void ATC::distribute_comp_tasks(){
 	if (!strcmp(DISTRIBUTION, "ROUND-ROBIN"))
 		DistributeCompTasksRoundRobin(this);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-NAIVE"))
 		DistributeCompTasksNaive(this);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN"))
-		DistributeCompTasksRoundRobinChunk(this, D3GridSz);
+		DistributeCompTasksRoundRobinChunk(this, Grid_K);
 	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN-REVERSE"))
-		DistributeCompTasksRoundRobinChunkReverse(this, D3GridSz);
+		DistributeCompTasksRoundRobinChunkReverse(this, Grid_K);
 	else if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC"))
-		DistributeCompTasks2DBlockCyclic(this, D1GridSz, D2GridSz, D3GridSz);
-	else error("ATC::distribute_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
+		DistributeCompTasks2DBlockCyclic(this, Grid_M, Grid_N, Grid_K);
+	else error("ATC::distribute_comp_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
+	int dev_task_ctr[active_unit_num] = {0};
+	for (long int cidx = 0 ; cidx < comp_task_num; cidx++){
+		int dev_tmp = comp_task_unit_list[cidx]; 
+		comp_task_per_unit_list[dev_tmp][dev_task_ctr[dev_tmp]++] = cidx;
+	}
 #ifdef PDEBUG
     print();
 #endif
 }
 
+void ATC::initialize_tasks(){
+	if(comp_task_num == -1) error("ATC::initialize_tasks: Called with undefined comp_task_num\n");
+	task_num = comp_task_num*5;
+	task_list = (Ttask_p*) malloc(task_num*sizeof(Ttask_p));
+
+	/// Tile maps moved to autotuner in PARALiA 3.0 (removed from DataTile)
+	A_tile_loc_map = (int***) malloc(Grid_M*sizeof(int**));
+	for(int im = 0; im < Grid_M; im++){
+		A_tile_loc_map[im] = (int**) malloc(Grid_K*sizeof(int*));
+		for(int ik = 0; ik < Grid_K; ik++){
+			A_tile_loc_map[im][ik] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
+			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
+				if (loc == A_loc) A_tile_loc_map[im][ik][loc] = 0;
+				else A_tile_loc_map[im][ik][loc] = -42;
+		}
+	}
+	B_tile_loc_map = (int***) malloc(Grid_K*sizeof(int**));
+	for(int ik = 0; ik < Grid_K; ik++){
+		B_tile_loc_map[ik] = (int**) malloc(Grid_N*sizeof(int*));
+		for(int in = 0; in < Grid_N; in++){
+			B_tile_loc_map[ik][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
+			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
+				if (loc == A_loc) B_tile_loc_map[ik][in][loc] = 0;
+				else B_tile_loc_map[ik][in][loc] = -42;
+		}
+	}
+	C_tile_loc_map = (int***) malloc(Grid_M*sizeof(int**));
+	for(int im = 0; im < Grid_M; im++){
+		C_tile_loc_map[im] = (int**) malloc(Grid_N*sizeof(int*));
+		for(int in = 0; in < Grid_N; in++){
+			C_tile_loc_map[im][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
+			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
+				if (loc == A_loc) C_tile_loc_map[im][in][loc] = 0;
+				else C_tile_loc_map[im][in][loc] = -42;
+		}
+	}
+	long int task_ctr = 0;
+	for (long int cidx = 0 ; cidx < comp_task_num; cidx++){
+		int im = cidx/Grid_N, in = cidx%Grid_N, target_dev = comp_task_unit_list[task_ctr];
+		for(int ik = 0; ik < Grid_K; ik++)
+		task_ctr++;
+	}
+}
+
 /******************************************************************************/
 /****************************** Autotuning ************************************/
 
-double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc, 
+double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
     int M_in, int N_in, int K_in, int elemSize){
 	short lvl = 3;
 	double cpu_timer = csecond();
 #ifdef DEBUG
 	fprintf(stderr,  "|-----> ATC::autotune_problem(%d, %d, %d, %d, %d, %d, %d, %d)\n", 
-		A_loc, B_loc, C_loc, D_loc, M_in, N_in, K_in, elemSize);
+		A_loc_in, B_loc_in, C_loc_in, D_loc_in, M_in, N_in, K_in, elemSize);
 	print();
 #endif
+	A_loc = A_loc_in;
+	B_loc = B_loc_in;
+	C_loc = C_loc_in;
+	D_loc = D_loc_in;
 	M = M_in;
 	N = N_in;
 	K = K_in;
@@ -303,12 +377,14 @@ double ATC::autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc,
 	Grid_N = N/T + ((N%T) ? 1 : 0);
 	Grid_K = K/T + ((K%T) ? 1 : 0);
 
-	// Calculate compute tasks and allocate comp_task_unit_id
+	// Calculate compute tasks and allocate comp_task_unit_list
 	update_comp_task_num(Grid_M*Grid_N*Grid_K);
 	// Distribute compute tasks to devices
-	distribute_tasks(Grid_M, Grid_N, Grid_K); 
+	distribute_comp_tasks(); 
 	// Calculate (max) total tasks and allocate task_list
-	// Translate compute tasks to sub-tasks based on 1) an ordering algorithm and 2) a routing algorithm. 
+	initialize_tasks();
+	// Translate compute tasks to sub-tasks based on 1) an ordering algorithm and 2) a routing algorithm.
+	optimize_tasks();
 
 	cpu_timer = csecond() - cpu_timer;
 	if(T!=-1){

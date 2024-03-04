@@ -42,7 +42,7 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
 		if (iloc == init_loc){
 			W_init_loc = iloc;
-			loc_map[iloc] = 0;
+			//loc_map[iloc] = 0;
 			block_ETA[iloc] = 0; 
 			StoreBlock[iloc] = init_loc_block_p;
 			StoreBlock[iloc]->Adrs = in_addr;
@@ -53,7 +53,7 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 		else{
 			StoreBlock[iloc] = NULL;
 			ldim[iloc] = in_dim1;
-			loc_map[iloc] = -42;
+			//loc_map[iloc] = -42;
 			block_ETA[iloc] = -42; 
 		} 
 	}
@@ -72,13 +72,13 @@ Tile2D::~Tile2D()
 
 //----------------------------------------------Tile caching------------------------------------------//
 
-void Tile2D::set_loc_idx(int loc_idx, int val){
+/*void Tile2D::set_loc_idx(int loc_idx, int val){
     loc_map[loc_idx] = val; 
 }
 
 void Tile2D::try_set_loc_idx(int loc_idx, int val){
     if (loc_map[loc_idx] == -42) loc_map[loc_idx] = val; 
-}
+}*/
 
 void Tile2D::fetch(LinkRoute_p in_route)
 {
@@ -115,8 +115,8 @@ void Tile2D::fetch(LinkRoute_p in_route)
 	CQueue_p used_queue = in_route->hop_cqueue_list[in_route->hop_num-2];
 
 	// TODO: Is an updated loc_map needed for PARALiA 3.0?
-	if(WRP == WR || WRP == W_REDUCE || WRP == WR_LAZY) loc_map[(in_route->hop_uid_list[in_route->hop_num-1])] = 42;
-	else for(int inter_hop = 1 ; inter_hop < in_route->hop_num; inter_hop++) loc_map[(in_route->hop_uid_list[inter_hop])] = 42; 
+	//if(WRP == WR || WRP == W_REDUCE || WRP == WR_LAZY) loc_map[(in_route->hop_uid_list[in_route->hop_num-1])] = 42;
+	//else for(int inter_hop = 1 ; inter_hop < in_route->hop_num; inter_hop++) loc_map[(in_route->hop_uid_list[inter_hop])] = 42; 
 
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
@@ -216,8 +216,8 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 
 void Tile2D::writeback(LinkRoute_p out_route){
 #ifdef DEBUG
-	fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::writeback() : loc_map = %s\n", 
-    id, GridId1, GridId2, printlist(loc_map, CHL_MEMLOCS));
+	fprintf(stderr, "|-----> Tile2D(%d:[%d,%d])::writeback(%s)\n", 
+    id, GridId1, GridId2, printlist(out_route->hop_uid_list, out_route->hop_num));
 #endif
 	// If operation location is also the output location, do not perform any writeback. 
 	if (W_op_dev_id == W_init_loc) return;
@@ -336,7 +336,7 @@ void Tile2D::WReduce_combine(){
 
 
 
-/*****************************************************/
+/*
 /// PARALia 2.0 - timed queues and blocks
 
 void Tile2D::ETA_add_task(long double task_duration, int dev_id){
@@ -364,7 +364,7 @@ long double Tile2D::ETA_fetch_estimate(int target_id){
     set_loc_idx((target_id), temp_val);
   }
   return result; 
-}
+}*/
 
 void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
 #ifdef DDEBUG
@@ -386,7 +386,7 @@ void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_blo
 		}
 		else{
 			StoreBlock[iloc] = NULL;
-			loc_map[iloc] = -42;
+			//loc_map[iloc] = -42;
 		} 
 	}
 #ifdef DDEBUG

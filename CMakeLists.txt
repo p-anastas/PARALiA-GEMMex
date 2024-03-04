@@ -94,40 +94,12 @@ add_definitions(-DENABLE_LINK_BW_SHARING) # by putting them on different queues
 add_definitions(-DSTREAMING_BUFFER_OVERLAP=8)
 
 ###########################################################################################
-#-----------------------------------Routing selection-------------------------------------#
-###########################################################################################
-
-#add_definitions(-DP2P_FETCH_FROM_INIT)
-#add_definitions(-DP2P_FETCH_FROM_GPU_SERIAL)
-#add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE)
-#add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE_PLUS) # PARALIa 1.5
-#add_definitions(-DCHAIN_FETCH_SERIAL)
-#add_definitions(-DCHAIN_FETCH_RANDOM)
-#add_definitions(-DCHAIN_FETCH_TIME)
-add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
-
-## An extra heuristic to avoid only trusting QUEUE_ETAs for route selection
-## Since some routes migh result in extremely low botlenecks due to serialization
-## The multiplier defines the max bandwidth multiplier that is allowed to be used to replace a route
-## For example, 1 means that only allow replacement with links of >= bandwidth
-## The higher this value is, the more ETA-based the selection criteria
-add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5) #FIXME: this should be removed at some point in the future
-
-## Enable the use of transfer hops through memory locations that do not need a tile
-## Improves bandwidth, but adds (extra) network load to fast lanes. Currently not integrated in already-chained transfers.
-#add_definitions(-DENABLE_TRANSFER_HOPS)
-
-#add_definitions(-DHOP_FETCH_BANDWIDTH)
-#add_definitions(-DHOP_FETCH_QUEUE_WORKLOAD)
-add_definitions(-DHOP_FETCH_BW_PLUS_ETA)
-
-###########################################################################################
-#----------------------------------Autotuning options-------------------------------------#
+#---------------------------General autotuning options------------------------------------#
 ###########################################################################################
 
 ## The number of itterations that will performed to tune the per-device ratio workload split.
 ## Inconsequential for homogeneous cases, higher = better for heterogeneous ones.
-add_definitions(-DRATIO_TUNE_ITTER=10)
+#add_definitions(-DRATIO_TUNE_ITTER=10)
 
 #Enable device reordering optimization during split optimizing based on maximizing d2d bandwidths.
 # Seems buggy for now...
@@ -155,30 +127,68 @@ add_definitions(-DMAX_DESIRED_SK_DEV_SLOWDOWN=0.1)
 add_definitions(-DTILE_MAX=4096)
 add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
 
-
 ###########################################################################################
-#------------------------------Subkernel selection options--------------------------------#
-###########################################################################################
-
-#Run subkernels in provided order
-#add_definitions(-DSERIAL_SUBKERNEL_SELECTION)
-
-## Define subkernel selection heuristic values.
-#add_definitions(-DSUBKERNEL_SELECT_MIN_RONLY_ETA)
-add_definitions(-DSUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING)
-
-###########################################################################################
-#--------------------------------Subkernel distributions----------------------------------#
+#-----------------------------------Task distributions------------------------------------#
 ###########################################################################################
 
+#--------------------------------Tested (production)--------------------------------------#
+#add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN")
 add_definitions(-DDISTRIBUTION="2D-BLOCK-CYCLIC")
 
 #--------------------------------------Experimental----------------------------------------#
-
 #add_definitions(-DDISTRIBUTION="ROUND-ROBIN")
 #add_definitions(-DDISTRIBUTION="SPLIT-NAIVE")
-#add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN")
 #add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN-REVERSE")
+
+###########################################################################################
+#-----------------------------------Task order options------------------------------------#
+###########################################################################################
+#Select which optimize_tasks() algorithm to use for selecting the order of firing.
+
+#--------------------------------Tested (production)--------------------------------------#
+#add_definitions(-DSERIAL_SUBKERNEL_SELECTION)
+
+#--------------------------------------Experimental----------------------------------------#
+add_definitions(-DSUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING)
+
+###########################################################################################
+#--------------------------------Fetch routing options--------------------------------#
+###########################################################################################
+#Select which optimize_tasks() algorithm to use for fetch communication optimization.
+
+#--------------------------------Tested (production)--------------------------------------#
+
+#--------------------------------------Experimental----------------------------------------#
+#add_definitions(-DP2P_FETCH_FROM_INIT)
+#add_definitions(-DP2P_FETCH_FROM_GPU_SERIAL)
+#add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE)
+#add_definitions(-DCHAIN_FETCH_SERIAL)
+#add_definitions(-DCHAIN_FETCH_RANDOM)
+#add_definitions(-DCHAIN_FETCH_TIME)
+add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
+
+## An extra heuristic to avoid only trusting QUEUE_ETAs for route selection
+## Since some routes migh result in extremely low botlenecks due to serialization
+## The multiplier defines the max bandwidth multiplier that is allowed to be used to replace a route
+## For example, 1 means that only allow replacement with links of >= bandwidth
+## The higher this value is, the more ETA-based the selection criteria
+#add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5) #FIXME: this should be removed at some point in the future
+
+###########################################################################################
+#--------------------------------Writeback routing options--------------------------------#
+###########################################################################################
+#Select which optimize_tasks() algorithm to use for writeback communication optimization.
+
+#--------------------------------Tested (production)--------------------------------------#
+
+#--------------------------------------Experimental----------------------------------------#
+## Enable the use of transfer hops through memory locations that do not need a tile
+## Improves bandwidth, but adds (extra) network load to fast lanes. Currently not integrated in already-chained transfers.
+#add_definitions(-DENABLE_TRANSFER_HOPS)
+
+#add_definitions(-DHOP_FETCH_BANDWIDTH)
+#add_definitions(-DHOP_FETCH_QUEUE_WORKLOAD)
+add_definitions(-DHOP_FETCH_BW_PLUS_ETA)
 
 ###########################################################################################
 #---------------------------------Optimization targets------------------------------------#

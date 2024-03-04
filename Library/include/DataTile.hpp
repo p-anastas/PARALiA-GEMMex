@@ -45,17 +45,6 @@ public:
     
     CBlock_p StoreBlock[64];// The softcache blocks that store this Tile in each device.
  
-    // loc_map: A runtime representation of Tile availability in each device: 
-    // - not available = -42
-    // - available in location = 42 (exhept initial)
-    // - initial location = 0
-    // - priority target loc = 2, 
-    // - other target loc(s) = 1
-    int loc_map[64]; 
-
-    void set_loc_idx(int loc_idx, int val); // Set the loc_idx element of loc_map to val.
-    void try_set_loc_idx(int loc_idx, int val); // Similar but can only set uninitialized values (-42).
-
     void fetch(LinkRoute_p in_route); // Fetch block to a list of locations using a predefined route.
 
     //--------------------------------------------Tile properties-----------------------------------------//
