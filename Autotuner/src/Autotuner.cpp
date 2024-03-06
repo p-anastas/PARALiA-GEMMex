@@ -18,7 +18,9 @@ TileTask::TileTask(TileTaskType type_in, int DecomIdx_in, int TileIdx_in,
 	TileIdy = TileIdy_in; 
 	op_id = op_id_in;
 	predef_route = predef_route_in;
+#ifdef DDEBUG
 	print();
+#endif
 }
 
 void TileTask::print(){
@@ -238,8 +240,13 @@ void ATC::distribute_comp_tasks(){
 	else error("ATC::distribute_comp_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
 	int dev_task_ctr[active_unit_num] = {0};
 	for (long int cidx = 0 ; cidx < comp_task_num; cidx++){
-		int dev_tmp = comp_task_unit_list[cidx]; 
-		comp_task_per_unit_list[dev_tmp][dev_task_ctr[dev_tmp]++] = cidx;
+		int dev_tmp = comp_task_unit_list[cidx], dev_tmp_idx = -1;
+		for (int dev_idx = 0; dev_idx < active_unit_num; dev_idx++)
+			if(dev_tmp == active_unit_id_list[dev_idx]){
+				dev_tmp_idx = dev_idx;
+				break;
+			} 
+		comp_task_per_unit_list[dev_tmp_idx][dev_task_ctr[dev_tmp_idx]++] = cidx;
 	}
 #ifdef PDEBUG
     print();
@@ -371,11 +378,14 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 		for (int i =0; i < active_unit_num; i++)
 			active_unit_id_list[i] = i;
 	}
+	int num_dev_locs = 0; 
 	active_memloc_num = 0;
 	for( int idx = 0; idx < CHL_MEMLOCS; idx++){
 		if (is_in_list(idx, active_unit_id_list, active_unit_num) 
-		|| idx == A_loc || idx == B_loc || idx == C_loc || idx == D_loc) 
+		|| idx == A_loc || idx == B_loc || idx == C_loc || idx == D_loc){
+			if (idx < CHL_WORKERS) num_dev_locs++;
 			active_memlocs[active_memloc_num++] = idx;
+		}
 	}
 	if (autotune_eval_devices){
 		error("ATC::autotune_problem: Not implemented (yet) for autotune_eval_devices\n");
@@ -385,10 +395,11 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
 		Gamalg_p test_grid;
 		for (int idx = 0; idx < MAX_WORKER_CONFIG; idx++){
-			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx]);
-			if(!test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[active_unit_num-1][idx], 
-				CHL_OUTPUT_QUEUES_CASE_IDS[active_unit_num-1][idx])) continue;
-			if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_unit_id_list,active_unit_num)) continue;
+			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx]);
+			if(!test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx], 
+				CHL_OUTPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx])) continue;
+			// TODO: I recently removed this but might results in grid selection problems
+			//if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_unit_id_list,active_unit_num)) continue;
 			for (int idx = 0; idx < active_unit_num; idx++) active_unit_score[idx] = 1.0/active_unit_num;
 			long long edge_load[64][64];
 			gemm_translate_problem_comm(edge_load, A_loc, B_loc, C_loc, D_loc, M, N, K, elemSize, active_unit_num, active_unit_id_list, active_unit_score);
@@ -521,7 +532,7 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 	slowdown[0] = slowdown[1] + slowdown[2] + slowdown[3] + slowdown[4]  + slowdown[5];
 #ifdef DPDEBUG
 	fprintf(stderr,  "====================================\n");
-	fprintf(stderr,  "ATC::get_T_slowdowns(D1=%d, D2 = %d, D3 = %d) T=%d with T_aggregate_sl = %lf, T_imbalance_sl= %lf, T_remainder_sl= %lf, T_small_sl= %lf, "
+	fprintf(stderr,  "ATC::get_T_slowdowns(D1=%ld, D2 = %ld, D3 = %ld) T=%d with T_aggregate_sl = %lf, T_imbalance_sl= %lf, T_remainder_sl= %lf, T_small_sl= %lf, "
 	"T_sknum_sl= %lf, T_big_sl = %lf\n", M, N, K, candidate_T, slowdown[0], slowdown[1], slowdown[2], slowdown[3], slowdown[4], slowdown[5]);
 #endif
 	return;

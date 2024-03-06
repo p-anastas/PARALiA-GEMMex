@@ -397,7 +397,12 @@ Event::~Event()
 #ifdef UDDEBUG
 	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::~Event()\n", dev_id, id);
 #endif
-	sync_barrier();
+	CHLSelectDevice(dev_id);
+	if (status == RECORDED){
+		sync_barrier();
+		event_status dummy = query_status();
+	}
+	
 	Event_num_loc[dev_id]--;
 	cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
 #ifndef PRODUCTION
@@ -458,7 +463,7 @@ event_status Event::query_status(){
 	if (status == COMPLETE || status == UNRECORDED) return status;  // Retain status
 	cudaEvent_t cuda_event= *(cudaEvent_t*) event_backend_ptr;
 	cudaError_t err = cudaEventQuery(cuda_event);
-	if (err == cudaSuccess) status == COMPLETE; // Update status
+	if (err == cudaSuccess) status = COMPLETE; // Update status
 	else if (err == cudaErrorNotReady); // Retain status
 	else error("[dev_id=%3d] |-----> Event(%d)::query_status() - %s, status = %s\n", dev_id, id,
 	cudaGetErrorString(err), print_event_status(status));
@@ -482,9 +487,14 @@ void Event::soft_reset(){
 
 void Event::reset(){
 #ifdef UDDEBUG
-	fprintf(stderr, "[dev_id=%3d] Event(%d)::reset()\n", dev_id, id);
+	fprintf(stderr, "[dev_id=%3d] Event(%d, status = %s)::reset()\n", dev_id, id, print_event_status(status));
 #endif
-	if (status == RECORDED) sync_barrier();
+	CHLSelectDevice(dev_id);
+	if (status == RECORDED){
+		sync_barrier();
+		event_status dummy = query_status();
+	}
+
 	if (status == COMPLETE){
 		cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
 #ifndef PRODUCTION
@@ -496,6 +506,8 @@ void Event::reset(){
 #endif
 		status = UNRECORDED;
 	}
+	else if (status == UNRECORDED);
+	else error("Event::reset: Invalid status == RECORDED after sync\n");
 #ifdef UDDEBUG
 	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::reset()\n", dev_id, id);
 #endif

@@ -58,7 +58,6 @@ public:
     int W_init_loc, W_op_dev_id, W_op_queue_ctr, W_op_num, W_op_fired;
     Event_p W_op_complete, W_wb_complete, W_ready;
 
-    int W_op_dep_num;
     void** W_op_params;
 	const char* W_op_name;
     void run_operation(int W_op_id, LinkRoute_p lazy_route); 
@@ -81,11 +80,11 @@ public:
     void WReduce_combine(); // After WB, perform C = 1.0 * C' + reduce_mult * C and restore StoreBlock[init].
 
     //------------------------------------PARALia 2.0 - timed queues and blocks----------------------------//
-    void ETA_add_task(long double task_duration, int dev_id);
-    void ETA_set(long double new_workload_t, int dev_id);
-    long double ETA_get(int dev_id);
-    long double ETA_fetch_estimate(int target_id); 
-    long double block_ETA[64]; 
+    //void ETA_add_task(long double task_duration, int dev_id);
+    //void ETA_set(long double new_workload_t, int dev_id);
+    //long double ETA_get(int dev_id);
+    //long double ETA_fetch_estimate(int target_id); 
+    //long double block_ETA[64]; 
 
 }* Tile2D_p;
 

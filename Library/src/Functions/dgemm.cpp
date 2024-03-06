@@ -148,7 +148,6 @@ void CreateTasksDgemm(PMD_p local_PMD){
 			Tile2D_p C_tile = local_PMD->decom[2]->getTile(mi,ni);
 			C_tile->W_op_num = local_PMD->decom[0]->GridSz2;
 			C_tile->reduce_mult = initial_dgemm->beta; 
-			C_tile->W_op_dep_num = 3; 
 			C_tile->W_op_name = "Dgemm";
 			C_tile->W_op_params = (void**) malloc(C_tile->W_op_num*sizeof(void*));
 			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
@@ -204,9 +203,10 @@ void UpdateTasksDgemm(PMD_p local_PMD){
 			Tile2D_p C_tile = local_PMD->decom[2]->getTile(mi,ni);
 			C_tile->W_op_fired = 0;
 			C_tile->reduce_mult = initial_dgemm->beta; 
-			C_tile->W_op_complete->reset();
-			C_tile->W_wb_complete->reset();
-			C_tile->W_ready->reset();
+			// TODO: These were done at the Tile2D reset already.
+			//C_tile->W_op_complete->reset();
+			//C_tile->W_wb_complete->reset();
+			//C_tile->W_ready->reset();
 			for (int ki = 0; ki < C_tile->W_op_num; ki++){
 				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);

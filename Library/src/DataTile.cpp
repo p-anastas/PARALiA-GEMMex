@@ -35,16 +35,15 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 	id = Tile2D_num;
 	W_op_dev_id = W_op_queue_ctr = W_op_num = -42;
 	W_op_fired = 0; 
-	W_op_complete = W_ready = NULL;
+	W_op_complete = W_wb_complete = W_ready = NULL;
 	W_op_params = NULL; 
-	W_op_dep_num = 0; 
 	Tile2D_num++;
 	short init_loc = CHLGetPtrLoc(in_addr);
 	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
 		if (iloc == init_loc){
 			W_init_loc = iloc;
 			//loc_map[iloc] = 0;
-			block_ETA[iloc] = 0; 
+			//block_ETA[iloc] = 0; 
 			StoreBlock[iloc] = init_loc_block_p;
 			StoreBlock[iloc]->Adrs = in_addr;
 			//StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
@@ -55,7 +54,7 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 			StoreBlock[iloc] = NULL;
 			ldim[iloc] = in_dim1;
 			//loc_map[iloc] = -42;
-			block_ETA[iloc] = -42; 
+			//block_ETA[iloc] = -42; 
 		} 
 	}
 #ifdef DDEBUG
@@ -69,6 +68,37 @@ Tile2D::~Tile2D()
   delete W_ready; 
   Tile2D_num--;
   if(!Tile2D_num) warning("Tile2D::~Tile2D destructor incomplete, TBC\n");
+}
+
+void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
+#ifdef DDEBUG
+	fprintf(stderr, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
+#endif
+	//W_op_dev_id = W_op_num =
+	W_op_queue_ctr = -42;
+	W_op_fired = 0; 
+	if(W_op_complete) W_op_complete->reset();
+	if(W_wb_complete) W_wb_complete->reset();
+	if(W_ready) W_ready->reset();
+	//W_op_params = NULL; 
+	short init_loc = CHLGetPtrLoc(new_adrr);
+	short init_loc_idx = (init_loc);
+	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
+	{
+		if (iloc == init_loc_idx){
+			StoreBlock[iloc] = new_init_loc_block_p;
+			StoreBlock[iloc]->Adrs = new_adrr;
+			ldim[iloc] = new_init_chunk;
+			StoreBlock[iloc]->Available->record_to_queue(NULL);
+		}
+		else{
+			StoreBlock[iloc] = NULL;
+			//loc_map[iloc] = -42;
+		} 
+	}
+#ifdef DDEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
 }
 
 //----------------------------------------------Tile caching------------------------------------------//
@@ -109,8 +139,10 @@ void Tile2D::fetch(LinkRoute_p in_route)
 		in_route->hop_cqueue_list[inter_hop-1] = 
 			recv_queues[(in_route->hop_uid_list[inter_hop])][(in_route->hop_uid_list[inter_hop-1])];
 	}
+#ifdef DDEBUG
+	in_route->print();
+#endif
 	// Wait until the source of the transfer has the data available (might be obsolete based on implementation)
-	//in_route->print();
 	in_route->hop_cqueue_list[0]->wait_for_event(block_ptr[0]->Available);
 
 	// Fire the full transfer chain described by in_route
@@ -206,6 +238,7 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 		if (WRP == WR_LAZY) WR_lazy_combine(lazy_route);
 		else if (WRP == W_REDUCE) WReduce_backup_C();
 		W_op_complete->record_to_queue(assigned_exec_queue);
+		if(W_op_dev_id == W_init_loc) W_ready->record_to_queue(assigned_exec_queue);
 //#ifdef ENABLE_SEND_RECV_OVERLAP
 //		writeback();
 //#endif
@@ -258,7 +291,9 @@ void Tile2D::writeback(LinkRoute_p out_route){
 		out_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
     	out_route->hop_cqueue_list[inter_hop-1] = wb_queues[(out_route->hop_uid_list[inter_hop])][(out_route->hop_uid_list[inter_hop-1])];
     }
+#ifdef DDEBUG
 	out_route->print();
+#endif
 	/// Wait for all operations on the tile to be complete 
     out_route->hop_cqueue_list[0]->wait_for_event(W_op_complete);
 
@@ -370,32 +405,3 @@ long double Tile2D::ETA_fetch_estimate(int target_id){
   }
   return result; 
 }*/
-
-void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
-#ifdef DDEBUG
-	fprintf(stderr, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
-#endif
-	W_op_dev_id = W_op_queue_ctr = W_op_num = -42;
-	W_op_fired = 0; 
-	W_op_complete = W_ready = NULL;
-	W_op_params = NULL; 
-	W_op_dep_num = 0; 
-	short init_loc = CHLGetPtrLoc(new_adrr);
-	short init_loc_idx = (init_loc);
-	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
-	{
-		if (iloc == init_loc_idx){
-			StoreBlock[iloc] = new_init_loc_block_p;
-			StoreBlock[iloc]->Adrs = new_adrr;
-			ldim[iloc] = new_init_chunk;
-			StoreBlock[iloc]->Available->record_to_queue(NULL);
-		}
-		else{
-			StoreBlock[iloc] = NULL;
-			//loc_map[iloc] = -42;
-		} 
-	}
-#ifdef DDEBUG
-	fprintf(stderr, "<-----|\n");
-#endif
-}
