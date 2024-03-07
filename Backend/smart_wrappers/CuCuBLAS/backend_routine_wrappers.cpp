@@ -144,7 +144,7 @@ void custom_cpu_wrap_dslaxpby_v02(void* backend_data){
   if(pthread_join(core_binder, NULL) != 0 ) error("pthread_join failed for custom_cpu_wrap_dslaxpby\n");
 }
 
-#pragma omp declare simd
+//#pragma omp declare simd
 void inline simp_d(double x, double beta, double* y){
   *y =  x + beta*(*y);
 }
