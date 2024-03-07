@@ -275,7 +275,7 @@ void ATC::initialize_tasks(){
 		for(int in = 0; in < Grid_N; in++){
 			B_tile_loc_map[ik][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
-				if (loc == A_loc) B_tile_loc_map[ik][in][loc] = 0;
+				if (loc == B_loc) B_tile_loc_map[ik][in][loc] = 0;
 				else B_tile_loc_map[ik][in][loc] = -42;
 		}
 	}
@@ -285,7 +285,7 @@ void ATC::initialize_tasks(){
 		for(int in = 0; in < Grid_N; in++){
 			C_tile_loc_map[im][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
-				if (loc == A_loc) C_tile_loc_map[im][in][loc] = 0;
+				if (loc == C_loc) C_tile_loc_map[im][in][loc] = 0;
 				else C_tile_loc_map[im][in][loc] = -42;
 		}
 	}
@@ -388,9 +388,10 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 		}
 	}
 	if (autotune_eval_devices){
-		error("ATC::autotune_problem: Not implemented (yet) for autotune_eval_devices\n");
+		warning("ATC::autotune_problem: Not implemented (yet) for autotune_eval_devices, running with all devices\n");
 	}
-	else{
+	//else
+	{
 		int initial_T = T;
 		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
 		Gamalg_p test_grid;
@@ -398,8 +399,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx]);
 			if(!test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx], 
 				CHL_OUTPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx])) continue;
-			// TODO: I recently removed this but might results in grid selection problems
-			//if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_unit_id_list,active_unit_num)) continue;
+			if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_memlocs,active_memloc_num)) continue;
 			for (int idx = 0; idx < active_unit_num; idx++) active_unit_score[idx] = 1.0/active_unit_num;
 			long long edge_load[64][64];
 			gemm_translate_problem_comm(edge_load, A_loc, B_loc, C_loc, D_loc, M, N, K, elemSize, active_unit_num, active_unit_id_list, active_unit_score);

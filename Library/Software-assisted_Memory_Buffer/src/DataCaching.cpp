@@ -449,7 +449,7 @@ BufferBlock::BufferBlock(int block_id, Buffer_p block_parent, long long block_si
 		State = INVALID;
 		Lock = 0;
 
-		Available = new Event(Parent->dev_id);
+		Available = new Event();
 	#ifdef CDEBUG
 		lprintf(lvl-1, "<-----| [dev_id=%d] BufferBlock::BufferBlock()\n", Parent->dev_id);
 	#endif
@@ -2140,7 +2140,7 @@ Node_LL_p BufferSelectExclusiveBlockToRemove_fifo_mru_lru(Buffer_p buffer, bool 
 // 		Adrs = NULL; // Will be set by cache allocate.
 // 		State = INVALID; 	//	Technically no data in, so INVALID?
 // 												//	But AVAILABLE correct for scheduling out as well...
-// 		Available = new Event(Parent->dev_id);
+// 		Available = new Event();
 // 	#ifdef CDEBUG
 // 		lprintf(lvl-1, "<-----| [dev_id=%d] CacheBlock::CacheBlock()\n", Parent->dev_id);
 // 	#endif

@@ -36,9 +36,7 @@ void RMInitResources(int* dev_list, int dev_num){
 				int cont_flag = 0; 
 				if(best_grid_edge_active[dev_id_idx][dev_id_idy] != -1){
 					cont_flag = 1;
-					// TODO: This seems to be the faster one (?) but does not work with non-lazy events (?)
-					//int queue_id = (dev_id_idy >= CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
-					int queue_id = dev_id_idx;
+					int queue_id = (dev_id_idy >= CHL_WORKERS)? (dev_id_idx) : (dev_id_idy);
 					recv_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);	
 #ifdef ENABLE_SEND_RECV_OVERLAP
 					wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);

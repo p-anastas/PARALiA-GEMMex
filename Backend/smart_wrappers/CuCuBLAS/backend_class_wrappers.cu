@@ -10,7 +10,7 @@
 #include "smart_wrappers.hpp"
 #include "backend_wrappers.hpp"
 
-int Event_num_loc[64] = {0};
+long int Event_num_loc = 0;
 int Queue_num_loc[64] = {0};
 
 /*****************************************************/
@@ -172,17 +172,20 @@ void CommandQueue::record_event(Event_p Wevent)
 #ifdef UDEBUG
 	fprintf(stderr, "[dev_id=%3d] |-----> CommandQueue(%d)::record_event(Event(%d))\n", dev_id, id, Wevent->id);
 #endif
-	CHLSelectDevice(dev_id);
 #ifndef PRODUCTION
-	event_status evstat = Wevent->query_status();
-	if (evstat != UNRECORDED) error("Event(%d,dev_id = %d)::record_to_queue(%d): Recording %s event\n",
-			Wevent->id, Wevent->dev_id, dev_id, print_event_status(evstat));
-	else if(dev_id != Wevent->dev_id) error("[dev_id=%3d] CommandQueue(%d)::record_event(%d,dev_id = %d)"
-		"Queue and event dev_id do not match\n", dev_id, id, Wevent->id, Wevent->dev_id);
+	if (Wevent->status != UNRECORDED) error("Event(%d,dev_id = %d)::record_to_queue(%d): Recording %s event\n",
+			Wevent->id, Wevent->dev_id, dev_id, print_event_status(Wevent->status));
+#endif
+	Wevent->dev_id = dev_id; 
+	CHLSelectDevice(dev_id);
+	cudaError_t err = cudaEventCreate(( cudaEvent_t*) Wevent->event_backend_ptr);
+#ifndef PRODUCTION
+	massert(cudaSuccess == err, "[dev_id=%3d] CommandQueue(%d)::record_event(%d,dev_id = %d)- cudaEventCreate - %s\n",  
+		id, dev_id, Wevent->id, Wevent->dev_id, cudaGetErrorString(err));
 #endif
 	cudaEvent_t cuda_event= *(cudaEvent_t*) Wevent->event_backend_ptr;
 	cudaStream_t stream = *((cudaStream_t*) backend_queue_ptr);
-	cudaError_t err = cudaEventRecord(cuda_event, stream);
+	err = cudaEventRecord(cuda_event, stream);
 	Wevent->status = RECORDED;
 #ifndef PRODUCTION
 	massert(cudaSuccess == err, "[dev_id=%3d] CommandQueue(%d)::record_event(%d,dev_id = %d)- cudaEventRecord - %s\n",  
@@ -372,6 +375,128 @@ long double CommandQueue::ETA_get(){
 
 /*****************************************************/
 /// Event class functions.
+Event::Event()
+{
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::Event()\n", -42, Event_num_loc);
+#endif
+	event_backend_ptr = malloc(sizeof(cudaEvent_t));
+	id = Event_num_loc;
+	Event_num_loc++;
+	dev_id = -42;
+	status = UNRECORDED;
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::Event()\n", dev_id, id);
+#endif
+}
+
+Event::~Event()
+{
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::~Event()\n", dev_id, id);
+#endif
+	if (status == RECORDED) sync_barrier();
+
+	if (status == COMPLETE && dev_id!= -42){
+		cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
+#ifndef PRODUCTION
+		massert(cudaSuccess == err, "Event(%d)::~Event() - %s\n", id, cudaGetErrorString(err));
+#endif
+	}
+	free(event_backend_ptr);
+	Event_num_loc--;
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::~Event()\n", dev_id, id);
+#endif
+}
+
+void Event::reset(){
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] Event(%d, status = %s)::reset()\n", dev_id, id, print_event_status(status));
+#endif
+	if (status == RECORDED) sync_barrier();
+
+	if (status == COMPLETE && dev_id!= -42){
+		CHLSelectDevice(dev_id);
+		cudaError_t err = cudaEventDestroy(*(( cudaEvent_t*) event_backend_ptr));
+#ifndef PRODUCTION
+		massert(cudaSuccess == err, "[dev_id=%3d] Event(%d)::reset - %s\n", dev_id, id, cudaGetErrorString(err));
+#endif
+	}
+	status = UNRECORDED;
+
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::reset()\n", dev_id, id);
+#endif
+}
+
+void Event::sync_barrier()
+{
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::sync_barrier()\n", dev_id, id);
+#endif
+	event_status Evstat = query_status();
+	if (status == COMPLETE) return;
+	else if(status == RECORDED){
+		CHLSelectDevice(dev_id);
+		cudaEvent_t cuda_event= *(cudaEvent_t*) event_backend_ptr;
+		cudaError_t err = cudaEventSynchronize(cuda_event);
+		status = COMPLETE;
+#ifndef PRODUCTION
+		massert(cudaSuccess == err, "Event::sync_barrier() - %s\n", cudaGetErrorString(err));
+	}
+	else if (status == UNRECORDED) { error("[dev_id=%3d] |-----> Event(%d)::sync_barrier()"
+		"Tried to sync unrecorded event\n", dev_id, id);
+#endif
+	}
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::sync_barrier()\n", dev_id, id);
+#endif
+	return;
+}
+
+void Event::record_to_queue(CQueue_p Rr){
+	if (Rr == NULL){
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----> Event(%d)::record_to_queue(NULL)\n", dev_id, id);
+#endif
+		status = COMPLETE;
+		return;
+	}
+	Rr->record_event(this);
+}
+
+event_status Event::query_status(){
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::query_status()\n", dev_id, id);
+#endif
+	if (status == COMPLETE || status == UNRECORDED) return status;  // Retain status
+	CHLSelectDevice(dev_id);
+	cudaEvent_t cuda_event= *(cudaEvent_t*) event_backend_ptr;
+	cudaError_t err = cudaEventQuery(cuda_event);
+	if (err == cudaSuccess) status = COMPLETE; // Update status
+	else if (err == cudaErrorNotReady); // Retain status
+	else error("[dev_id=%3d] |-----> Event(%d)::query_status() - %s, status = %s\n", dev_id, id,
+	cudaGetErrorString(err), print_event_status(status));
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::query_status() = %s\n", dev_id, id, print_event_status(status));
+#endif
+	return status;
+}
+
+void Event::soft_reset(){
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] |-----> Event(%d)::soft_reset()\n", dev_id, id);
+#endif
+	sync_barrier();
+	error("Not updated for PARALIA-3.0 -> don't use me!\n");
+	status = UNRECORDED;
+#ifdef UDDEBUG
+	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::soft_reset()\n", dev_id, id);
+#endif
+}
+
+/* Non-lazy backup
 Event::Event(int dev_id_in)
 {
 #ifdef UDDEBUG
@@ -512,13 +637,14 @@ void Event::reset(){
 	fprintf(stderr, "[dev_id=%3d] <-----| Event(%d)::reset()\n", dev_id, id);
 #endif
 }
+*/
 
 /*****************************************************/
 /// Event-based timer class functions
 
 Event_timer::Event_timer(int dev_id) {
-  Event_start = new Event(dev_id);
-  Event_stop = new Event(dev_id);
+  Event_start = new Event();
+  Event_stop = new Event();
   time_ms = 0;
 }
 

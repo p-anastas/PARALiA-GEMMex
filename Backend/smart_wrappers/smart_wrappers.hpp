@@ -186,6 +186,9 @@ enum event_status{
 /// Returns a string representation for event_status
 const char* print_event_status(event_status in_status);
 
+//extern long int Event_num_loc[64];
+//extern Event_p event_pools[64];
+
 class Event
 {
 	private:
@@ -196,7 +199,7 @@ class Event
 		int id, dev_id;
 
 		/// Constructors
-		Event(int dev_id);
+		Event();
 		/// Destructors
 		~Event();
 		/// Functions

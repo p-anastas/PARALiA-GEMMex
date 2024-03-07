@@ -46,7 +46,6 @@ add_definitions(-DBUFFER_REUSE_ENABLE)
 ## MODELS -> Keep the models but rerun the distribution and routing functions
 ## PROBLEMS -> Keep a cache of size PROBLEM_MD_CACHE with the autotuning MD of DIFFERENT routine calls
 ##             This enables the full autotuning metadata reuse of up to PROBLEM_MD_CACHE problems. 
-# ---------------- FIXME: Currently bugged ---------------------- #
 #add_definitions(-DMETADATA_REUSE_NONE)
 #add_definitions(-DMETADATA_REUSE_MODELS)
 add_definitions(-DMETADATA_REUSE_PROBLEMS) 

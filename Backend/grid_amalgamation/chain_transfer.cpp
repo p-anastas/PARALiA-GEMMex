@@ -89,7 +89,7 @@ void FasTCHLMemcpy2DAsync(LinkRoute_p roadMap, long int rows, long int cols, sho
 #endif
 			//roadMap->hop_cqueue_list[uid_ctr]->request_parallel_backend();
 			for(int steps = 0; steps < roadMap->streaming_workers; steps++){
-				if(uid_ctr < roadMap->hop_num - 1) step_events[uid_ctr][steps] = new Event(roadMap->hop_uid_list[uid_ctr+1]);
+				if(uid_ctr < roadMap->hop_num - 1) step_events[uid_ctr][steps] = new Event();
 #ifdef SPLIT_2D_ROWISE
 				long buff_offset_dest = steps* elemSize * local_rows,
 				buff_offset_src = steps * elemSize * local_rows;

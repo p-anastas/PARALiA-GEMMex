@@ -153,9 +153,9 @@ void CreateTasksDgemm(PMD_p local_PMD){
 			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
 			C_tile->W_op_dev_id = local_PMD->autotuner->comp_task_unit_list[comp_task_idx];
 			if ((C_tile->WRP == WR_LAZY || C_tile->WRP == W_REDUCE) && C_tile->W_init_loc == C_tile->W_op_dev_id) C_tile->set_WRP(WR);
-			C_tile->W_op_complete = new Event(C_tile->W_op_dev_id);
-			C_tile->W_wb_complete = new Event(C_tile->W_op_dev_id);
-			C_tile->W_ready = new Event(C_tile->W_op_dev_id);
+			C_tile->W_op_complete = new Event();
+			C_tile->W_wb_complete = new Event();
+			C_tile->W_ready = new Event();
 			for (int ki = 0; ki < C_tile->W_op_num; ki++){
 				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
