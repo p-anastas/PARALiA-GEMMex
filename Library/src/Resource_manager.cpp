@@ -29,6 +29,9 @@ int RMConfigResources(){
 }
 
 void RMInitResources(int* dev_list, int dev_num){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> RMInitResources(%p, %d)\n", dev_list, dev_num);
+#endif
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS + 1; dev_id_idx++){
 		for(int dev_id_idy = 0 ; dev_id_idy < CHL_WORKERS + 1; dev_id_idy++)
 		if(dev_id_idy!=dev_id_idx){
@@ -156,10 +159,16 @@ void RMSyncRecvQueues(){
 }
 
 void PARALiADevCacheFree(int dev_id){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> PARALiADevCacheFree(%d)\n", dev_id);
+#endif
 	for(int i = 0; i < PMD_cache_entries; i++) 
 		if (PMD_cache[i]->SAB[dev_id] == current_SAB[dev_id]){
 			PMD_cache[i]->SAB[dev_id] = NULL;
 	}
 	if(current_SAB[dev_id]) delete current_SAB[dev_id];
 	current_SAB[dev_id] = NULL;
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
 }
