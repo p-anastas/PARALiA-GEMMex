@@ -91,9 +91,9 @@ int main(const int argc, const char *argv[]) {
  	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
 
 	// Validate with cuBLASXt (questionable but CPU validation can be slower by at least a factor)
-	int dev_ids[DEV_NUM];
-	for (int i = 0; i < DEV_NUM; i++) dev_ids[i] = i;
-	cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, DEV_NUM, dev_ids);
+	int dev_ids[CHL_WORKERS];
+	for (int i = 0; i < CHL_WORKERS; i++) dev_ids[i] = i;
+	cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, CHL_WORKERS, dev_ids);
 	CHLMemcpy(C_out1, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
  	if(Dtest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
 

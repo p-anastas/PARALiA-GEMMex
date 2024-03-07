@@ -221,6 +221,7 @@ int main(const int argc, const char *argv[]) {
 		CHLFree(B, N* K* sizeof(double), B_loc);
 		CHLFree(C, N* M* sizeof(double), C_loc);
 		CHLFree(C_comp, N* M* sizeof(double), C_loc);
+		CHLFree(C_buf, N* M* sizeof(double), C_loc);
 		CHLSyncCheckErr();
 	}
 	if(run_gpu_mem) {
@@ -339,7 +340,7 @@ int main(const int argc, const char *argv[]) {
 			CHLFree(C_comp, N* M* sizeof(double), C_loc);
 			CHLFree(C_buf, N* M* sizeof(double), C_loc);
 
-			CHLFree(C_comp, N* M* sizeof(double), CHL_MEMLOCS - 1);
+			CHLFree(C_host_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 			CHLFree(C_host_comp_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 		}
 		A_loc = 0;
@@ -424,7 +425,7 @@ int main(const int argc, const char *argv[]) {
 		CHLFree(C_comp, N* M* sizeof(double), C_loc);
 		CHLFree(C_buf, N* M* sizeof(double), C_loc);
 
-		CHLFree(C_comp, N* M* sizeof(double), CHL_MEMLOCS - 1);
+		CHLFree(C_host_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 		CHLFree(C_host_comp_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 	}
 	if (run_cpu_mem && run_gpu_mem){
@@ -502,7 +503,7 @@ int main(const int argc, const char *argv[]) {
 		CHLFree(C_comp, N* M* sizeof(double), C_loc);
 		CHLFree(C_buf, N* M* sizeof(double), C_loc);
 
-		CHLFree(C_comp, N* M* sizeof(double), CHL_MEMLOCS - 1);
+		CHLFree(C_host_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 		CHLFree(C_host_comp_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 	}
 
@@ -723,10 +724,10 @@ int main(const int argc, const char *argv[]) {
 		CHLSyncCheckErr();
 
 		CHLFree(A, M* K* sizeof(double), A_loc);
-		CHLFree(B, N* K* sizeof(double), A_loc);
-		CHLFree(C, N* M* sizeof(double), A_loc);
-		CHLFree(C_comp, N* M* sizeof(double), A_loc);
-		CHLFree(C_comp, N* M* sizeof(double), CHL_MEMLOCS - 1);
+		CHLFree(B, N* K* sizeof(double), B_loc);
+		CHLFree(C, N* M* sizeof(double), C_loc);
+		CHLFree(C_comp, N* M* sizeof(double), C_loc);
+		CHLFree(C_host_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 		CHLFree(C_host_comp_buf, N* M* sizeof(double), CHL_MEMLOCS - 1);
 	}
 	fprintf(stdout, "\n-----------------------------------------GEMM (dtype=double): Tests Finished-----------------------------------------\n");

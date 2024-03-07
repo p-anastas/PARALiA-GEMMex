@@ -162,12 +162,17 @@ void PARALiADevCacheFree(int dev_id){
 #ifdef DEBUG
 	fprintf(stderr, "|-----> PARALiADevCacheFree(%d)\n", dev_id);
 #endif
-	for(int i = 0; i < PMD_cache_entries; i++) 
+	/*for(int i = 0; i < PMD_cache_entries; i++) 
 		if (PMD_cache[i]->SAB[dev_id] == current_SAB[dev_id]){
 			PMD_cache[i]->SAB[dev_id] = NULL;
 	}
 	if(current_SAB[dev_id]) delete current_SAB[dev_id];
-	current_SAB[dev_id] = NULL;
+	current_SAB[dev_id] = NULL;*/
+	for(int i = 0; i < PMD_cache_entries; i++) 
+		if (PMD_cache[i]->SAB[dev_id]){
+ 			delete PMD_cache[i]->SAB[dev_id];
+			PMD_cache[i]->SAB[dev_id] = NULL;
+	}
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif
