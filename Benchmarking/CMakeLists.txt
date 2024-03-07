@@ -65,14 +65,14 @@ add_definitions(-DRUNVALIDATION)
 
 add_executable (cuBLASXt_dgemm_runner ${BENCH_DIR_SRC}/cuBLASXt/cuBLASXt_dgemm_runner.cpp )
 ## PARALia Runners and Testers
-#add_executable (dgemm_tester ${BENCH_DIR_SRC}/PARALia/dgemm_tester.cpp )
+add_executable (dgemm_tester ${BENCH_DIR_SRC}/PARALia/dgemm_tester.cpp )
 #add_executable (sgemm_tester ${BENCH_DIR_SRC}/PARALia/sgemm_tester.cpp )
 add_executable (dgemm_runner ${BENCH_DIR_SRC}/PARALia/dgemm_runner.cpp )
 #add_executable (dgemm_runner_hetero ${BENCH_DIR_SRC}/PARALia/dgemm_runner_hetero.cu )
 add_executable (dgemm_predictor ${BENCH_DIR_SRC}/PARALia/dgemm_predictor.cpp )
 
 target_link_libraries(cuBLASXt_dgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
-#target_link_libraries(dgemm_tester ${INTERNAL_LINK_LIB} benchparalia )
+target_link_libraries(dgemm_tester ${INTERNAL_LINK_LIB} benchparalia )
 target_link_libraries(dgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
 target_link_libraries(dgemm_predictor ${INTERNAL_LINK_LIB} benchparalia )
 
