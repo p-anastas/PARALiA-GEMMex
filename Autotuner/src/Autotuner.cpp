@@ -315,15 +315,21 @@ void ATC::optimize_tasks_serial(){
 					task_list[task_ctr++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
 				}
 				LinkRoute_p C_tile_route = new LinkRoute();
-				if(C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
+				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
 					C_tile_loc_map[im][in][dev_id] = 2; 
 					long int size = T*T*elemSize;
 					C_tile_route->optimize(C_tile_loc_map[im][in], size);
-					if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR"))
-						task_list[task_ctr++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
+					task_list[task_ctr++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
+				}
+				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY") && (ik == Grid_K - 1) && C_tile_loc_map[im][in][dev_id]){
+					C_tile_loc_map[im][in][dev_id] = 2; 
+					long int size = T*T*elemSize;
+					C_tile_route->optimize(C_tile_loc_map[im][in], size);
 				}
 				task_list[task_ctr++] = new TileTask(COMPUTE, 2, im, in, ik, C_tile_route);
 				if(ik == Grid_K - 1 && C_tile_loc_map[im][in][dev_id]){
+					if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_loc_map[im][in][dev_id] = 42; 
 					long int size = T*T*elemSize;
 					LinkRoute_p C_tile_out_route = new LinkRoute();
 					C_tile_out_route->optimize_reverse(C_tile_loc_map[im][in], size);

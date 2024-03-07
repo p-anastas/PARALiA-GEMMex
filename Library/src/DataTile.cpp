@@ -331,7 +331,6 @@ void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
     exec_queue[W_op_dev_id][W_op_queue_ctr]->wait_for_event(StoreBlock[W_op_dev_id]->Available);
 	/// Perform  C = reduce_mult * C' + C (axpy) at the compute location for this tile (W_op_dev_id)
     exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Daxpy", W_op_dev_id);
-    W_op_complete->record_to_queue(exec_queue[W_op_dev_id][W_op_queue_ctr]);
 }
 
 void Tile2D::WReduce_backup_C(){

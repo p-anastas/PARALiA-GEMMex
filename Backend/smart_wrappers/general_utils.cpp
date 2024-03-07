@@ -145,10 +145,10 @@ inline double Derror(double a, double b) {
 
 long int Dvec_diff(double* a, double* b, long long size, double eps) {
 	long int failed = 0;
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for (long long i = 0; i < size; i++)
 		if (Derror(a[i], b[i]) > eps){
-			//#pragma omp atomic
+			#pragma omp atomic
 			failed++;
 		}
 	return failed;

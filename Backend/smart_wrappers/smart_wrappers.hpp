@@ -234,7 +234,7 @@ void* numa_bind_pin_malloc(long long count, int node_num, short W_flag);
 void numa_pin_free(void *gpuptr, long long bytes);
 
 // Malloc in loc with error-checking
-void* CHLMalloc(long long N_bytes, short loc, short W_flag);
+void* CHLMalloc(long long N_bytes, int loc, short W_flag);
 
 // Malloc in Host and perform openmp default first touch. 
 void* CHLMallocHostTouchDefault(long long bytes);
@@ -244,27 +244,27 @@ void* CHLMallocHostTouchSerial(long long bytes);
 void* CHLMallocHostTouchSmart(long long dim1, long long dim2, int elemSize, char transpose);
 
 // Free in loc with error-checking
-void CHLFree(void * ptr, long long bytes, short loc);
+void CHLFree(void * ptr, long long bytes, int loc);
 
 short CHLGetPtrLoc(void * in_ptr);
 short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSize);
 
 // Memcpy between two locations with errorchecking
-void CHLMemcpy(void* dest, void* src, long long N_bytes, short loc_dest, short loc_src);
+void CHLMemcpy(void* dest, void* src, long long N_bytes, int loc_dest, int loc_src);
 
 // Memcpy between two locations with errorchecking
-void CHLMemcpy2D(void* dest, long int ldest, void* src, long int lsrc, long int rows, long int cols, short elemSize, short loc_dest, short loc_src);
+void CHLMemcpy2D(void* dest, long int ldest, void* src, long int lsrc, long int rows, long int cols, short elemSize, int loc_dest, int loc_src);
 
 /* Deprecated...replaced by COMMUNICATION queues
 // Asunchronous Memcpy between two locations WITHOUT synchronous errorchecking. Use with caution.
-void CHLMemcpyAsync(void* dest, void* src, long long N_bytes, short loc_dest, short loc_src, CQueue_p transfer_medium);
+void CHLMemcpyAsync(void* dest, void* src, long long N_bytes, int loc_dest, int loc_src, CQueue_p transfer_medium);
 
 // Asunchronous Memcpy between two locations WITHOUT synchronous errorchecking.
 void CHLMemcpy2DAsync(void* dest, long int ldest, void* src, long int lsrc, long int rows, long int cols,
-	short elemSize, short loc_dest, short loc_src, CQueue_p transfer_medium);
+	short elemSize, int loc_dest, int loc_src, CQueue_p transfer_medium);
 // Asunchronous Memcpy between two locations WITHOUT synchronous errorchecking and with TTEST logging disabled (for avoiding double logs for hop tranfers)
 void CHLMemcpy2DAsync_noTTs(void* dest, long int ldest, void* src, long int lsrc, long int rows, long int cols,
-	short elemSize, short loc_dest, short loc_src, CQueue_p transfer_medium);
+	short elemSize, int loc_dest, int loc_src, CQueue_p transfer_medium);
 */
 
 // Print and log bandwidths and links used with CHLMemcpy2DAsync. Unusable with TTEST flag
@@ -272,16 +272,16 @@ void n_HopMemcpyPrint();
 
 // Initalize vector in loc with error-checking
 template<typename VALUETYPE>
-extern void CHLVecInit(VALUETYPE *vec, long long length, int seed, short loc);
+extern void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc);
 // Helper for Parallel OpenMP vector initialization
 template<typename VALUETYPE>
 extern void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed);
 
 // Return the max dim size (which is a multiple of 'step') for 'Asset2DNum' square assets on 'loc'
-long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, short loc);
+long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc);
 
 // Return the max dim size (which is a multiple of 'step') for 'Asset1DNum' assets on 'loc'
-long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, short loc);
+long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, int loc);
 
 /*****************************************************/
 /// Timers for benchmarks
