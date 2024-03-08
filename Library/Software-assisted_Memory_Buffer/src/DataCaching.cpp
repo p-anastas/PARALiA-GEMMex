@@ -78,7 +78,7 @@ BufferBlock::~BufferBlock(){
 	fprintf(stderr, "|-----> [dev_id=%d] BufferBlock::~BufferBlock()\n", Parent->dev_id);
 #endif
 	if(State != NATIVE){
-		if(Adrs) CHLFree(Adrs, Parent->dev_id, Size);
+		if(Adrs) CHLFree(Adrs, Size, Parent->dev_id);
 		delete Available;
 #ifdef CDEBUG
 		fprintf(stderr, "------- [dev_id=%d] BufferBlock::~BufferBlock(): Deleting non-NATIVE block id =%d\n",
@@ -189,10 +189,9 @@ Buffer::~Buffer(){
 	DevBuffer_ctr--;
 #ifdef ENABLE_BUFFER_CONTINUOUS_ALLOC
 	long long buff_size = 0;
+	if(cont_buf_head) CHLFree(cont_buf_head, cont_buf_head_sz, dev_id);
 	for (int idx = 0; idx < BlockNum; idx++) if(Blocks[idx]!=NULL)
 		Blocks[idx]->Adrs = NULL;
-	//if(cont_buf_head)
-	if(cont_buf_head_sz) CHLFree(cont_buf_head, dev_id, cont_buf_head_sz);
 	cont_buf_head = NULL;
 #endif
 	for (int idx = 0; idx < BlockNum; idx++) delete Blocks[idx];

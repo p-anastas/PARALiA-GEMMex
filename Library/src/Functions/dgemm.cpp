@@ -83,6 +83,8 @@ void ManageCachesDgemm(PMD_p local_PMD){
 			else free_dev_mem = max_dev_mem = 100000000000; 
 			CHLSelectDevice(prev_dev);
 			max_cache_sz = free_dev_mem - ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)) + prev_DevCache_sz;
+			//fprintf(stderr, "[dev_id=%3d] max_dev_mem = %lld, free_dev_mem = %lld, prev_DevCache_sz = %lld, max_cache_sz = %lld\n", 
+			//	cache_loc, max_dev_mem, free_dev_mem, prev_DevCache_sz, max_cache_sz);
 		}
 		Block_num = 1 + Block_num_A + Block_num_B + Block_num_C;
 		if ((!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR_LAZY") && is_in_list(cache_loc, 
@@ -96,10 +98,11 @@ void ManageCachesDgemm(PMD_p local_PMD){
 			Block_num = max_block_num;
 			// 2 + (local_PMD->decom[2]->dim1/T + ((local_PMD->decom[2]->dim1%T)? 1 : 0))
 			// * (local_PMD->decom[2]->dim2/T + ((local_PMD->decom[2]->dim2%T)? 1 : 0));
-			int worst_case_ex_blocks = 3; 
-			if(max_block_num < worst_case_ex_blocks)
+			int worst_case_blocks = local_PMD->decom[1]->GridSz2 + 1 + 
+				local_PMD->decom[0]->GridSz2 * local_PMD->decom[0]->GridSz1 / local_PMD->autotuner->D2_parts; 
+			if(max_block_num < worst_case_blocks)
 				error("PARALiADgemm: Not able to run with < %d blocks per cache due to EX scheduling\n", 
-					worst_case_ex_blocks);
+					worst_case_blocks);
 		}
 #ifdef BUFFER_REUSE_ENABLE
 		if(current_SAB[cache_loc] == NULL) current_SAB[cache_loc] = 

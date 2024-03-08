@@ -40,6 +40,7 @@ typedef class ATC{
 		int A_loc, B_loc, C_loc, D_loc; /// The initial locations of the matrices
 		int elemSize; /// The size in bytes of each element of A, B, C, D
 		long int Grid_M, Grid_N, Grid_K; /// The resulting grid sizes from the tiling.
+		int D1_parts, D2_parts;
 		/// Slowdowns for the selected T that can be used for model adjustment
 		double T_aggregate_sl, T_imbalance_sl, T_remainder_sl, T_small_sl, T_sknum_sl, T_big_sl;
 		int* active_memlocs; // The memlocs that are utilized (workers + inputs + outputs) for a problem.

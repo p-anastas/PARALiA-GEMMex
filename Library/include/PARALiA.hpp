@@ -18,9 +18,10 @@ public:
 	void* problem_wrap; 
 	int decom_num;
 	Decom2D_p decom[10];
-	Buffer_p SAB[64]; 
+	Buffer_p SAB[64] = {NULL}; 
 
 	void print();
+	~ProblemMetadata();
 }* PMD_p; 
 
 extern PMD_p PMD_cache[PROBLEM_MD_CACHE]; 

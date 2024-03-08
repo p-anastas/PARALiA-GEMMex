@@ -49,7 +49,7 @@ add_definitions(-DBUFFER_REUSE_ENABLE)
 #add_definitions(-DMETADATA_REUSE_NONE)
 #add_definitions(-DMETADATA_REUSE_MODELS)
 add_definitions(-DMETADATA_REUSE_PROBLEMS) 
-add_definitions(-DPROBLEM_MD_CACHE=100) # Only relevant for "PROBLEMS" reuse level
+add_definitions(-DPROBLEM_MD_CACHE=10) # Only relevant for "PROBLEMS" reuse level
 
 ###########################################################################################
 #---------------------------Algorithmic/Software Optimizations----------------------------#

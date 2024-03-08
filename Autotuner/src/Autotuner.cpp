@@ -48,7 +48,7 @@ ATC::ATC(){
 	T = active_unit_num = task_num = comp_task_num = -1;
 	pred_t = pred_J = power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
-
+	D1_parts = D2_parts = -1;
 	cache_limit = 0;
 
 	inter_grid = NULL;

@@ -158,21 +158,32 @@ void RMSyncRecvQueues(){
 		if(dev_id_idx!=dev_id_idy) recv_queues[dev_id_idx][dev_id_idy]->sync_barrier();
 }
 
+ProblemMetadata::~ProblemMetadata(){
+	delete autotuner;
+	//free((void*)problem_name);
+	free(problem_wrap);
+	for (int idx = 0; idx < decom_num; idx++) delete decom[idx];
+	for (int idx = 0; idx < 64; idx++) if (SAB[idx]){
+		delete SAB[idx];
+		SAB[idx] = NULL;
+	}
+}
+
 void PARALiADevCacheFree(int dev_id){
 #ifdef DEBUG
 	fprintf(stderr, "|-----> PARALiADevCacheFree(%d)\n", dev_id);
 #endif
-	/*for(int i = 0; i < PMD_cache_entries; i++) 
+	for(int i = 0; i < PMD_cache_entries; i++) 
 		if (PMD_cache[i]->SAB[dev_id] == current_SAB[dev_id]){
 			PMD_cache[i]->SAB[dev_id] = NULL;
 	}
 	if(current_SAB[dev_id]) delete current_SAB[dev_id];
-	current_SAB[dev_id] = NULL;*/
-	for(int i = 0; i < PMD_cache_entries; i++) 
+	current_SAB[dev_id] = NULL;
+	/*for(int i = 0; i < PMD_cache_entries; i++) 
 		if (PMD_cache[i]->SAB[dev_id]){
  			delete PMD_cache[i]->SAB[dev_id];
 			PMD_cache[i]->SAB[dev_id] = NULL;
-	}
+	}*/
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif

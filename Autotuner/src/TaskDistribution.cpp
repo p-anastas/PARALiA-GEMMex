@@ -164,34 +164,34 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
   	}
 
 	// 2D Block cyclic
-	int D1_parts = std::sqrt(autotune_controller->active_unit_num);
-	int D2_parts = D1_parts;
-	if (D1_parts ==0) { D2_parts = autotune_controller->active_unit_num; D1_parts = 1; }
+	autotune_controller->D1_parts = std::sqrt(autotune_controller->active_unit_num);
+	autotune_controller->D2_parts = autotune_controller->D1_parts;
+	if (autotune_controller->D1_parts ==0) { autotune_controller->D2_parts = autotune_controller->active_unit_num; autotune_controller->D1_parts = 1; }
 	else {
-		// find the most square decomposition of autotune_controller->active_unit_num in D1_parts x D2_parts
+		// find the most square decomposition of autotune_controller->active_unit_num in autotune_controller->D1_parts x autotune_controller->D2_parts
 		int g;
-		for (g = D1_parts+1; g>0; --g)
+		for (g = autotune_controller->D1_parts+1; g>0; --g)
 		if (autotune_controller->active_unit_num % g == 0) break;
-		if (g==0) { D1_parts = autotune_controller->active_unit_num; D2_parts = 1; }
-		//if (g==0) { D1_parts = 1; D2_parts = autotune_controller->active_unit_num; }
-		else { D1_parts = g; D2_parts = autotune_controller->active_unit_num/g; }
+		if (g==0) { autotune_controller->D1_parts = autotune_controller->active_unit_num; autotune_controller->D2_parts = 1; }
+		//if (g==0) { autotune_controller->D1_parts = 1; autotune_controller->D2_parts = autotune_controller->active_unit_num; }
+		else { autotune_controller->D1_parts = g; autotune_controller->D2_parts = autotune_controller->active_unit_num/g; }
 	}
 	//TODO: reverse layout
-	//int tmp = D1_parts;
-	//D1_parts = D2_parts;
-	//D2_parts = tmp;
-	if(D1GridSz < D1_parts || D2GridSz < D2_parts){
+	//int tmp = autotune_controller->D1_parts;
+	//autotune_controller->D1_parts = autotune_controller->D2_parts;
+	//autotune_controller->D2_parts = tmp;
+	if(D1GridSz < autotune_controller->D1_parts || D2GridSz < autotune_controller->D2_parts){
 		warning("DistributeCompTasks2DBlockCyclic:\nGrid(%d,%d) smaller than {D1,D2}_parts = (%d,%d)\
-			using DistributeCompTasksRoundRobinChunk instead\n", D1GridSz, D2GridSz, D1_parts, D2_parts);
+			using DistributeCompTasksRoundRobinChunk instead\n", D1GridSz, D2GridSz, autotune_controller->D1_parts, autotune_controller->D2_parts);
 			DistributeCompTasksRoundRobinChunk(autotune_controller, D3GridSz);
 		return;
 	}
-	int D1GridSz_div = D1GridSz/D1_parts*D1_parts, D2GridSz_div = D2GridSz/D2_parts*D2_parts,
-		D1GridSz_mod = D1GridSz%D1_parts, D2GridSz_mod = D2GridSz%D2_parts;
+	int D1GridSz_div = D1GridSz/autotune_controller->D1_parts*autotune_controller->D1_parts, D2GridSz_div = D2GridSz/autotune_controller->D2_parts*autotune_controller->D2_parts,
+		D1GridSz_mod = D1GridSz%autotune_controller->D1_parts, D2GridSz_mod = D2GridSz%autotune_controller->D2_parts;
 #ifdef PDEBUG
-	fprintf(stderr, "DistributeCompTasks2DBlockCyclic(%d, %d, %d): Devices = %d (scores = %s), D1_parts = %d, D2_parts = %d\n",
+	fprintf(stderr, "DistributeCompTasks2DBlockCyclic(%d, %d, %d): Devices = %d (scores = %s), autotune_controller->D1_parts = %d, autotune_controller->D2_parts = %d\n",
 		D1GridSz, D2GridSz, D3GridSz, autotune_controller->active_unit_num, 
-		printlist<double>(autotune_controller->active_unit_score, autotune_controller->active_unit_num),D1_parts, D2_parts);
+		printlist<double>(autotune_controller->active_unit_score, autotune_controller->active_unit_num),autotune_controller->D1_parts, autotune_controller->D2_parts);
 #endif
 
 	if ((D1GridSz*D2GridSz) < autotune_controller->active_unit_num){
@@ -237,7 +237,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		for (int D2 = 0; D2 < D2GridSz_div; D2++)
 		for (int D3 = 0; D3 < D3GridSz; D3++){
 			task_ctr = D1*D2GridSz*D3GridSz + D2*D3GridSz+D3;
-			devidx = D1/(D1GridSz/D1_parts)*D2_parts + D2/(D2GridSz/D2_parts);
+			devidx = D1/(D1GridSz/autotune_controller->D1_parts)*autotune_controller->D2_parts + D2/(D2GridSz/autotune_controller->D2_parts);
 #ifdef PDEBUG
 			fprintf(stderr, "DistributeCompTasks2DBlockCyclic: task_ctr[%d,%d,%d] = %d, devidx = %d\n",
 				D1,D2,D3, task_ctr, devidx);
