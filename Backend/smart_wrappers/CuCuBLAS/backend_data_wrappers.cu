@@ -161,7 +161,6 @@ void numa_pin_free(void *gpuptr, long long bytes) {
   numa_free(gpuptr,bytes);
 }
 
-
 void CHLFree(void * ptr, long long bytes, int loc){
 	//if (??? == loc) free(ptr);
 	if ((loc >= CHL_WORKERS && loc < CHL_MEMLOCS) || loc == -1) numa_pin_free(ptr, bytes);
