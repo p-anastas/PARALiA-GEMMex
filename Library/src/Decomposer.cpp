@@ -42,13 +42,13 @@ void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size,
          if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*new_T1 + itt2*new_T2*ldim);
          else if(dtype == FLOAT) tile_addr = ((float*)adrs) + (itt1*new_T1 + itt2*new_T2*ldim);
          else error("Decom2D::Reset: dtype not implemented");
-         Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE, true));
+         Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE));
        }
       else if (transpose == 'T'){
         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*new_T1*ldim + itt2*new_T2);
          else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + (itt1*new_T1*ldim + itt2*new_T2);
         else error("Decom2D::Reset: dtype not implemented");
-        Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE, true));
+        Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE));
       }
       else error("Decom2D::Reset: Unknown transpose type\n");
 
@@ -100,13 +100,13 @@ void Decom2D::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_propert
          if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*T1 + itt2*T2*ldim);
          else if(dtype == FLOAT) tile_addr = ((float*)adrs) + (itt1*T1 + itt2*T2*ldim);
          else error("Decom2D::InitTileMap: dtype not implemented");
-         Tile_map[current_ctr] = new Tile2D(tile_addr, T1tmp, T2tmp, ldim, itt1, itt2, dtype, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE, true));
+         Tile_map[current_ctr] = new Tile2D(tile_addr, T1tmp, T2tmp, ldim, itt1, itt2, dtype, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE));
        }
       else if (transpose == 'T'){
         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*T1*ldim + itt2*T2);
          else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + (itt1*T1*ldim + itt2*T2);
         else error("Decom2D::InitTileMap: dtype not implemented");
-        Tile_map[current_ctr] = new Tile2D(tile_addr, T2tmp, T1tmp, ldim, itt2, itt1, dtype, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE, true));
+        Tile_map[current_ctr] = new Tile2D(tile_addr, T2tmp, T1tmp, ldim, itt2, itt1, dtype, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE));
       }
       else error("Decom2D::InitTileMap: Unknown transpose type\n");
       Tile_map[current_ctr]->set_WRP(prop);
@@ -196,7 +196,6 @@ void Decomposer::DrawTileMap(){
   }
 }
 
-
 long Decomposer::get_chunk_size(){
     error("Must never be called for parent Decomposer class\n");
     return -42;
@@ -207,8 +206,6 @@ long Decom2D::get_chunk_size(){
     return ldim;
 }
 
-
-
 long Decomposer::get_mem_size(){
     error("Must never be called for parent Decomposer class\n");
     return -42;
@@ -218,9 +215,6 @@ long Decom2D::get_mem_size(){
     return dim2*ldim*dtypesize();
 }
 
-
-
-
 void Decomposer::set_chunk_size(long value){
     error("Must never be called for parent Decomposer class\n");
     return;
@@ -229,79 +223,3 @@ void Decomposer::set_chunk_size(long value){
 void Decom2D::set_chunk_size(long value){
     ldim = value;
 }
-
-/*
-
-long Decom1D::get_chunk_size(){
-    return inc;
-}
-
-long Decom1D::get_mem_size(){
-    return dim1*inc*dtypesize();
-}
-
-void Decom1D::set_chunk_size(long value){
-    inc = value;
-}
-
-Decom1D::Decom1D(void* in_adr, int in_dim, int in_inc, dtype_enum dtype_in){
-  dim1 = in_dim;
-  dim2 = 1; 
-  GridSz2 = 1; 
-  adrs = in_adr;
-  loc = CHLGetPtrLoc(in_adr);
-  inc = in_inc;
-  dtype = dtype_in;
-}
-
- void Decom1D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size, Buffer_p* init_loc_cache_p){
-  #ifdef DEBUG
-  	fprintf(stderr, "|-----> Decom1D::Reset(Buffer_p=%p, loc = %d)\n", init_loc_cache_p, loc);
-  #endif
-  adrs = new_adrs;
-  inc = new_chunk_size;
-  int current_ctr;
-  void* tile_addr = NULL;
-  int loc_idx = loc;
-  for (int itt = 0; itt < GridSz1; itt++){
-    current_ctr = itt;
-    if (dtype == DOUBLE) tile_addr = ((double*)adrs) + itt*new_T1*inc;
-    else if(dtype == FLOAT) tile_addr = ((float*)adrs) + itt*new_T1*inc;
-    else error("Decom1D::Reset: dtype not implemented");
-        Tile_map[current_ctr]->reset(tile_addr, inc, init_loc_cache_p[loc_idx]->assign_Cblock(NATIVE, true));
-  }
-   #ifdef DEBUG
-   	fprintf(stderr, "<-----|\n");
-   #endif
-}
-
-void Decom1D::InitTileMap(int T, int dummy, Buffer_p* init_loc_cache_p){
-  #ifdef DEBUG
-  	fprintf(stderr, "|-----> Decom1D::InitTileMap(%d)\n", T);
-  #endif
-
-  GridSz1 = dim1/T;
-  int TLast = dim1%T;
-  // TODO: Padding instead of resize so all data fit in buffer without complex mechanism.
-  // Can degrade performance for small div sizes.
-  if (TLast > 0) GridSz1++;
-  else TLast=T;
-
-  Tile_map = (DataTile_p*) malloc(sizeof(DataTile_p)*GridSz1);
-
-  int current_ctr, Ttmp;
-  void* tile_addr = NULL;
-  for (int itt = 0; itt < GridSz1; itt++){
-    if ( itt == GridSz1 - 1) Ttmp = TLast;
-    else  Ttmp = T;
-    current_ctr = itt;
-    if (dtype == DOUBLE) tile_addr = ((double*)adrs) + itt*T*inc;
-    else if(dtype == FLOAT) tile_addr = ((float*)adrs) + itt*T*inc;
-    else error("Decom1D::InitTileMap: dtype not implemented");
-    Tile_map[current_ctr] = new Tile1D(tile_addr, Ttmp, inc, itt, dtype, init_loc_cache_p[CHLGetPtrLoc(adrs)]->assign_Cblock(NATIVE, true));
-  }
-  #ifdef DEBUG
-  	fprintf(stderr, "<-----|\n");
-  #endif
-}
-*/

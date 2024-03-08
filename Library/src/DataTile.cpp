@@ -129,9 +129,9 @@ void Tile2D::fetch(LinkRoute_p in_route)
 				printlist(in_route->hop_uid_list, in_route->hop_num), in_route->hop_uid_list[inter_hop]);
 #endif 
 		if(WRP == RONLY) block_ptr[inter_hop] = StoreBlock[(in_route->hop_uid_list[inter_hop])] = 
-			current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE,false);
+			current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(SHARABLE);
 		else{
-			block_ptr[inter_hop] = current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
+			block_ptr[inter_hop] = current_SAB[(in_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE);
 			if(inter_hop == in_route->hop_num - 1) StoreBlock[(in_route->hop_uid_list[inter_hop])] = block_ptr[inter_hop];
 		}
 		in_route->hop_buf_list[inter_hop] = block_ptr[inter_hop]->Adrs;
@@ -213,7 +213,7 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 	assigned_exec_queue = exec_queue[W_op_dev_id][W_op_queue_ctr];
 
 	if (!W_op_fired && (WRP == WR_LAZY || WRP == W_REDUCE)){
-		StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE,false);
+		StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE);
 		assigned_exec_queue->record_event(StoreBlock[W_op_dev_id]->Available);
 	}
 #ifndef PRODUCTION
@@ -281,7 +281,7 @@ void Tile2D::writeback(LinkRoute_p out_route){
     for(int inter_hop = 1 ; inter_hop < out_route->hop_num; inter_hop++){
 		out_route->hop_ldim_list[inter_hop] = ldim[out_route->hop_uid_list[inter_hop]];
 		if(inter_hop < out_route->hop_num - 1){
-			block_ptr[inter_hop] = current_SAB[(out_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE,false);
+			block_ptr[inter_hop] = current_SAB[(out_route->hop_uid_list[inter_hop])]->assign_Cblock(EXCLUSIVE);
 			out_route->hop_event_list[inter_hop-1] = block_ptr[inter_hop]->Available;
 		}
 		else{
@@ -314,7 +314,7 @@ void Tile2D::writeback(LinkRoute_p out_route){
 
 void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 	backup_C = StoreBlock[W_op_dev_id];
-    StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE,false);
+    StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE);
     fetch(lazy_route);
 	/// Swap backup_C back to StoreBlock 
 	CBlock_p temp_block = StoreBlock[W_op_dev_id]; 
@@ -336,7 +336,7 @@ void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 void Tile2D::WReduce_backup_C(){
     //if(W_init_loc >= CHL_WORKERS) W_init_loc = CHL_WORKER_CLOSE_TO_MEMLOC[W_master];
 	backup_C = StoreBlock[W_init_loc];
-	StoreBlock[W_init_loc] = current_SAB[W_init_loc]->assign_Cblock(EXCLUSIVE,false);
+	StoreBlock[W_init_loc] = current_SAB[W_init_loc]->assign_Cblock(EXCLUSIVE);
 	backup_C_ldim = ldim[W_init_loc];
 	ldim[W_init_loc] = dim2; 
 	//loc_map[W_op_dev_id] = 42; TODO: P3 - is this needed somewhere?

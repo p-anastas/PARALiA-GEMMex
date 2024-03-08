@@ -403,7 +403,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	cpu_timer = csecond();
 #endif
 	for(int d=0; d < CHL_MEMLOCS; d++)
-		if(current_SAB[d]) current_SAB[d]->allocate(true);
+		if(current_SAB[d]) current_SAB[d]->allocate();
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -475,7 +475,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 
 #ifdef BUFFER_REUSE_ENABLE
-	for(int i = 0; i < CHL_MEMLOCS; i++) if(local_PMD->SAB[i]) local_PMD->SAB[i]->reset(false,true);
+	for(int i = 0; i < CHL_MEMLOCS; i++) if(local_PMD->SAB[i]) local_PMD->SAB[i]->reset(true);
 #else
 	for(int i = 0 ; i < CHL_MEMLOCS; i++) if(local_PMD->SAB[i]){
 		delete local_PMD->SAB[i];
