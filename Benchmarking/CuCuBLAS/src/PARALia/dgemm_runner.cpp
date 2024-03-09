@@ -47,7 +47,7 @@ int main(const int argc, const char *argv[]) {
 	/// Local Timers
 	double cpu_timer = csecond();
 
-	fprintf(stderr, "\nAllocating memory...");
+	fprintf(stderr, "\nAllocating memory...\n");
 
 	double *A, *B, *C;
 	// allocate in device if loc = 0, otherwise allocate in pinned memory for benchmarks
@@ -57,7 +57,7 @@ int main(const int argc, const char *argv[]) {
 
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
-	fprintf(stderr, "done.\nAlloc time:\t%lf ms\n\n",  cpu_timer  * 1000);
+	fprintf(stderr, "Done: Alloc time:\t%lf ms\n\n",  cpu_timer  * 1000);
 	cpu_timer = csecond();
 	fprintf(stderr, "Initializing to random values (VALIDATE)...");
 	CHLVecInit(A, K * M, 42, A_loc);
@@ -79,11 +79,11 @@ int main(const int argc, const char *argv[]) {
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
-	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
+	//CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
 
 	// Call for Validate reuse
-	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	//if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
+	//else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
 	for (int i = 0; i< CHL_MEMLOCS; i++) PARALiADevCacheFree(i);
 

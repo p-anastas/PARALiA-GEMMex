@@ -231,12 +231,16 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 //#endif
 	}
 	if(conserve_memory_curr){
-		if (--((Tile2D_p)ptr_ker_translate->A_tile_v)->Block_reuses[W_op_dev_id] == 0){
+		Tile2D_p A_tile = (Tile2D_p) ptr_ker_translate->A_tile_v; 
+		if (--A_tile->Block_reuses[W_op_dev_id] == 0 &&
+			A_tile->StoreBlock[W_op_dev_id]->State != NATIVE){
 			CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
 			CBlock_unwraped->CBlock = ((Tile2D_p)ptr_ker_translate->A_tile_v)->StoreBlock[W_op_dev_id];
 			assigned_exec_queue->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 
 		}
-		if (--((Tile2D_p)ptr_ker_translate->B_tile_v)->Block_reuses[W_op_dev_id] == 0){
+		Tile2D_p B_tile = (Tile2D_p) ptr_ker_translate->B_tile_v; 
+		if (--B_tile->Block_reuses[W_op_dev_id] == 0 &&
+			B_tile->StoreBlock[W_op_dev_id]->State != NATIVE){
 			CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
 			CBlock_unwraped->CBlock = ((Tile2D_p)ptr_ker_translate->B_tile_v)->StoreBlock[W_op_dev_id];
 			assigned_exec_queue->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 

@@ -636,17 +636,20 @@ void ATC::assert_memory_requirements(){
 		/// Min_Block_num:	The minimum number of blocks that must fit in cache_loc (excluding Native).
 		int Native_block_num = 0, Min_Block_num = 0, Ideal_Block_num = 0;
 		if (A_loc == cache_loc) Native_block_num+=A_blocks_total;
-		else{
+		else if(is_in_list(cache_loc, active_unit_id_list, 
+			active_unit_num)){
 			Min_Block_num+= Grid_K;
 			Ideal_Block_num += Block_num_A_decom;
 		}
 		if (B_loc == cache_loc) Native_block_num+=B_blocks_total;
-		else{
+		else if(is_in_list(cache_loc, active_unit_id_list, 
+			active_unit_num)){
 			Min_Block_num+= Grid_N*Grid_K / D2_parts;
 			Ideal_Block_num += Block_num_B_decom;
 		}
 		if (C_loc == cache_loc) Native_block_num+=C_blocks_total;
-		else{
+		else if(is_in_list(cache_loc, active_unit_id_list, 
+			active_unit_num)){
 			Min_Block_num++;
 			Ideal_Block_num += Block_num_C_decom;
 		}
@@ -698,7 +701,7 @@ void ATC::assert_memory_requirements(){
 			if(block_num_limit == max_buffered_blocks) error("Input cache_limit(%lld MB) constrain cannot be met for loc = %d, "
 			"block_num_limit(%d) is less than Min_Block_num(%d)\n", cache_limit / (1024*1024), cache_loc, block_num_limit, Min_Block_num);
 			else error("Available system memory(%lld MB) at loc = %d not sufficient for given problem size"
-			"max_hw_block_num(%d) is less than Min_Block_num(%d)\n", cache_limit / (1024*1024), cache_loc, max_hw_block_num, Min_Block_num);
+			"max_hw_block_num(%d) is less than Min_Block_num(%d)\n", max_hw_block_num*Block_sz / (1024*1024), cache_loc, max_hw_block_num, Min_Block_num);
 		}
 	}
 }

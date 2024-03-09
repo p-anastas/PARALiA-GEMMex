@@ -111,12 +111,16 @@ void BufferBlock::draw_block(){
 // Old one. Hasn't changed.
 void* CBlock_AVAIL_wrap(void* CBlock_wraped){
 	CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) CBlock_wraped;
+#ifndef PRODUCTION
+	if(CBlock_unwraped->CBlock->State == NATIVE) error("[dev_id=%d] CBlock_AVAIL_wrap: block_id=%d is NATIVE\n", 
+		CBlock_unwraped->CBlock->Parent->dev_id, CBlock_unwraped->CBlock->id); 
+#endif	
 	// TODO: This event was never destroyed using cuda because that would be illegal in a host_func...
 	// Creating a new event is legal here because lazy events do not call cuda funcs in the constructor
 	free(CBlock_unwraped->CBlock->Available);
 	CBlock_unwraped->CBlock->Available = new Event();
 	CBlock_unwraped->CBlock->State = AVAILABLE;
-#ifdef CDEBUG
+#ifdef DEBUG
 	fprintf(stderr, "|-----> [dev_id=%d] CBlock_AVAIL_wrap: block_id=%d was made AVAILABLE\n", 
 		CBlock_unwraped->CBlock->Parent->dev_id, CBlock_unwraped->CBlock->id);
 #endif
