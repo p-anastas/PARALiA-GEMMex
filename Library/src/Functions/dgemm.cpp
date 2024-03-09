@@ -21,111 +21,34 @@ double gemm_entry_ts;
 #endif
 
 void ManageCachesDgemm(PMD_p local_PMD){
-	int T = local_PMD->autotuner->T; 
-	int Block_num_A = local_PMD->autotuner->Grid_M * local_PMD->autotuner->Grid_K,
-		Block_num_B = local_PMD->autotuner->Grid_N * local_PMD->autotuner->Grid_K,
-		Block_num_C = local_PMD->autotuner->Grid_M * local_PMD->autotuner->Grid_N;
-	long long Block_sz = 	T*T*sizeof(double);
-	int host_in_locs = 0;
-	for(int loc = CHL_WORKERS; loc < CHL_MEMLOCS; loc++) if(is_in_list(loc, local_PMD->autotuner->active_memlocs, 
-			local_PMD->autotuner->active_memloc_num)) host_in_locs = 1;
-	for(int cache_loc = 0; cache_loc < CHL_MEMLOCS; cache_loc++){
-		int Block_num = 0, Native_block_num = 0;
-		if(!is_in_list(cache_loc, local_PMD->autotuner->active_memlocs, 
-			local_PMD->autotuner->active_memloc_num) && strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE"))
-			continue;
-		else if(!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE") && ((cache_loc < CHL_WORKERS && 
-			!is_in_list(cache_loc, local_PMD->autotuner->active_unit_id_list, 
-			local_PMD->autotuner->active_unit_num)) || (cache_loc >= CHL_WORKERS && !host_in_locs)) )
-			continue;
-		
-		if (local_PMD->decom[0]->loc == cache_loc) Native_block_num+=Block_num_A;
-		if (local_PMD->decom[1]->loc == cache_loc) Native_block_num+=Block_num_B;
-		if (local_PMD->decom[2]->loc == cache_loc) Native_block_num+=Block_num_C;
-
-		long long max_cache_sz = 0;
-		if(local_PMD->autotuner->cache_limit > 0) {
-			max_cache_sz = local_PMD->autotuner->cache_limit;
-			if (max_cache_sz < 3 * Block_sz)
-				error("PARALiADgemm: Problem cannot run with less memory than %lld\n", 3 * Block_sz);
-			long long free_dev_mem, max_dev_mem = 0, prev_DevCache_sz = 0;
-			if (current_SAB[cache_loc] != NULL) prev_DevCache_sz = (long long)
-				current_SAB[cache_loc]->BlockSize* current_SAB[cache_loc]->BlockNum;
-			int prev_dev = CHLGetDevice();
-			CHLSelectDevice(cache_loc);
-
-			if(!(cache_loc >= CHL_WORKERS)) {
-			// if(Native_block_num==0){
-				CHLDevGetMemInfo(&free_dev_mem, &max_dev_mem);
-				max_cache_sz = (long long) fmin(max_cache_sz, free_dev_mem 
-					- ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)) + prev_DevCache_sz);
-			}
-			else {
-				// free_dev_mem = max_dev_mem = 2 * Native_block_num * Block_sz;
-				free_dev_mem = max_dev_mem = (Native_block_num + 3) * Block_sz;
-				max_cache_sz = free_dev_mem;
-			}
-			max_cache_sz = fmax((Native_block_num + 3) * Block_sz, max_cache_sz);
-
-			CHLSelectDevice(prev_dev);
-			// max_cache_sz = (long long) fmin(max_cache_sz, free_dev_mem 
-			// - ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)) + prev_DevCache_sz);
-		}
-		else{
-			long long free_dev_mem, max_dev_mem = 0, prev_DevCache_sz = 0;
-			if (current_SAB[cache_loc] != NULL) prev_DevCache_sz = (long long)
-				current_SAB[cache_loc]->BlockSize* current_SAB[cache_loc]->BlockNum;
-			int prev_dev = CHLGetDevice();
-			CHLSelectDevice(cache_loc);
-
-			if(!(cache_loc >= CHL_WORKERS)) CHLDevGetMemInfo(&free_dev_mem, &max_dev_mem);
-			// TODO: hard coded value, should put something that reads it from system?
-			else free_dev_mem = max_dev_mem = 100000000000; 
-			CHLSelectDevice(prev_dev);
-			max_cache_sz = free_dev_mem - ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)) + prev_DevCache_sz;
-			//fprintf(stderr, "[dev_id=%3d] max_dev_mem = %lld, free_dev_mem = %lld, prev_DevCache_sz = %lld, max_cache_sz = %lld\n", 
-			//	cache_loc, max_dev_mem, free_dev_mem, prev_DevCache_sz, max_cache_sz);
-		}
-		Block_num = 1 + Block_num_A + Block_num_B + Block_num_C;
-		if ((!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR_LAZY") && is_in_list(cache_loc, 
-		local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num))
-		|| (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE"))) Block_num+= Block_num_C; 
-		int max_block_num = max_cache_sz/Block_sz;
-		if(max_block_num < Block_num){
-			lprintf(0, "PARALiADgemm: Problem will use %d blocks for dev_id = %d\
-				instead of %d needed for the full problem\n", max_block_num, cache_loc, Block_num);
-			lprintf(0, "====================================\n");
-			Block_num = max_block_num;
-			// 2 + (local_PMD->decom[2]->dim1/T + ((local_PMD->decom[2]->dim1%T)? 1 : 0))
-			// * (local_PMD->decom[2]->dim2/T + ((local_PMD->decom[2]->dim2%T)? 1 : 0));
-			int worst_case_blocks = local_PMD->decom[1]->GridSz2 + 1 + 
-				local_PMD->decom[0]->GridSz2 * local_PMD->decom[0]->GridSz1 / local_PMD->autotuner->D2_parts; 
-			if(max_block_num < worst_case_blocks)
-				error("PARALiADgemm: Not able to run with < %d blocks per cache due to EX scheduling\n", 
-					worst_case_blocks);
-		}
+	for(int loc = 0; loc < CHL_MEMLOCS; loc++) if(local_PMD->autotuner->Block_num[loc]){
+#ifndef PRODUCTION
+		if(local_PMD->autotuner->Block_num[loc] == -42) 
+			error("PARALiADgemm: local_PMD->autotuner->Block_num[%d] is -42\n", loc);
+#endif
+		//long long prev_DevCache_sz = 0;
+		//if (current_SAB[loc] != NULL) prev_DevCache_sz = (long long)
+		//	current_SAB[loc]->BlockSize * current_SAB[loc]->BlockNum;
 #ifdef BUFFER_REUSE_ENABLE
-		if(current_SAB[cache_loc] == NULL) current_SAB[cache_loc] = 
-			new Buffer(cache_loc, Block_num, Block_sz);
-		else if (current_SAB[cache_loc]->BlockSize != Block_sz 
-			|| current_SAB[cache_loc]->BlockNum < Block_num){
+		if(current_SAB[loc] == NULL) current_SAB[loc] = 
+			new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
+		else if (current_SAB[loc]->BlockSize != local_PMD->autotuner->Block_sz 
+			|| current_SAB[loc]->BlockNum < local_PMD->autotuner->Block_num[loc]){
+			error("PARALiADgemm: PARALiA 3.0 should not enter this\n");
 #ifdef DEBUG
 			fprintf(stderr, "PARALiADgemm: Previous Cache smaller than requested:\
-			current_SAB[%d]->BlockSize=%lld vs Block_sz = %lld,\
-			current_SAB[%d]->BlockNum=%d vs Block_num = %d\n",
-			cache_loc, current_SAB[cache_loc]->BlockSize, Block_sz,
-			cache_loc, current_SAB[cache_loc]->BlockNum, Block_num);
+			current_SAB[%d]->BlockSize=%lld vs local_PMD->autotuner->Block_sz = %lld,\
+			current_SAB[%d]->BlockNum=%d vs local_PMD->autotuner->Block_num[loc] = %d\n",
+			loc, current_SAB[loc]->BlockSize, local_PMD->autotuner->Block_sz,
+			loc, current_SAB[loc]->BlockNum, local_PMD->autotuner->Block_num[loc]);
 #endif
-			delete current_SAB[cache_loc];
-			current_SAB[cache_loc] = new Buffer(cache_loc, Block_num, Block_sz);
-		}
-		else{
-			;
+			delete current_SAB[loc];
+			current_SAB[loc] = new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
 		}
 #else
-			if(current_SAB[cache_loc]!= NULL) 
-				error("PARALiADgemm: current_SAB[%d] was not NULL with reuse disabled\n", cache_loc);
-			current_SAB[cache_loc] = new Buffer(cache_loc, Block_num, Block_sz);
+		if(current_SAB[loc]!= NULL) 
+			error("PARALiADgemm: current_SAB[%d] was not NULL with reuse disabled\n", loc);
+		current_SAB[loc] = new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
 #endif
 	}
 	for (int i = 0; i < CHL_MEMLOCS; i++) local_PMD->SAB[i] = current_SAB[i];
@@ -155,13 +78,18 @@ void CreateTasksDgemm(PMD_p local_PMD){
 			C_tile->W_op_params = (void**) malloc(C_tile->W_op_num*sizeof(void*));
 			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
 			C_tile->W_op_dev_id = local_PMD->autotuner->comp_task_unit_list[comp_task_idx];
+			C_tile->Block_reuses[C_tile->W_op_dev_id] = C_tile->W_op_num;
 			if ((C_tile->WRP == WR_LAZY || C_tile->WRP == W_REDUCE) && C_tile->W_init_loc == C_tile->W_op_dev_id) C_tile->set_WRP(WR);
 			C_tile->W_op_complete = new Event();
 			C_tile->W_wb_complete = new Event();
 			C_tile->W_ready = new Event();
 			for (int ki = 0; ki < C_tile->W_op_num; ki++){
 				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
+				if(A_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
+					A_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_N / local_PMD->autotuner->D2_parts;
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
+				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
+					B_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_M / local_PMD->autotuner->D1_parts;
 				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in<double>));
 				gemm_backend_in<double>*  ptr_ker_translate = 
 					(gemm_backend_in<double>*) C_tile->W_op_params[ki];
@@ -206,13 +134,18 @@ void UpdateTasksDgemm(PMD_p local_PMD){
 			Tile2D_p C_tile = local_PMD->decom[2]->getTile(mi,ni);
 			C_tile->W_op_fired = 0;
 			C_tile->reduce_mult = initial_dgemm->beta; 
+			C_tile->Block_reuses[C_tile->W_op_dev_id] = C_tile->W_op_num;
 			// TODO: These were done at the Tile2D reset already.
 			//C_tile->W_op_complete->reset();
 			//C_tile->W_wb_complete->reset();
 			//C_tile->W_ready->reset();
 			for (int ki = 0; ki < C_tile->W_op_num; ki++){
 				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
+				if(A_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
+					A_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_N / local_PMD->autotuner->D2_parts;
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
+				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
+					B_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_M / local_PMD->autotuner->D1_parts;
 				gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>*) C_tile->W_op_params[ki];
 				ptr_ker_translate->A = NULL;
 				ptr_ker_translate->B = NULL;
@@ -399,6 +332,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		UpdateTasksDgemm(local_PMD);
 		remaining_tasks = local_PMD->autotuner->task_num;
 	}
+	conserve_memory_curr = local_PMD->autotuner->conserve_memory; 
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -474,7 +408,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 
 #ifdef CDEBUG
-	for(int i = 0; i < CHL_MEMLOCS; i++) local_PMD->SAB[i]->draw_buffer(true,true,true);
+	for(int i = 0; i < CHL_MEMLOCS; i++) if(local_PMD->SAB[i]) local_PMD->SAB[i]->draw_buffer(true);
 #endif
 
 #ifdef BUFFER_REUSE_ENABLE

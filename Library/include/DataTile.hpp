@@ -44,7 +44,8 @@ public:
     //----------------------------------------------Tile caching------------------------------------------//
     
     CBlock_p StoreBlock[64];// The softcache blocks that store this Tile in each device.
- 
+    int Block_reuses[64];// The remaining comp tasks that need to use this block in each location
+
     void fetch(LinkRoute_p in_route); // Fetch block to a list of locations using a predefined route.
 
     //--------------------------------------------Tile properties-----------------------------------------//
@@ -87,5 +88,9 @@ public:
     //long double block_ETA[64]; 
 
 }* Tile2D_p;
+
+/// Defines if the task scheduler has to make software-buffer blocks AVAILABLE
+/// when their corresponding DataTiles are no longer needed in some location
+extern int conserve_memory_curr; 
 
 #endif

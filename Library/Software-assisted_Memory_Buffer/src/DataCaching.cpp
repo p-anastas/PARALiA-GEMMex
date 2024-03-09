@@ -96,13 +96,15 @@ void BufferBlock::draw_block(){
 	// Draws the block for debugging purposes.
 	fprintf(stderr, " Block:   \
 		\n_________________________________________\
+		\n|  Parent dev_id  | %d\
+		\n| - - - - - - - - - - - - - - - - - - - -\
 		\n|       Id        | %d\
 		\n| - - - - - - - - - - - - - - - - - - - -\
 		\n|      Size       | %llu\
 		\n| - - - - - - - - - - - - - - - - - - - -\
 		\n|      State      | %s \
 		\n|________________________________________\
-		\n", id, Size, print_state(State));
+		\n", Parent->dev_id, id, Size, print_state(State));
 	
 }
 
@@ -114,6 +116,11 @@ void* CBlock_AVAIL_wrap(void* CBlock_wraped){
 	free(CBlock_unwraped->CBlock->Available);
 	CBlock_unwraped->CBlock->Available = new Event();
 	CBlock_unwraped->CBlock->State = AVAILABLE;
+#ifdef CDEBUG
+	fprintf(stderr, "|-----> [dev_id=%d] CBlock_AVAIL_wrap: block_id=%d was made AVAILABLE\n", 
+		CBlock_unwraped->CBlock->Parent->dev_id, CBlock_unwraped->CBlock->id);
+#endif
+	//CBlock_unwraped->CBlock->draw_block();
 	free(CBlock_unwraped);
 	return NULL;
 }
@@ -275,7 +282,7 @@ void Buffer::allocate(){
 	fprintf(stderr, "|-----> [dev_id=%d] Buffer::allocate()\n", dev_id);
 #endif
 	for(int i=0; i<BlockNum; i++)
-		if(Blocks[i]!=NULL) Blocks[i]->allocate(lockfree);
+		if(Blocks[i]!=NULL) Blocks[i]->allocate();
 		else error("[dev_id=%d] Buffer::allocate() -> Blocks[%d] was NULL\n", dev_id, i);
 #ifdef CDEBUG
 	fprintf(stderr, "<-----| [dev_id=%d] Buffer::allocate()\n", dev_id);
@@ -303,6 +310,10 @@ CBlock_p Buffer::assign_Cblock(state start_state){
 				break;
 			}
 		}
+#ifdef CDEBUG
+		fprintf(stderr, "|-----> [dev_id=%d] Buffer::assign_Cblock(): Selecting block %d\n", dev_id, remove_block_idx);
+#endif	
+		result = Blocks[remove_block_idx];
 	}
 	else result = Blocks[SerialCtr++];
 	result->reset(false);

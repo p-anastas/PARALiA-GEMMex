@@ -36,34 +36,14 @@ public:
 
 typedef class ATC{
 	public:
-		long int M, N, K, T; /// The problem dims and tiling size used for 1D/2D Data split to tiles.
-		int A_loc, B_loc, C_loc, D_loc; /// The initial locations of the matrices
+//-----------------------------------Input parameters---------------------------------------
+		long int M, N, K; /// The problem dimensions.
+		int A_loc, B_loc, C_loc, D_loc; /// The initial locations of the matrices.
 		int elemSize; /// The size in bytes of each element of A, B, C, D
-		long int Grid_M, Grid_N, Grid_K; /// The resulting grid sizes from the tiling.
-		int D1_parts, D2_parts;
-		/// Slowdowns for the selected T that can be used for model adjustment
-		double T_aggregate_sl, T_imbalance_sl, T_remainder_sl, T_small_sl, T_sknum_sl, T_big_sl;
-		int* active_memlocs; // The memlocs that are utilized (workers + inputs + outputs) for a problem.
-		int active_memloc_num; // The number of memlocs of the problem.
-		int active_unit_num; /// The number of units that will be used in the involving operation.
-		int* active_unit_id_list;	/// The list of ids of said units.
-		double* active_unit_score; /// The 'score' of each said units relative to the total task completion.
+
+//----------------------------------Control parameters--------------------------------------
+		long long cache_limit; /// The 'cache' size allocation limit for all devices in bytes, IF any.
 		short split_homogeneously = 0; /// A flag that disables workload ratio selection
-		double pred_t; /// The predicted seconds the whole operation will require using the above parameters.
-		double pred_J; /// The predicted Joules the whole operation will require using the above parameters.
-		double power_delay, energy_delay; /// The predicted power and energy delay products using the above parameters.
-
-		double pred_t_pesimistic; /// The predicted seconds the whole operation will require if all overlap fails.
-		double pred_J_pesimistic; /// The predicted Joules the whole operation will require if all overlap fails.
-		double power_delay_pesimistic, energy_delay_pesimistic; /// The predicted power and energy delay products if all overlap fails.
-	
-		long int comp_task_num; // The total number of compute tasks created by the distribution.
-		long int* comp_task_per_unit_num;  // The number of compute tasks fired per unit.
-		// The unit id for each compute task. Two lists for unit -> task and task -> unit fast search.
-		int* comp_task_unit_list, **comp_task_per_unit_list;  
-
-		long int task_num; /// The number of tasks to be executed.
-		Ttask_p* task_list; 
 		// loc_map: A runtime representation of Tile availability in each device: 
 		// - not available = -42
 		// - available in location = 42 (exhept initial)
@@ -77,8 +57,40 @@ typedef class ATC{
 		int*** B_tile_loc_map = NULL; 
 		int*** C_tile_loc_map = NULL; 
 
-		long long cache_limit; /// The 'cache' size allocation limit for all devices in bytes, IF any.
 		Gamalg_p inter_grid; /// The LinkMap representation of the system memory interconnection.
+
+//----------------------------------Tunable parameters--------------------------------------
+		long int T;
+		int active_unit_num; /// The number of units that will be used in the involving operation.
+		int* active_unit_id_list;	/// The list of ids of said units.
+		double* active_unit_score; /// The 'score' of each said units relative to the total task completion.
+		long long int Block_sz = 0; 
+		int Block_num[64]; /// The estimated number of 2D Tile buffer blocks needed for each memory location.
+		/// A flag denoting if memory is constrained (either by the user or the problem/HW).
+		int conserve_memory; /// Can be used to switch ordering algorithms and enable caching if need be. 
+
+		long int task_num; /// The number of tasks to be executed.
+		Ttask_p* task_list; 
+//----------------------------------Infered parameters--------------------------------------
+		long int Grid_M, Grid_N, Grid_K; /// The 2D tiling size and the resulting grid sizes from the tiling.
+		int D1_parts, D2_parts;
+		int* active_memlocs; // The memlocs that are utilized (workers + inputs + outputs) for a problem.
+		int active_memloc_num; // The number of memlocs of the problem.
+		long int comp_task_num; // The total number of compute tasks created by the distribution.
+		long int* comp_task_per_unit_num;  // The number of compute tasks fired per unit.
+		// The unit id for each compute task. Two lists for unit -> task and task -> unit fast search.
+		int* comp_task_unit_list, **comp_task_per_unit_list;  
+
+//----------------------------------Predicted values--------------------------------------
+		/// Slowdowns for the selected T that can be used for model adjustment
+		double T_aggregate_sl, T_imbalance_sl, T_remainder_sl, T_small_sl, T_sknum_sl, T_big_sl;
+		double pred_t; /// The predicted seconds the whole operation will require using the above parameters.
+		double pred_J; /// The predicted Joules the whole operation will require using the above parameters.
+		double power_delay, energy_delay; /// The predicted power and energy delay products using the above parameters.
+		double pred_t_pesimistic; /// The predicted seconds the whole operation will require if all overlap fails.
+		double pred_J_pesimistic; /// The predicted Joules the whole operation will require if all overlap fails.
+		double power_delay_pesimistic, energy_delay_pesimistic; /// The predicted power and energy delay products if all overlap fails.
+
 /********************** Initialization/Modification ***************************/
 	ATC();	/// Constructor
 	~ATC(); /// Destructor
@@ -93,6 +105,9 @@ typedef class ATC{
 	double optimize_tile(); ///  Predicts the best tile T for a multi-unit problem
 	void get_T_slowdowns(double* slowdowns, int candidate_T);
 	void set_T_slowdowns(double* slowdowns);
+/******************************************************************************/
+/********************** Memory-related autotuning *****************************/
+	void assert_memory_requirements();
 /******************************************************************************/
 /********************** Route & distribution autotuning ***********************/
 	void update_comp_task_num(long int task_num_in); /// Updates the autotuner lists for a given number of tasks.

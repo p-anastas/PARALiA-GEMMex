@@ -19,7 +19,6 @@ public:
 	int decom_num;
 	Decom2D_p decom[10];
 	Buffer_p SAB[64] = {NULL}; 
-
 	void print();
 	~ProblemMetadata();
 }* PMD_p; 

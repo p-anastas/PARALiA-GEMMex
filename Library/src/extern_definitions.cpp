@@ -4,6 +4,7 @@
 //typedef class ProblemMetadata* PMD_p;
 PMD_p PMD_cache[PROBLEM_MD_CACHE] = {NULL}; 
 int PMD_cache_entries = 0;
+int conserve_memory_curr = 0; 
 
 CQueue_p recv_queues[64][64];
 CQueue_p wb_queues[64][64];

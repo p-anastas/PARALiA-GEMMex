@@ -40,21 +40,17 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 	Tile2D_num++;
 	short init_loc = CHLGetPtrLoc(in_addr);
 	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
+		Block_reuses[iloc] = -42;
 		if (iloc == init_loc){
 			W_init_loc = iloc;
-			//loc_map[iloc] = 0;
-			//block_ETA[iloc] = 0; 
 			StoreBlock[iloc] = init_loc_block_p;
 			StoreBlock[iloc]->Adrs = in_addr;
-			//StoreBlock[iloc]->set_owner((void **)&StoreBlock[iloc], false);
 			ldim[iloc] = in_ldim;
 			StoreBlock[iloc]->Available->record_to_queue(NULL);
 		}
 		else{
 			StoreBlock[iloc] = NULL;
 			ldim[iloc] = in_dim1;
-			//loc_map[iloc] = -42;
-			//block_ETA[iloc] = -42; 
 		} 
 	}
 #ifdef DDEBUG
@@ -83,18 +79,17 @@ void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_blo
 	//W_op_params = NULL; 
 	short init_loc = CHLGetPtrLoc(new_adrr);
 	short init_loc_idx = (init_loc);
-	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
-	{
+	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
+		Block_reuses[iloc] = -42;
 		if (iloc == init_loc_idx){
 			StoreBlock[iloc] = new_init_loc_block_p;
 			StoreBlock[iloc]->Adrs = new_adrr;
 			ldim[iloc] = new_init_chunk;
 			StoreBlock[iloc]->Available->record_to_queue(NULL);
+
 		}
-		else{
-			StoreBlock[iloc] = NULL;
-			//loc_map[iloc] = -42;
-		} 
+		else StoreBlock[iloc] = NULL;
+		
 	}
 #ifdef DDEBUG
 	fprintf(stderr, "<-----|\n");
@@ -102,14 +97,6 @@ void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_blo
 }
 
 //----------------------------------------------Tile caching------------------------------------------//
-
-/*void Tile2D::set_loc_idx(int loc_idx, int val){
-    loc_map[loc_idx] = val; 
-}
-
-void Tile2D::try_set_loc_idx(int loc_idx, int val){
-    if (loc_map[loc_idx] == -42) loc_map[loc_idx] = val; 
-}*/
 
 void Tile2D::fetch(LinkRoute_p in_route)
 {
@@ -243,6 +230,20 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 //		writeback();
 //#endif
 	}
+	if(conserve_memory_curr){
+		if (--((Tile2D_p)ptr_ker_translate->A_tile_v)->Block_reuses[W_op_dev_id] == 0){
+			CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
+			CBlock_unwraped->CBlock = ((Tile2D_p)ptr_ker_translate->A_tile_v)->StoreBlock[W_op_dev_id];
+			assigned_exec_queue->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 
+		}
+		if (--((Tile2D_p)ptr_ker_translate->B_tile_v)->Block_reuses[W_op_dev_id] == 0){
+			CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
+			CBlock_unwraped->CBlock = ((Tile2D_p)ptr_ker_translate->B_tile_v)->StoreBlock[W_op_dev_id];
+			assigned_exec_queue->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 
+		}
+		Block_reuses[W_op_dev_id]--;
+	}
+
 #ifndef ASYNC_ENABLE
 	CHLSyncCheckErr();
 #endif
@@ -302,6 +303,12 @@ void Tile2D::writeback(LinkRoute_p out_route){
     	printlist(out_route->hop_uid_list, out_route->hop_num));
 #endif
     FasTCHLMemcpy2DAsync(out_route, dim1, dim2, get_dtype_size());
+	
+	if(conserve_memory_curr){
+		CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
+		CBlock_unwraped->CBlock = StoreBlock[W_op_dev_id];
+		out_route->hop_cqueue_list[out_route->hop_num - 2]->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 
+	}
 
 	if (WRP == W_REDUCE) WReduce_combine();
 	else W_ready->record_to_queue(out_route->hop_cqueue_list[out_route->hop_num - 2]);
