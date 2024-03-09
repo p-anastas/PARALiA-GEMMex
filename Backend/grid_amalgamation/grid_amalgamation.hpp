@@ -36,6 +36,8 @@ public:
 	long double optimize(int* loc_map, long int size);
 	// Specific implementations
 	long double optimize_p2p_init(int* loc_map, long int size);
+	long double optimize_p2p_serial(int* loc_map, long int size);
+	long double optimize_p2p_distance(int* loc_map, long int size);
 
 	/// Target: 42 -> 0 wrapper
 	long double optimize_reverse(int* loc_map, long int size);

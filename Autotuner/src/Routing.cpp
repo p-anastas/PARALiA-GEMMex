@@ -24,6 +24,9 @@ double get_edge_bw(int dest_loc, int src_loc){
 
 long double LinkRoute::optimize(int* loc_map, long int size){
 	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_INIT")) return optimize_p2p_init(loc_map, size);
+	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_SERIAL")) return optimize_p2p_serial(loc_map, size);
+	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_DISTANCE")) return optimize_p2p_distance(loc_map, size);
+
 	else error("LinkRoute::optimize() -> %s not implemented", FETCH_ROUTING);
 	return 0;
 }
@@ -41,6 +44,58 @@ long double LinkRoute::optimize_p2p_init(int* loc_map, long int size){
 		if(loc_map[ctr] == 2) end_hop = ctr;
 	}
 	hop_uid_list[0] = start_hop;
+	hop_uid_list[1] = end_hop;
+	starting_hop = 0; 
+	loc_map[end_hop] = 42;
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+	return 0;
+}
+
+// Outdated fetch with preference to GPU tiles but with simple serial search for src
+// Similar to BLASX behaviour when its assumed topology does not fit to the interconnect
+long double LinkRoute::optimize_p2p_serial(int* loc_map, long int size){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
+#endif
+	hop_num = 2;
+	int start_hop = -42, end_hop = -42;
+	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++)
+	{
+	  if(loc_map[ctr] == 0 || loc_map[ctr] == 42) start_hop = ctr;
+	  if(loc_map[ctr] == 2) end_hop = ctr;
+	  if(start_hop!= -42 && end_hop != -42) break;
+	}
+	hop_uid_list[0] = start_hop;
+	hop_uid_list[1] = end_hop;
+	starting_hop = 0; 
+	loc_map[end_hop] = 42;
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+	return 0;
+}
+
+// Fetch selection based on 'distance' from available sources (if multiple exist)
+// Similar to XKBLAS and PARALiA 1.5
+long double LinkRoute::optimize_p2p_distance(int* loc_map, long int size){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
+#endif
+	hop_num = 2;
+	int start_hop = -42, end_hop = -42;
+	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++) if(loc_map[ctr] == 2) end_hop = ctr;
+	int pos_max = CHL_MEMLOCS;
+	double link_bw_max = 0;
+	for (int pos =0; pos < CHL_MEMLOCS; pos++) if (loc_map[pos] == 0 || loc_map[pos] == 42){
+		double current_link_bw = get_edge_bw(end_hop, pos);
+		if (current_link_bw > link_bw_max){
+		  link_bw_max = current_link_bw;
+		  pos_max = pos;
+		}
+	}
+	hop_uid_list[0] = pos_max;
 	hop_uid_list[1] = end_hop;
 	starting_hop = 0; 
 	loc_map[end_hop] = 42;
@@ -70,25 +125,6 @@ long double LinkRoute::optimize_reverse_p2p_init(int* loc_map, long int size){
 	return 0;
 }
 /*
-// Outdated fetch with preference to GPU tiles but with simple serial search for src
-// Similar to BLASX behaviour when its assumed topology does not fit to the interconnect
-#ifdef P2P_FETCH_FROM_GPU_SERIAL 
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-  DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-  hop_num = 2;
-  int start_hop = -42, end_hop = -42;
-  for(int ctr = 0; ctr < LOC_NUM; ctr++)
-  {
-	  if(transfer_tile->loc_map[ctr] == 0 || transfer_tile->loc_map[ctr] == 42) start_hop = ctr;
-	  if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
-	  if(start_hop!= -42 && end_hop != -42) break;
-	}
-  hop_uid_list[0] = start_hop;
-  hop_uid_list[1] = end_hop;
-  return 0;
-}
-#endif
-
 // Fetch selection based on 'distance' from available sources (if multiple exist)
 // Similar to XKBLAS and PARALiA 1.5
 #ifdef P2P_FETCH_FROM_GPU_DISTANCE

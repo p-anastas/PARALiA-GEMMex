@@ -160,8 +160,8 @@ add_definitions(-DTASK_ORDER="SERIAL")
 
 #--------------------------------------Experimental----------------------------------------#
 add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_INIT")
-#add_definitions(-DP2P_FETCH_FROM_GPU_SERIAL)
-#add_definitions(-DP2P_FETCH_FROM_GPU_DISTANCE)
+#add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_SERIAL")
+#add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_DISTANCE")
 #add_definitions(-DCHAIN_FETCH_SERIAL)
 #add_definitions(-DCHAIN_FETCH_RANDOM)
 #add_definitions(-DCHAIN_FETCH_TIME)
