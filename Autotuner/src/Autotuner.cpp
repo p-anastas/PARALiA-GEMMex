@@ -658,12 +658,12 @@ void ATC::assert_memory_requirements(){
 		if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR_LAZY") && cache_loc != C_loc && 
 		is_in_list(cache_loc, active_unit_id_list, active_unit_num)){
 			Ideal_Block_num += Block_num_C_decom;
-			Min_Block_num += 1; 
+			Min_Block_num++; 
 		}
 		/// In ALGO_WREDUCE, ALL C tiles are duplicated at the output location (D_loc)
 		if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE") && cache_loc == D_loc){
 			Ideal_Block_num += C_blocks_total;
-			Min_Block_num+= 1;
+			Min_Block_num++;
 		}
 
 		/// Hardware constrains

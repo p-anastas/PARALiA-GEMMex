@@ -308,10 +308,10 @@ void Tile2D::writeback(LinkRoute_p out_route){
 #endif
     FasTCHLMemcpy2DAsync(out_route, dim1, dim2, get_dtype_size());
 	
-	if(conserve_memory_curr){
+	if(conserve_memory_curr && StoreBlock[W_op_dev_id]->State != NATIVE){
 		CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
 		CBlock_unwraped->CBlock = StoreBlock[W_op_dev_id];
-		out_route->hop_cqueue_list[out_route->hop_num - 2]->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 
+		out_route->hop_cqueue_list[out_route->hop_num - 2]->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped);
 	}
 
 	if (WRP == W_REDUCE) WReduce_combine();
@@ -325,7 +325,7 @@ void Tile2D::writeback(LinkRoute_p out_route){
 
 void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 	backup_C = StoreBlock[W_op_dev_id];
-    StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE);
+    //StoreBlock[W_op_dev_id] = current_SAB[W_op_dev_id]->assign_Cblock(EXCLUSIVE);
     fetch(lazy_route);
 	/// Swap backup_C back to StoreBlock 
 	CBlock_p temp_block = StoreBlock[W_op_dev_id]; 
@@ -339,9 +339,14 @@ void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
     backend_axpy_wrapper->x = (void**) &(temp_block->Adrs);
     backend_axpy_wrapper->y = (void**) &(StoreBlock[W_op_dev_id]->Adrs);
 	/// Wait for WR tile fetch to be complete
-    exec_queue[W_op_dev_id][W_op_queue_ctr]->wait_for_event(StoreBlock[W_op_dev_id]->Available);
+    exec_queue[W_op_dev_id][W_op_queue_ctr]->wait_for_event(temp_block->Available);
 	/// Perform  C = reduce_mult * C' + C (axpy) at the compute location for this tile (W_op_dev_id)
     exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Daxpy", W_op_dev_id);
+	if(conserve_memory_curr){
+		CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
+		CBlock_unwraped->CBlock = backup_C;
+		exec_queue[W_op_dev_id][W_op_queue_ctr]->add_host_func((void*) &CBlock_AVAIL_wrap, (void*) CBlock_unwraped); 
+	}
 }
 
 void Tile2D::WReduce_backup_C(){
