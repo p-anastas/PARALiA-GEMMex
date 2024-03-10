@@ -42,7 +42,9 @@ typedef class ATC{
 		int elemSize; /// The size in bytes of each element of A, B, C, D
 
 //----------------------------------Control parameters--------------------------------------
-		long long cache_limit; /// The 'cache' size allocation limit for all devices in bytes, IF any.
+		/// The 'cache' size allocation limit for all devices in bytes, IF any (positive value or ignored).
+		/// IF cache_limit = -42 PARALiA will be forced to conserve as much memory as possible.
+		long long cache_limit;
 		short split_homogeneously = 0; /// A flag that disables workload ratio selection
 		// loc_map: A runtime representation of Tile availability in each device: 
 		// - not available = -42

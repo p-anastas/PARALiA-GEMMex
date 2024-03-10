@@ -86,6 +86,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 		printlist<double>(autotune_controller->active_unit_score, autotune_controller->active_unit_num),
 		autotune_controller->comp_task_num, autotune_controller->comp_task_num/Chunk_size);
 #endif
+	autotune_controller->D1_parts = autotune_controller->D2_parts = 1; 
 	if (autotune_controller->comp_task_num/Chunk_size + autotune_controller->comp_task_num%Chunk_size/1 <= autotune_controller->active_unit_num){
 		int pred_active_unit_num = autotune_controller->active_unit_num;
 		autotune_controller->active_unit_num = autotune_controller->comp_task_num/Chunk_size;
@@ -177,9 +178,9 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		else { autotune_controller->D1_parts = g; autotune_controller->D2_parts = autotune_controller->active_unit_num/g; }
 	}
 	//TODO: reverse layout
-	//int tmp = autotune_controller->D1_parts;
-	//autotune_controller->D1_parts = autotune_controller->D2_parts;
-	//autotune_controller->D2_parts = tmp;
+	int tmp = autotune_controller->D1_parts;
+	autotune_controller->D1_parts = autotune_controller->D2_parts;
+	autotune_controller->D2_parts = tmp;
 	if(D1GridSz < autotune_controller->D1_parts || D2GridSz < autotune_controller->D2_parts){
 		warning("DistributeCompTasks2DBlockCyclic:\nGrid(%d,%d) smaller than {D1,D2}_parts = (%d,%d)\
 			using DistributeCompTasksRoundRobinChunk instead\n", D1GridSz, D2GridSz, autotune_controller->D1_parts, autotune_controller->D2_parts);

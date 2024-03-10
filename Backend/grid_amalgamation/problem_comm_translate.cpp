@@ -56,9 +56,9 @@ void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_l
 		if (g==0) { D1_parts = active_unit_num; D2_parts = 1; }
 		else { D1_parts = g; D2_parts = active_unit_num/g; }
 	}
-    //int temp = D2_parts;
-    //D2_parts = D1_parts;
-    //D1_parts = temp; 
+    int temp = D2_parts;
+    D2_parts = D1_parts;
+    D1_parts = temp; 
     for(int unit_idx = 0; unit_idx < active_unit_num; unit_idx++){
         int dev_id = active_unit_id_list[unit_idx];
         int dev_decom_row = unit_idx/D2_parts, dev_decom_col = unit_idx%D2_parts;

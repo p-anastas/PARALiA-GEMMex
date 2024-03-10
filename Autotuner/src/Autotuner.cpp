@@ -627,9 +627,9 @@ void ATC::assert_memory_requirements(){
 		/// Calculate Decomposition constrains.
 
 		// The number of blocks needed on each worker based on the decomposition.
-		int Block_num_A_decom = A_blocks_total/D1_parts, 
-			Block_num_B_decom = B_blocks_total/D2_parts,
-			Block_num_C_decom = C_blocks_total/(D1_parts*D2_parts);
+		int Block_num_A_decom = Grid_K * (Grid_M/D1_parts + ((Grid_M%D1_parts)? 1: 0)), 
+			Block_num_B_decom = Grid_K * (Grid_N/D2_parts + ((Grid_N%D2_parts)? 1: 0)), 
+			Block_num_C_decom = (Grid_M/D1_parts + ((Grid_M%D1_parts)? 1: 0))* (Grid_N/D2_parts + ((Grid_N%D2_parts)? 1: 0));
 		/// Native_block_num: 	The number of blocks that are native in cache_loc
 		///						e.g. the routine was called with input matrices residing there.
 		/// Ideal_Block_num: The ideal number of blocks for cache_loc to completely avoid caching (excluding Native).
@@ -685,17 +685,18 @@ void ATC::assert_memory_requirements(){
 		if(cache_limit > 0) block_num_limit = cache_limit/Block_sz;
 
 		int max_buffered_blocks = std::min(block_num_limit, max_hw_block_num);
-		if (Ideal_Block_num <= max_buffered_blocks) Block_num[cache_loc] = Ideal_Block_num + Native_block_num;
+		if(1 || cache_limit == -42){ /// Force conserve_memory with minimum number of blocks.
+			if (Min_Block_num <= max_buffered_blocks) Block_num[cache_loc] = Min_Block_num + Native_block_num;
+			else error("Available system memory(%lld MB) at loc = %d not sufficient for given problem size"
+			"max_hw_block_num(%d) is less than Min_Block_num(%d)\n", max_hw_block_num*Block_sz / (1024*1024), cache_loc, max_hw_block_num, Min_Block_num); 
+			conserve_memory = 1;
+			fprintf(stderr, "ATC::assert_memory_requirements(): cache_limit == -42 -> forcing conserve_memory\n");
+
+		}
+		else if (Ideal_Block_num <= max_buffered_blocks) Block_num[cache_loc] = Ideal_Block_num + Native_block_num;
 		else if (Min_Block_num <= max_buffered_blocks){
 			Block_num[cache_loc] = max_buffered_blocks + Native_block_num;
 			conserve_memory = 1;
-#ifndef PRODUCTION
-			fprintf(stderr, "====================================\n");
-			fprintf(stderr, "ATC::assert_memory_requirements() Problem will use %d blocks for dev_id = %d but"
-			" [Min, Ideal] blocks were [%d, %d] -> activating conserve_memory mode.\n", 
-				Block_num[cache_loc], cache_loc, Min_Block_num + Native_block_num,  Ideal_Block_num + Native_block_num);
-			fprintf(stderr, "====================================\n");
-#endif
 		}
 		else{
 			if(block_num_limit == max_buffered_blocks) error("Input cache_limit(%lld MB) constrain cannot be met for loc = %d, "
@@ -703,6 +704,14 @@ void ATC::assert_memory_requirements(){
 			else error("Available system memory(%lld MB) at loc = %d not sufficient for given problem size"
 			"max_hw_block_num(%d) is less than Min_Block_num(%d)\n", max_hw_block_num*Block_sz / (1024*1024), cache_loc, max_hw_block_num, Min_Block_num);
 		}
+#ifndef PRODUCTION
+		if(Block_num[cache_loc] != Ideal_Block_num + Native_block_num){
+			fprintf(stderr, "ATC::assert_memory_requirements() Problem will use %d blocks for dev_id = %d but"
+				" [Min, Ideal] blocks were [%d, %d] -> activating conserve_memory mode.\n", 
+				Block_num[cache_loc], cache_loc, Min_Block_num + Native_block_num,  Ideal_Block_num + Native_block_num);
+			fprintf(stderr, "====================================\n");
+		}
+#endif
 	}
 }
 
