@@ -85,11 +85,11 @@ void CreateTasksDgemm(PMD_p local_PMD){
 			C_tile->W_ready = new Event();
 			for (int ki = 0; ki < C_tile->W_op_num; ki++){
 				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
-				if(A_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
-					A_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_N / local_PMD->autotuner->D2_parts;
+				if(A_tile->Block_reuses[C_tile->W_op_dev_id] == -42) A_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
+				else A_tile->Block_reuses[C_tile->W_op_dev_id]++;
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
-				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
-					B_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_M / local_PMD->autotuner->D1_parts;
+				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42) B_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
+				else B_tile->Block_reuses[C_tile->W_op_dev_id]++; 
 				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in<double>));
 				gemm_backend_in<double>*  ptr_ker_translate = 
 					(gemm_backend_in<double>*) C_tile->W_op_params[ki];
@@ -141,11 +141,11 @@ void UpdateTasksDgemm(PMD_p local_PMD){
 			//C_tile->W_ready->reset();
 			for (int ki = 0; ki < C_tile->W_op_num; ki++){
 				Tile2D_p A_tile = local_PMD->decom[0]->getTile(mi,ki);
-				if(A_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
-					A_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_N / local_PMD->autotuner->D2_parts;
+				if(A_tile->Block_reuses[C_tile->W_op_dev_id] == -42) A_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
+				else A_tile->Block_reuses[C_tile->W_op_dev_id]++;
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
-				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42)
-					B_tile->Block_reuses[C_tile->W_op_dev_id] = local_PMD->autotuner->Grid_M / local_PMD->autotuner->D1_parts;
+				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42) B_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
+				else B_tile->Block_reuses[C_tile->W_op_dev_id]++; 
 				gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>*) C_tile->W_op_params[ki];
 				ptr_ker_translate->A = NULL;
 				ptr_ker_translate->B = NULL;

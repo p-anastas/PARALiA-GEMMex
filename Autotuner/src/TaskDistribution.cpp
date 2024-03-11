@@ -86,6 +86,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 		printlist<double>(autotune_controller->active_unit_score, autotune_controller->active_unit_num),
 		autotune_controller->comp_task_num, autotune_controller->comp_task_num/Chunk_size);
 #endif
+	autotune_controller->disable_caching = 1;
 	autotune_controller->D1_parts = autotune_controller->D2_parts = 1; 
 	if (autotune_controller->comp_task_num/Chunk_size + autotune_controller->comp_task_num%Chunk_size/1 <= autotune_controller->active_unit_num){
 		int pred_active_unit_num = autotune_controller->active_unit_num;
@@ -134,6 +135,16 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 			else devidx++;
 		}
 	}
+	int dev_task_ctr[autotune_controller->active_unit_num] = {0};
+	for (long int cidx = 0 ; cidx < autotune_controller->comp_task_num; cidx++){
+		int dev_tmp = autotune_controller->comp_task_unit_list[cidx], dev_tmp_idx = -1;
+		for (int dev_idx = 0; dev_idx < autotune_controller->active_unit_num; dev_idx++)
+			if(dev_tmp == autotune_controller->active_unit_id_list[dev_idx]){
+				dev_tmp_idx = dev_idx;
+				break;
+			} 
+		autotune_controller->comp_task_per_unit_list[dev_tmp_idx][dev_task_ctr[dev_tmp_idx]++] = cidx;
+	}
 #ifdef PDEBUG
 	fprintf(stderr, "DistributeCompTasksRoundRobinChunk(Chunk_size=%d):\nDistributing %ld Tasks to %d devices\n",
 		Chunk_size, autotune_controller->comp_task_num, autotune_controller->active_unit_num);
@@ -163,8 +174,14 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		warning("DistributeCompTasks2DBlockCyclic: D2GridSz==D3GridSz==1 -> using DistributeCompTasksRoundRobinChunk\n");
 		return DistributeCompTasksRoundRobinChunk(autotune_controller, D3GridSz);
   	}
+	if ((D1GridSz*D2GridSz) < autotune_controller->active_unit_num){
+		warning("DistributeCompTasks2DBlockCyclic: D1GridSz*D2GridSz(%d) < autotune_controller->active_unit_num(%d)"
+		", using DistributeCompTasksRoundRobinChunk instead\n", 
+	  		D1GridSz*D2GridSz, autotune_controller->active_unit_num);
+		return DistributeCompTasksRoundRobinChunk(autotune_controller, D3GridSz);
+  	}
 
-	// 2D Block cyclic
+	// 2D Block cyclic device decomposition
 	autotune_controller->D1_parts = std::sqrt(autotune_controller->active_unit_num);
 	autotune_controller->D2_parts = autotune_controller->D1_parts;
 	if (autotune_controller->D1_parts ==0) { autotune_controller->D2_parts = autotune_controller->active_unit_num; autotune_controller->D1_parts = 1; }
@@ -181,6 +198,117 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 	int tmp = autotune_controller->D1_parts;
 	autotune_controller->D1_parts = autotune_controller->D2_parts;
 	autotune_controller->D2_parts = tmp;
+	if(D1GridSz < autotune_controller->D1_parts || D2GridSz < autotune_controller->D2_parts){
+		warning("DistributeCompTasks2DBlockCyclic:\nGrid(%d,%d) smaller than {D1,D2}_parts = (%d,%d)\
+			using DistributeCompTasksRoundRobinChunk instead\n", D1GridSz, D2GridSz, autotune_controller->D1_parts, autotune_controller->D2_parts);
+		return DistributeCompTasksRoundRobinChunk(autotune_controller, D3GridSz);
+	}
+
+	int D1GridSz_div = D1GridSz/autotune_controller->D1_parts, 
+		D2GridSz_div = D2GridSz/autotune_controller->D2_parts,
+		D1GridSz_mod = D1GridSz%autotune_controller->D1_parts, 
+		D2GridSz_mod = D2GridSz%autotune_controller->D2_parts;
+#ifdef PDEBUG
+	fprintf(stderr, "DistributeCompTasks2DBlockCyclic(%d, %d, %d): Devices = %d (scores = %s), autotune_controller->D1_parts = %d, autotune_controller->D2_parts = %d\n",
+		D1GridSz, D2GridSz, D3GridSz, autotune_controller->active_unit_num, 
+		printlist<double>(autotune_controller->active_unit_score, autotune_controller->active_unit_num),autotune_controller->D1_parts, autotune_controller->D2_parts);
+#endif
+
+	/// Actual 2D block-cyclic distribution.
+	for(int idx = 0; idx < 64; idx++) for(int idy = 0; idy < 64; idy++) 
+		autotune_controller->C_Decom_grid[idx][idy][0] = autotune_controller->C_Decom_grid[idx][idy][1] = -42;
+	for(int idx = 0; idx < autotune_controller->D1_parts; idx++) 
+	for(int idy = 0; idy < autotune_controller->D2_parts; idy++){
+			if(!idx) autotune_controller->C_Decom_grid[idx][idy][0] = D1GridSz_div;
+			else  autotune_controller->C_Decom_grid[idx][idy][0] = autotune_controller->C_Decom_grid[idx-1][idy][0] + D1GridSz_div;
+			if(D1GridSz_mod){
+				autotune_controller->C_Decom_grid[idx][idy][0]++;
+				D1GridSz_mod--;
+			}
+			if (!idy) autotune_controller->C_Decom_grid[idx][idy][1] = D2GridSz_div;
+			else  autotune_controller->C_Decom_grid[idx][idy][1] = autotune_controller->C_Decom_grid[idx][idy-1][1] + D2GridSz_div;
+			if(D2GridSz_mod){
+				autotune_controller->C_Decom_grid[idx][idy][1]++;
+				D2GridSz_mod--;
+			}
+#ifdef PDEBUG
+		fprintf(stderr, "DistributeCompTasks2DBlockCyclic: autotune_controller->C_Decom_grid[%d,%d] = (%d, %d)\n",
+			idx, idy, autotune_controller->C_Decom_grid[idx][idy][0], autotune_controller->C_Decom_grid[idx][idy][1]);
+#endif
+	}
+	if(D1GridSz_mod || D2GridSz_mod) error("DistributeCompTasks2DBlockCyclic: Remainder dimensions are not empty "
+	"( [D1GridSz_mod, D2GridSz_mod] = [%d, %d] )\n", D1GridSz_mod, D2GridSz_mod);
+
+	int D1GridIdx = -1, D2GridIdx = -1, D3GridIdx = -1; 
+	for(long int task_ctr = 0; task_ctr < autotune_controller->comp_task_num; task_ctr++){
+		int comp_task_idx = task_ctr/D3GridSz;
+		D1GridIdx = comp_task_idx/D2GridSz;
+		D2GridIdx = comp_task_idx%D2GridSz;
+		D3GridIdx = task_ctr%(D3GridSz);
+		int devidx = -1;
+		for(int idx = 0; idx < autotune_controller->D1_parts; idx++) 
+			if(devidx == -1) for(int idy = 0; idy < autotune_controller->D2_parts; idy++)
+				if(autotune_controller->C_Decom_grid[idx][idy][0] > D1GridIdx && autotune_controller->C_Decom_grid[idx][idy][1] > D2GridIdx){
+					devidx = idx*autotune_controller->D2_parts + idy;
+					break;
+				}
+#ifdef PDEBUG
+		fprintf(stderr, "DistributeCompTasks2DBlockCyclic: task_ctr[%d,%d,%d] = %ld, devidx = %d\n",
+			D1GridIdx,D2GridIdx,D3GridIdx, task_ctr, devidx);
+#endif
+		autotune_controller->comp_task_unit_list[task_ctr] = devidx;
+		autotune_controller->comp_task_per_unit_list[devidx][autotune_controller->comp_task_per_unit_num[devidx]] = task_ctr;
+		autotune_controller->comp_task_per_unit_num[devidx]++;
+	}
+#ifdef PDEBUG
+	fprintf(stderr, "DistributeCompTasks2DBlockCyclic:\nDistributing %ld Tasks to %d devices\n",
+		autotune_controller->comp_task_num, autotune_controller->active_unit_num);
+	fprintf(stderr, "Device Ids : [ ");
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", 
+		autotune_controller->active_unit_id_list[i]);
+	fprintf(stderr, "]\n");
+	fprintf(stderr, "Subker Num : [ ");
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%ld ", 
+		autotune_controller->comp_task_per_unit_num[i]);
+	fprintf(stderr, "]\n");
+	fprintf(stderr, "Subker Id list: [ ");
+	for (long int i =0; i < autotune_controller->comp_task_num; i++)
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_list[i]);
+	fprintf(stderr, "]\n");
+#endif
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+
+}
+/* 
+/// Previous version, created for D1_parts >= D2_parts and row-wise split priority. Div/mods don't work well for reverse layout.
+void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, int D2GridSz, int D3GridSz){
+#ifdef DEBUG
+  	fprintf(stderr, "|-----> DistributeCompTasks2DBlockCyclic(%p, %d, %d, %d)\n", autotune_controller, D1GridSz, D2GridSz, D3GridSz);
+#endif
+ 	if ((D2GridSz == D3GridSz) &&  (D2GridSz == 1)){
+		warning("DistributeCompTasks2DBlockCyclic: D2GridSz==D3GridSz==1 -> using DistributeCompTasksRoundRobinChunk\n");
+		return DistributeCompTasksRoundRobinChunk(autotune_controller, D3GridSz);
+  	}
+
+	// 2D Block cyclic
+	autotune_controller->D1_parts = std::sqrt(autotune_controller->active_unit_num);
+	autotune_controller->D2_parts = autotune_controller->D1_parts;
+	if (autotune_controller->D1_parts ==0) { autotune_controller->D2_parts = autotune_controller->active_unit_num; autotune_controller->D1_parts = 1; }
+	else {
+		// find the most square decomposition of autotune_controller->active_unit_num in autotune_controller->D1_parts x autotune_controller->D2_parts
+		int g;
+		for (g = autotune_controller->D1_parts+1; g>0; --g)
+		if (autotune_controller->active_unit_num % g == 0) break;
+		if (g==0) { autotune_controller->D1_parts = autotune_controller->active_unit_num; autotune_controller->D2_parts = 1; }
+		//if (g==0) { autotune_controller->D1_parts = 1; autotune_controller->D2_parts = autotune_controller->active_unit_num; }
+		else { autotune_controller->D1_parts = g; autotune_controller->D2_parts = autotune_controller->active_unit_num/g; }
+	}
+	//TODO: reverse layout
+	//int tmp = autotune_controller->D1_parts;
+	//autotune_controller->D1_parts = autotune_controller->D2_parts;
+	//autotune_controller->D2_parts = tmp;
 	if(D1GridSz < autotune_controller->D1_parts || D2GridSz < autotune_controller->D2_parts){
 		warning("DistributeCompTasks2DBlockCyclic:\nGrid(%d,%d) smaller than {D1,D2}_parts = (%d,%d)\
 			using DistributeCompTasksRoundRobinChunk instead\n", D1GridSz, D2GridSz, autotune_controller->D1_parts, autotune_controller->D2_parts);
@@ -320,7 +448,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 	fprintf(stderr, "<-----|\n");
 #endif
 
-}
+}*/
 
 /*****************************************************/
 /// PARALia 2.0 - timed queues and blocks

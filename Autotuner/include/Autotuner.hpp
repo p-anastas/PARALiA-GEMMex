@@ -69,6 +69,7 @@ typedef class ATC{
 		long long int Block_sz = 0; 
 		int Block_num[64]; /// The estimated number of 2D Tile buffer blocks needed for each memory location.
 		/// A flag denoting if memory is constrained (either by the user or the problem/HW).
+		int disable_caching; /// Disable data caching and memory conservation, if e.g. they are incompatible with the algorithm.  
 		int conserve_memory; /// Can be used to switch ordering algorithms and enable caching if need be. 
 
 		long int task_num; /// The number of tasks to be executed.
@@ -76,6 +77,7 @@ typedef class ATC{
 //----------------------------------Infered parameters--------------------------------------
 		long int Grid_M, Grid_N, Grid_K; /// The 2D tiling size and the resulting grid sizes from the tiling.
 		int D1_parts, D2_parts;
+		int C_Decom_grid[64][64][2];
 		int* active_memlocs; // The memlocs that are utilized (workers + inputs + outputs) for a problem.
 		int active_memloc_num; // The number of memlocs of the problem.
 		long int comp_task_num; // The total number of compute tasks created by the distribution.

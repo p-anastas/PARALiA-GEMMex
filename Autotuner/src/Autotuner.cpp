@@ -46,7 +46,7 @@ ATC::ATC(){
 	active_memlocs = (int*) malloc (CHL_MEMLOCS*sizeof(int));
 	active_unit_id_list = (int*) malloc(CHL_WORKERS*sizeof(int));
 	active_unit_score = (double*) malloc(CHL_WORKERS*sizeof(double));
-	comp_task_per_unit_num = (long int*) malloc(CHL_WORKERS*sizeof(long int));
+	comp_task_per_unit_num = (long int*) calloc(CHL_WORKERS, sizeof(long int));
 	task_list = NULL;
 	comp_task_unit_list = NULL;
 	comp_task_per_unit_list = NULL;
@@ -54,7 +54,7 @@ ATC::ATC(){
 	pred_t = pred_J = power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
 	D1_parts = D2_parts = -1;
-	cache_limit = conserve_memory = 0;
+	cache_limit = conserve_memory = disable_caching = 0;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = -42; 
 	inter_grid = NULL;
 #ifdef DEBUG
@@ -106,7 +106,7 @@ void ATC::reset(){
 	delete inter_grid;
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
 	pred_t = -1.0;
-	cache_limit = conserve_memory = 0;
+	cache_limit = conserve_memory = disable_caching = 0;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = -42; 
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
@@ -181,6 +181,7 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	energy_delay_pesimistic = other_ATC->energy_delay_pesimistic;
 	cache_limit = other_ATC->cache_limit;
 	conserve_memory = other_ATC->conserve_memory;
+	disable_caching = other_ATC->disable_caching;
 	Block_sz = other_ATC->Block_sz;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = other_ATC->Block_num[idx];
 	// The following is not implemented
@@ -497,16 +498,6 @@ void ATC::distribute_comp_tasks(){
 	else if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC"))
 		DistributeCompTasks2DBlockCyclic(this, Grid_M, Grid_N, Grid_K);
 	else error("ATC::distribute_comp_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
-	int dev_task_ctr[active_unit_num] = {0};
-	for (long int cidx = 0 ; cidx < comp_task_num; cidx++){
-		int dev_tmp = comp_task_unit_list[cidx], dev_tmp_idx = -1;
-		for (int dev_idx = 0; dev_idx < active_unit_num; dev_idx++)
-			if(dev_tmp == active_unit_id_list[dev_idx]){
-				dev_tmp_idx = dev_idx;
-				break;
-			} 
-		comp_task_per_unit_list[dev_tmp_idx][dev_task_ctr[dev_tmp_idx]++] = cidx;
-	}
 #ifdef PDEBUG
     print();
 #endif
@@ -559,19 +550,19 @@ void ATC::optimize_tasks_serial(){
 				int dev_id = active_unit_id_list[dev_idx]; 
 				int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]++]/Grid_K;
 				int im = comp_task_idx/Grid_N, in = comp_task_idx%Grid_N;
-				if(A_tile_loc_map[im][ik][dev_id]!= 0 && A_tile_loc_map[im][ik][dev_id]!= 42){
-					A_tile_loc_map[im][ik][dev_id] = 2; 
-					long int size = T*T*elemSize;
-					LinkRoute_p A_tile_route = new LinkRoute();
-					A_tile_route->optimize(A_tile_loc_map[im][ik], size);
-					task_list[task_ctr++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
-				}
 				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
 					B_tile_loc_map[ik][in][dev_id] = 2; 
 					long int size = T*T*elemSize;
 					LinkRoute_p B_tile_route = new LinkRoute();
 					B_tile_route->optimize(B_tile_loc_map[ik][in], size);
 					task_list[task_ctr++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
+				}
+				if(A_tile_loc_map[im][ik][dev_id]!= 0 && A_tile_loc_map[im][ik][dev_id]!= 42){
+					A_tile_loc_map[im][ik][dev_id] = 2; 
+					long int size = T*T*elemSize;
+					LinkRoute_p A_tile_route = new LinkRoute();
+					A_tile_route->optimize(A_tile_loc_map[im][ik], size);
+					task_list[task_ctr++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
 				}
 				LinkRoute_p C_tile_route = new LinkRoute();
 				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
@@ -644,7 +635,7 @@ void ATC::assert_memory_requirements(){
 		if (B_loc == cache_loc) Native_block_num+=B_blocks_total;
 		else if(is_in_list(cache_loc, active_unit_id_list, 
 			active_unit_num)){
-			Min_Block_num+= Grid_N*Grid_K / D2_parts;
+			Min_Block_num+= Grid_K * (Grid_N/D2_parts + ((Grid_N%D2_parts)? 1: 0));
 			Ideal_Block_num += Block_num_B_decom;
 		}
 		if (C_loc == cache_loc) Native_block_num+=C_blocks_total;
@@ -685,7 +676,8 @@ void ATC::assert_memory_requirements(){
 		if(cache_limit > 0) block_num_limit = cache_limit/Block_sz;
 
 		int max_buffered_blocks = std::min(block_num_limit, max_hw_block_num);
-		if(1 || cache_limit == -42){ /// Force conserve_memory with minimum number of blocks.
+		if(disable_caching) Min_Block_num = Ideal_Block_num;
+		if(cache_limit == -42){ /// Enable conserve_memory with minimum number of blocks.
 			if (Min_Block_num <= max_buffered_blocks) Block_num[cache_loc] = Min_Block_num + Native_block_num;
 			else error("Available system memory(%lld MB) at loc = %d not sufficient for given problem size"
 			"max_hw_block_num(%d) is less than Min_Block_num(%d)\n", max_hw_block_num*Block_sz / (1024*1024), cache_loc, max_hw_block_num, Min_Block_num); 
