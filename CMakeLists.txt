@@ -58,7 +58,7 @@ add_definitions(-DPROBLEM_MD_CACHE=10) # Only relevant for "PROBLEMS" reuse leve
 
 #--------------------------------Tested (production)--------------------------------------#
 ## The number of parallel workers that can be utilized at each device for comp-comp overlap. 
-add_definitions(-DMAX_BACKEND_L=8)
+set(MAX_BACKEND_L 8)
 
 ## The output algorithm for obtaining the actual results of each routine. Options:
 ## - ALGO_WR: The output tiles are processed normally. This entails being fetched at the beggining, 
@@ -68,8 +68,8 @@ add_definitions(-DMAX_BACKEND_L=8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+set(OUTPUT_ALGO_MODE ALGO_WR)
+#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -91,7 +91,7 @@ add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 ## The number of sub-buffers FasTCoCoMemcpy2DAsync will use to increase effective BW
 ## In general effective_trans_time = max_trans_time(route[]) + 1/SBO * sub_trans_time(route_minus_max[])
 ## Rule of thumb: large SBO -> increased transfer latency, small SBO -> decreased bandwidth
-add_definitions(-DSTREAMING_BUFFER_OVERLAP=8)
+set(STREAMING_BUFFER_OVERLAP 8)
 
 #--------------------------------------Experimental----------------------------------------#
 # Enable overlapping Send & recv Communication FIXME: disabling this flag is not entirely implemented
@@ -141,12 +141,12 @@ add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
 ###########################################################################################
 
 #--------------------------------Tested (production)--------------------------------------#
-add_definitions(-DDISTRIBUTION="2D-BLOCK-CYCLIC")
+set(DISTRIBUTION "2D-BLOCK-CYCLIC")
 # Select which value to use for the largest dimension
 # e.g. for D1xD2 = 8 devices, which dimension should be 4 and which 2.
 # This impacts the reuse pattern and the actual decomposition so it has potential performance implications
-add_definitions(-DORDER_2DBC="D2_lesseq_D1") # Default 
-#add_definitions(-DORDER_2DBC="D1_lesseq_D2")
+set(ORDER_2DBC D2_lesseq_D1) #Default
+set(ORDER_2DBC D1_lesseq_D2)
 
 #--------------------------------------Experimental----------------------------------------#
 #add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN")
@@ -160,7 +160,7 @@ add_definitions(-DORDER_2DBC="D2_lesseq_D1") # Default
 #Select which optimize_tasks() algorithm to use for selecting the order of firing.
 
 #--------------------------------Tested (production)--------------------------------------#
-add_definitions(-DTASK_ORDER="SERIAL")
+set(TASK_ORDER SERIAL)
 
 #--------------------------------------Experimental----------------------------------------#
 #add_definitions(-DTASK_ORDER="FETCH_ETA_PLUS_MIN_PENDING")
@@ -172,9 +172,9 @@ add_definitions(-DTASK_ORDER="SERIAL")
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_INIT")
-#add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_SERIAL")
-#add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_DISTANCE")
+#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL)
+set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -196,7 +196,7 @@ add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_INIT")
 #Select which optimize_tasks() algorithm to use for writeback communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-add_definitions(-DWB_ROUTING="P2P_TO_INIT")
+set (WB_ROUTING P2P_TO_INIT)
 
 #--------------------------------------Experimental----------------------------------------#
 ## Enable the use of transfer hops through memory locations that do not need a tile
@@ -222,16 +222,17 @@ add_definitions(-DMINIMUM_UNIT_CONTRIBUTION=0.05)
 add_definitions(-DENABLE_POWA)
 
 ## Choose the Unit combination that maximizes total performance (minimum time).
-add_definitions(-DPREDICT_OPTIMIZE_TARGET="PERF")
+set(PREDICT_OPTIMIZE_TARGET PERF)
+
 ## Choose the Unit combination that minimizes consumed energy (J).
 ## Rarely chooses multi-unit execution, since its almost always less energy-efficient than single-unit.
-#add_definitions(-DPREDICT_OPTIMIZE_TARGET="ENERGY")
+#set(PREDICT_OPTIMIZE_TARGET ENERGY)
 
 ## Choose the Unit combination that maximizes the power-delay product (similar results with energy).
-#add_definitions(-DPREDICT_OPTIMIZE_TARGET="POWER-DELAY")
+#set(PREDICT_OPTIMIZE_TARGET POWER-DELAY)
 
 ## Choose the Unit combination that maximizes the energy-delay product - closer to "PERF" but also slightly considering energy.
-#add_definitions(-DPREDICT_OPTIMIZE_TARGET="ENERGY-DELAY")
+#set(PREDICT_OPTIMIZE_TARGET ENERGY-DELAY)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -299,6 +300,20 @@ add_definitions(-DPERPER_LIMIT=0.0)
 ## NOTE-FIXME!!! This has a serious overhead if SKs are launched during selection
 ## NOTE-FIXME!!! Use of SUBKERNELS_FIRE_WHEN_READY is advised for mitigating this
 add_definitions(-DWS_SZ=0)
+
+###########################################################################################
+#-------------------------------Define library constants----------------------------------#
+###########################################################################################
+
+add_definitions(-DMAX_BACKEND_L=${MAX_BACKEND_L})
+add_definitions(-DOUTPUT_ALGO_MODE="${OUTPUT_ALGO_MODE}")
+add_definitions(-DSTREAMING_BUFFER_OVERLAP=${STREAMING_BUFFER_OVERLAP})
+add_definitions(-DDISTRIBUTION="${DISTRIBUTION}")
+add_definitions(-DORDER_2DBC="${ORDER_2DBC}")
+add_definitions(-DTASK_ORDER="${TASK_ORDER}")
+add_definitions(-DFETCH_ROUTING="${FETCH_ROUTING}")
+add_definitions(-DWB_ROUTING="${WB_ROUTING}")
+add_definitions(-DPREDICT_OPTIMIZE_TARGET="${PREDICT_OPTIMIZE_TARGET}")
 
 ###########################################################################################
 #-----------------------------------CUDA definitions--------------------------------------#
