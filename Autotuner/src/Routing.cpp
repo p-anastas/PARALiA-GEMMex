@@ -27,6 +27,7 @@ long double LinkRoute::optimize(int* loc_map, long int size){
 	else if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_SERIAL")) return optimize_p2p_serial(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_DISTANCE")) return optimize_p2p_distance(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_SERIAL")) return optimize_chain_serial(loc_map, size);
+	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_RANDOM")) return optimize_chain_random(loc_map, size);
 	else error("LinkRoute::optimize() -> %s not implemented", FETCH_ROUTING);
 	return 0;
 }
@@ -130,8 +131,8 @@ long double LinkRoute::optimize_chain_random(int* loc_map, long int size){
 	hop_num = 0;
 	int loc_list[CHL_MEMLOCS];
 	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
-	  if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
-	  else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2)
+	  if(loc_map[ctr] == 0) hop_uid_list[0] = ctr;
+	  else if(loc_map[ctr] == 1 || loc_map[ctr] == 2)
 		loc_list[hop_num++] = ctr;
 	} 
 	int start_idx = int(rand() % hop_num); 
@@ -139,6 +140,7 @@ long double LinkRoute::optimize_chain_random(int* loc_map, long int size){
 	for(int ctr = start_idx; ctr < hop_num; ctr++) hop_uid_list[hop_ctr++] = loc_list[ctr];
 	for(int ctr = 0; ctr < start_idx; ctr++) hop_uid_list[hop_ctr++] = loc_list[ctr];
 	hop_num++;
+	for(int ctr = 1; ctr < hop_num; ctr++) loc_map[hop_uid_list[ctr]] = 42;
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif

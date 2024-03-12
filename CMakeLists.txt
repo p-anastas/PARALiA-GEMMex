@@ -175,12 +175,11 @@ set(TASK_ORDER SERIAL)
 #set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
-set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
+#set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
+set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
 
 #--------------------------------------Experimental----------------------------------------#
 
-#add_definitions(-DCHAIN_FETCH_SERIAL)
-#add_definitions(-DCHAIN_FETCH_RANDOM)
 #add_definitions(-DCHAIN_FETCH_TIME)
 #add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
 
