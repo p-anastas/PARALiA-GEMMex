@@ -73,8 +73,8 @@ add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 ###########################################################################################
@@ -159,9 +159,9 @@ add_definitions(-DTASK_ORDER="SERIAL")
 #--------------------------------Tested (production)--------------------------------------#
 
 #--------------------------------------Experimental----------------------------------------#
-add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_INIT")
+#add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_INIT")
 #add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_SERIAL")
-#add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_DISTANCE")
+add_definitions(-DFETCH_ROUTING="P2P_FETCH_FROM_GPU_DISTANCE")
 #add_definitions(-DCHAIN_FETCH_SERIAL)
 #add_definitions(-DCHAIN_FETCH_RANDOM)
 #add_definitions(-DCHAIN_FETCH_TIME)

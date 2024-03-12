@@ -14,7 +14,7 @@ export PARALIA_CD_FOLDER=/mnt/proj1/dd-23-129
 
 # CHECKME: A file that contains information found by numactl and nvidia-smi in a tidied form.
 # FIXME: Currently must be defined by the user, will be automated later
-export PARALIA_SCONFIG_FILE_PATH="/home/it4i-panasta/PhD_Research/PARALiALt/sconfig_karol.in"
+export PARALIA_SCONFIG_FILE_PATH="/home/it4i-panasta/PhD_Research/PARALiA-GEMMex/sconfig_karol.in"
 
 # CHECKME: Define cuda architecture (Tesla K40 = 35, GTX 1060/70 = 61,) P100 = 60, V100 = 70, A100 = 80
 export PARALIA_CUDA_ARCH=80
