@@ -194,8 +194,9 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		//if (g==0) { autotune_controller->D1_parts = 1; autotune_controller->D2_parts = autotune_controller->active_unit_num; }
 		else { autotune_controller->D1_parts = g; autotune_controller->D2_parts = autotune_controller->active_unit_num/g; }
 	}
-	//TODO: reverse layout
-	if(!autotune_controller->disable_caching){
+	//if(!autotune_controller->disable_caching){
+	/// If ORDER_2DBC="D1_lesseq_D2", reverse layout. 
+	if (!strcmp(ORDER_2DBC, "D1_lesseq_D2")){
 		int tmp = autotune_controller->D1_parts;
 		autotune_controller->D1_parts = autotune_controller->D2_parts;
 		autotune_controller->D2_parts = tmp;
@@ -217,29 +218,41 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 #endif
 
 	/// Actual 2D block-cyclic distribution.
-	for(int idx = 0; idx < 64; idx++) for(int idy = 0; idy < 64; idy++) 
-		autotune_controller->C_Decom_grid[idx][idy][0] = autotune_controller->C_Decom_grid[idx][idy][1] = -42;
+	int D1GridSz_mod_rem[64], D2GridSz_mod_rem[64];
+	for(int idx = 0; idx < 64; idx++){
+		D1GridSz_mod_rem[idx] = D1GridSz_mod;
+		D2GridSz_mod_rem[idx] = D2GridSz_mod;
+		for(int idy = 0; idy < 64; idy++)
+			autotune_controller->C_Decom_grid[idx][idy][0] = autotune_controller->C_Decom_grid[idx][idy][1] = -42;
+	}
 	for(int idx = 0; idx < autotune_controller->D1_parts; idx++) 
 	for(int idy = 0; idy < autotune_controller->D2_parts; idy++){
 			if(!idx) autotune_controller->C_Decom_grid[idx][idy][0] = D1GridSz_div;
 			else  autotune_controller->C_Decom_grid[idx][idy][0] = autotune_controller->C_Decom_grid[idx-1][idy][0] + D1GridSz_div;
-			if(D1GridSz_mod){
+			if(D1GridSz_mod_rem[idy]){
 				autotune_controller->C_Decom_grid[idx][idy][0]++;
-				D1GridSz_mod--;
+				D1GridSz_mod_rem[idy]--;
 			}
 			if (!idy) autotune_controller->C_Decom_grid[idx][idy][1] = D2GridSz_div;
 			else  autotune_controller->C_Decom_grid[idx][idy][1] = autotune_controller->C_Decom_grid[idx][idy-1][1] + D2GridSz_div;
-			if(D2GridSz_mod){
+			if(D2GridSz_mod_rem[idx]){
 				autotune_controller->C_Decom_grid[idx][idy][1]++;
-				D2GridSz_mod--;
+				D2GridSz_mod_rem[idx]--;
 			}
 #ifdef PDEBUG
 		fprintf(stderr, "DistributeCompTasks2DBlockCyclic: autotune_controller->C_Decom_grid[%d,%d] = (%d, %d)\n",
 			idx, idy, autotune_controller->C_Decom_grid[idx][idy][0], autotune_controller->C_Decom_grid[idx][idy][1]);
 #endif
 	}
-	if(D1GridSz_mod || D2GridSz_mod) error("DistributeCompTasks2DBlockCyclic: Remainder dimensions are not empty "
-	"( [D1GridSz_mod, D2GridSz_mod] = [%d, %d] )\n", D1GridSz_mod, D2GridSz_mod);
+#ifndef PRODUCTION
+	for(int idx = 0; idx < autotune_controller->D1_parts; idx++) 
+		if(D2GridSz_mod_rem[idx]) error("DistributeCompTasks2DBlockCyclic: Remainder dimensions"
+		" D2GridSz_mod_rem[%d] = %d not empty\n", idx, D2GridSz_mod_rem[idx]);
+	
+	for(int idy = 0; idy < autotune_controller->D2_parts; idy++)
+		if(D1GridSz_mod_rem[idy]) error("DistributeCompTasks2DBlockCyclic: Remainder dimensions"
+		" D1GridSz_mod_rem[%d] = %d not empty\n", idy, D1GridSz_mod_rem[idy]);
+#endif
 
 	int D1GridIdx = -1, D2GridIdx = -1, D3GridIdx = -1; 
 	for(long int task_ctr = 0; task_ctr < autotune_controller->comp_task_num; task_ctr++){
