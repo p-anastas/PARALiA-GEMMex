@@ -54,7 +54,7 @@ ATC::ATC(){
 	pred_t = pred_J = power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
 	D1_parts = D2_parts = -1;
-	cache_limit = conserve_memory = disable_caching = 0;
+	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = -42; 
 	inter_grid = NULL;
 #ifdef DEBUG
@@ -106,7 +106,7 @@ void ATC::reset(){
 	delete inter_grid;
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
 	pred_t = -1.0;
-	cache_limit = conserve_memory = disable_caching = 0;
+	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = -42; 
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
@@ -182,6 +182,7 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	cache_limit = other_ATC->cache_limit;
 	conserve_memory = other_ATC->conserve_memory;
 	disable_caching = other_ATC->disable_caching;
+	perfect_balance = other_ATC->perfect_balance;
 	Block_sz = other_ATC->Block_sz;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = other_ATC->Block_num[idx];
 	// The following is not implemented
@@ -318,6 +319,9 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 	Grid_M = M/T + ((M%T) ? 1 : 0);
 	Grid_N = N/T + ((N%T) ? 1 : 0);
 	Grid_K = K/T + ((K%T) ? 1 : 0);
+
+	if (strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_INIT")) disable_caching = 1; 
+	if (strcmp(TASK_ORDER, "SERIAL")) disable_caching = 1; 
 
 	// Calculate compute tasks and allocate comp_task_unit_list
 	update_comp_task_num(Grid_M*Grid_N*Grid_K);
@@ -550,19 +554,19 @@ void ATC::optimize_tasks_serial(){
 				int dev_id = active_unit_id_list[dev_idx]; 
 				int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]++]/Grid_K;
 				int im = comp_task_idx/Grid_N, in = comp_task_idx%Grid_N;
-				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
-					B_tile_loc_map[ik][in][dev_id] = 2; 
-					long int size = T*T*elemSize;
-					LinkRoute_p B_tile_route = new LinkRoute();
-					B_tile_route->optimize(B_tile_loc_map[ik][in], size);
-					task_list[task_ctr++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
-				}
 				if(A_tile_loc_map[im][ik][dev_id]!= 0 && A_tile_loc_map[im][ik][dev_id]!= 42){
 					A_tile_loc_map[im][ik][dev_id] = 2; 
 					long int size = T*T*elemSize;
 					LinkRoute_p A_tile_route = new LinkRoute();
 					A_tile_route->optimize(A_tile_loc_map[im][ik], size);
 					task_list[task_ctr++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
+				}
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
+					B_tile_loc_map[ik][in][dev_id] = 2; 
+					long int size = T*T*elemSize;
+					LinkRoute_p B_tile_route = new LinkRoute();
+					B_tile_route->optimize(B_tile_loc_map[ik][in], size);
+					task_list[task_ctr++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
 				}
 				LinkRoute_p C_tile_route = new LinkRoute();
 				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
@@ -681,14 +685,13 @@ void ATC::assert_memory_requirements(){
 			if (Min_Block_num <= max_buffered_blocks) Block_num[cache_loc] = Min_Block_num + Native_block_num;
 			else error("Available system memory(%lld MB) at loc = %d not sufficient for given problem size"
 			"max_hw_block_num(%d) is less than Min_Block_num(%d)\n", max_hw_block_num*Block_sz / (1024*1024), cache_loc, max_hw_block_num, Min_Block_num); 
-			conserve_memory = 1;
-			fprintf(stderr, "ATC::assert_memory_requirements(): cache_limit == -42 -> forcing conserve_memory\n");
-
+			if(!disable_caching) conserve_memory = 1;
+			fprintf(stderr, "ATC::assert_memory_requirements(): cache_limit == -42 -> attempting to conserve_memory\n");
 		}
 		else if (Ideal_Block_num <= max_buffered_blocks) Block_num[cache_loc] = Ideal_Block_num + Native_block_num;
 		else if (Min_Block_num <= max_buffered_blocks){
 			Block_num[cache_loc] = max_buffered_blocks + Native_block_num;
-			conserve_memory = 1;
+			if(!disable_caching) conserve_memory = 1;
 		}
 		else{
 			if(block_num_limit == max_buffered_blocks) error("Input cache_limit(%lld MB) constrain cannot be met for loc = %d, "

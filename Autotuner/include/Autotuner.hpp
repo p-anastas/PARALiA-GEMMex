@@ -78,6 +78,7 @@ typedef class ATC{
 		long int Grid_M, Grid_N, Grid_K; /// The 2D tiling size and the resulting grid sizes from the tiling.
 		int D1_parts, D2_parts;
 		int C_Decom_grid[64][64][2];
+		int perfect_balance; // = 1 if there are no remainders in C decomposition
 		int* active_memlocs; // The memlocs that are utilized (workers + inputs + outputs) for a problem.
 		int active_memloc_num; // The number of memlocs of the problem.
 		long int comp_task_num; // The total number of compute tasks created by the distribution.

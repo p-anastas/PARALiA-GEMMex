@@ -195,9 +195,11 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		else { autotune_controller->D1_parts = g; autotune_controller->D2_parts = autotune_controller->active_unit_num/g; }
 	}
 	//TODO: reverse layout
-	int tmp = autotune_controller->D1_parts;
-	autotune_controller->D1_parts = autotune_controller->D2_parts;
-	autotune_controller->D2_parts = tmp;
+	if(!autotune_controller->disable_caching){
+		int tmp = autotune_controller->D1_parts;
+		autotune_controller->D1_parts = autotune_controller->D2_parts;
+		autotune_controller->D2_parts = tmp;
+	}
 	if(D1GridSz < autotune_controller->D1_parts || D2GridSz < autotune_controller->D2_parts){
 		warning("DistributeCompTasks2DBlockCyclic:\nGrid(%d,%d) smaller than {D1,D2}_parts = (%d,%d)\
 			using DistributeCompTasksRoundRobinChunk instead\n", D1GridSz, D2GridSz, autotune_controller->D1_parts, autotune_controller->D2_parts);
