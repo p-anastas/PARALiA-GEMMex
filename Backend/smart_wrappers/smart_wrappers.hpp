@@ -247,7 +247,7 @@ void* CHLMallocHostTouchSmart(long long dim1, long long dim2, int elemSize, char
 void CHLFree(void * ptr, long long bytes, int loc);
 
 short CHLGetPtrLoc(void * in_ptr);
-short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSize);
+//short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSize);
 
 // Memcpy between two locations with errorchecking
 void CHLMemcpy(void* dest, void* src, long long N_bytes, int loc_dest, int loc_src);

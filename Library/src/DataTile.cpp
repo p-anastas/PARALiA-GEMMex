@@ -22,7 +22,7 @@ int Tile2D::get_dtype_size() {
 int Tile2D::size() { return get_dtype_size()*dim1*dim2;}
 
 Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
-               int in_ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, CBlock_p init_loc_block_p){
+               int in_ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, int init_loc, Buffer_p* init_loc_cache_p){
 #ifdef DDEBUG
 	fprintf(stderr, "|-----> Tile2D(%d)::Tile2D(in_addr(%d) = %p,%d,%d,%d, %d, %d)\n",
 			Tile2D_num, CHLGetPtrLoc(in_addr), in_addr, in_dim1, in_dim2, in_ldim, inGrid1, inGrid2);
@@ -38,12 +38,12 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 	W_op_complete = W_wb_complete = W_ready = NULL;
 	W_op_params = NULL; 
 	Tile2D_num++;
-	short init_loc = CHLGetPtrLoc(in_addr);
+	//short init_loc = CHLGetPtrLoc(in_addr);
 	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
 		Block_reuses[iloc] = -42;
 		if (iloc == init_loc){
 			W_init_loc = iloc;
-			StoreBlock[iloc] = init_loc_block_p;
+			StoreBlock[iloc] = init_loc_cache_p[init_loc]->assign_Cblock(NATIVE);
 			StoreBlock[iloc]->Adrs = in_addr;
 			ldim[iloc] = in_ldim;
 			StoreBlock[iloc]->Available->record_to_queue(NULL);
@@ -66,7 +66,7 @@ Tile2D::~Tile2D()
   if(!Tile2D_num) warning("Tile2D::~Tile2D destructor incomplete, TBC\n");
 }
 
-void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_block_p){
+void Tile2D::reset(void* new_adrr, int new_init_chunk, Buffer_p* init_loc_cache_p){
 #ifdef DDEBUG
 	fprintf(stderr, "|-----> Tile2D()::reset(%p, %d)\n", new_adrr, new_init_chunk);
 #endif
@@ -77,12 +77,11 @@ void Tile2D::reset(void* new_adrr, int new_init_chunk, CBlock_p new_init_loc_blo
 	if(W_wb_complete) W_wb_complete->reset();
 	if(W_ready) W_ready->reset();
 	//W_op_params = NULL; 
-	short init_loc = CHLGetPtrLoc(new_adrr);
-	short init_loc_idx = (init_loc);
+	short init_loc = W_init_loc;
 	for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++){
 		Block_reuses[iloc] = -42;
-		if (iloc == init_loc_idx){
-			StoreBlock[iloc] = new_init_loc_block_p;
+		if (iloc == init_loc){
+			StoreBlock[iloc] = init_loc_cache_p[init_loc]->assign_Cblock(NATIVE);
 			StoreBlock[iloc]->Adrs = new_adrr;
 			ldim[iloc] = new_init_chunk;
 			StoreBlock[iloc]->Available->record_to_queue(NULL);

@@ -68,8 +68,8 @@ add_definitions(-DMAX_BACKEND_L=8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
-#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
+#add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR")
+add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WR_LAZY")
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -141,15 +141,15 @@ add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
 ###########################################################################################
 
 #--------------------------------Tested (production)--------------------------------------#
-#add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN")
 add_definitions(-DDISTRIBUTION="2D-BLOCK-CYCLIC")
 # Select which value to use for the largest dimension
 # e.g. for D1xD2 = 8 devices, which dimension should be 4 and which 2.
 # This impacts the reuse pattern and the actual decomposition so it has potential performance implications
-#add_definitions(-DORDER_2DBC="D2_lesseq_D1") # Default 
-add_definitions(-DORDER_2DBC="D1_lesseq_D2")
+add_definitions(-DORDER_2DBC="D2_lesseq_D1") # Default 
+#add_definitions(-DORDER_2DBC="D1_lesseq_D2")
 
 #--------------------------------------Experimental----------------------------------------#
+#add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN")
 #add_definitions(-DDISTRIBUTION="ROUND-ROBIN")
 #add_definitions(-DDISTRIBUTION="SPLIT-NAIVE")
 #add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN-REVERSE")

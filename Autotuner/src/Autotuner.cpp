@@ -723,7 +723,7 @@ void ATC::print(){
 		"\n 2) 2D Worker Grid decomposition:\n"
 		"\tactive_unit_num = %d ->\n\t -> D1_parts (splits Grid_M) = %d\n\t -> D2_parts (splits Grid_N) = %d\n"
 		"\tactive_unit_id_list[%d] = %s, active_unit_score[%d] = %s\n"
-		"\n 3) Memory management:\n"
+		"\n 3) Memory management ( disable_caching = %d, conserve_memory = %d):\n"
 		"\tBlock_sz = %lld\n"
 		"\tBlock_num[%d] = %s\n"
 		"\n 4) Computation tasks:\n"
@@ -732,7 +732,7 @@ void ATC::print(){
 		M, N, K, T, Grid_M, Grid_N, Grid_K, active_unit_num, D1_parts, D2_parts,
 		active_unit_num, printlist<int>(active_unit_id_list, active_unit_num),
 		active_unit_num, printlist<double>(active_unit_score, active_unit_num),
-		Block_sz, active_memloc_num, printlist<int>(Block_num, CHL_MEMLOCS),
+		disable_caching, conserve_memory, Block_sz, active_memloc_num, printlist<int>(Block_num, CHL_MEMLOCS),
 		comp_task_num, active_unit_num, printlist<long>(comp_task_per_unit_num, active_unit_num));
 	if (comp_task_per_unit_list) for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
 		fprintf(stderr,"\t -> comp_task_per_unit_list[%d] = %s\n", dev_idx, 

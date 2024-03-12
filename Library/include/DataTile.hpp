@@ -35,11 +35,11 @@ public:
 
 	// Constructor : Initializes a tile with certain dimensions on a grid (used by the decomposer)
 	Tile2D(void* tile_addr, int T1tmp, int T2tmp,
-			int ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, CBlock_p init_loc_block_p);
+			int ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, int init_loc, Buffer_p* init_loc_cache_p);
 	~Tile2D(); 	//Destructor
     
     short get_initial_location();
-    void reset(void* new_adrr, int new_ldim, CBlock_p new_init_loc_block_p);
+    void reset(void* new_adrr, int new_ldim, Buffer_p* init_loc_cache_p);
 
     //----------------------------------------------Tile caching------------------------------------------//
     

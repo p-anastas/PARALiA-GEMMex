@@ -48,7 +48,7 @@ int main(const int argc, const char *argv[]) {
 	if(run_cpu_mem){
 		fprintf(stdout, "\n-----------------------------------------Testing for matrices on CPU-----------------------------------------\n");
 		fprintf(stderr, "dgemm_tester: Allocating CPU buffers...->100 MB...\n");
-		A_loc = B_loc = C_loc = CHL_MEMLOCS - 1;
+		A_loc = B_loc = C_loc = -2;
 
 		A = (double*) CHLMalloc(M * K*sizeof(double), A_loc, 1);
 		B = (double*) CHLMalloc(N * K*sizeof(double), B_loc, 1);
@@ -220,8 +220,8 @@ int main(const int argc, const char *argv[]) {
 		CHLFree(A, M* K* sizeof(double), A_loc);
 		CHLFree(B, N* K* sizeof(double), B_loc);
 		CHLFree(C, N* M* sizeof(double), C_loc);
-		CHLFree(C_comp, N* M* sizeof(double), C_loc);
-		CHLFree(C_buf, N* M* sizeof(double), C_loc);
+		CHLFree(C_comp, N* M* sizeof(double), CHL_MEMLOCS -1);
+		CHLFree(C_buf, N* M* sizeof(double), CHL_MEMLOCS -1);
 		CHLSyncCheckErr();
 	}
 	if(run_gpu_mem) {

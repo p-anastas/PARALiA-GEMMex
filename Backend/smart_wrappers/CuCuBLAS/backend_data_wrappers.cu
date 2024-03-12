@@ -107,43 +107,54 @@ void *numa_bind_pin_malloc(long long count, int node_num, short W_flag){
 }
 
 void* CHLMalloc(long long bytes, int loc, short W_flag){
-  void *ptr = NULL;
-  if (loc == CHL_MEMLOCS - 1) {
+	void *ptr = NULL;
+	if (loc == CHL_MEMLOCS - 1) {
 #ifdef CLDEBUG
-    fprintf(stderr, "Allocating %lld bytes to interleaved NUMA alloc...\n", bytes);
+		fprintf(stderr, "Allocating %lld bytes to interleaved NUMA alloc...\n", bytes);
 #endif
-	ptr = numa_inter_pin_malloc(bytes, W_flag);
-  }
-  else if (loc >= CHL_WORKERS && loc < CHL_MEMLOCS - 1) {
+		ptr = numa_inter_pin_malloc(bytes, W_flag);
+	}
+	else if (loc >= CHL_WORKERS && loc < CHL_MEMLOCS - 1) {
 #ifdef CLDEBUG
-    fprintf(stderr, "Allocating %lld bytes to NUM MEM %d [%s]...\n", bytes, loc, mem_name(loc));
+		fprintf(stderr, "Allocating %lld bytes to NUM MEM %d [%s]...\n", bytes, loc, mem_name(loc));
 #endif
-	ptr = numa_bind_pin_malloc(bytes, loc, W_flag);
-  }
-  else if (loc == -1){
+		ptr = numa_bind_pin_malloc(bytes, loc, W_flag);
+	}
+	else if (loc == -1){
+#ifdef CLDEBUG
+    	fprintf(stderr, "Allocating %lld bytes with simple malloc and pinning\n", bytes);
+#endif
+		ptr = malloc(bytes);
+		cudaHostRegister(ptr,bytes,cudaHostRegisterPortable);
+/*
 #ifdef CLDEBUG
     fprintf(stderr, "Allocating %lld bytes and touching in close numa nodes with CHLMallocHostTouchSmart\n", bytes);
 #endif
 	ptr = CHLMallocHostTouchSerial(bytes);
 		//CHLMallocHostTouchSmart(std::sqrt(bytes/sizeof(double)),
 		 //std::sqrt(bytes/sizeof(double)), sizeof(double), 'N');
-  }
-  else if (loc >= 0 && loc < CHL_WORKERS){
-    int prev_loc; cudaGetDevice(&prev_loc);
+*/
+	}
+	else if (loc == -2){
 #ifdef CLDEBUG
-    fprintf(stderr, "Allocating %lld bytes to device(%d)...\n", bytes, loc);
-    //if (prev_loc != loc) warning("CHLMalloc: Malloc'ed memory in other device (Previous device: %d, Malloc in: %d)\n", prev_loc, loc);
+    	fprintf(stderr, "Allocating %lld bytes with simple malloc without pinning\n", bytes);
 #endif
-    cudaSetDevice(loc);
-    ptr = gpu_malloc(bytes);
-
-
+		ptr = malloc(bytes);
+	}
+	else if (loc >= 0 && loc < CHL_WORKERS){
+		int prev_loc; cudaGetDevice(&prev_loc);
+#ifdef CLDEBUG
+		fprintf(stderr, "Allocating %lld bytes to device(%d)...\n", bytes, loc);
+    	//if (prev_loc != loc) warning("CHLMalloc: Malloc'ed memory in other device (Previous device: %d, Malloc in: %d)\n", prev_loc, loc);
+#endif
+		cudaSetDevice(loc);
+		ptr = gpu_malloc(bytes);
+		CHLSyncCheckErr();
+		if (prev_loc != loc) cudaSetDevice(prev_loc);
+	}
+	else error("CHLMalloc: Invalid device id/location %d\n", loc);
 	CHLSyncCheckErr();
-    if (prev_loc != loc)cudaSetDevice(prev_loc);
-  }
-  else error("CHLMalloc: Invalid device id/location %d\n", loc);
-  CHLSyncCheckErr();
-  return ptr;
+	return ptr;
 }
 
 void gpu_free(void *gpuptr) {
@@ -163,7 +174,8 @@ void numa_pin_free(void *gpuptr, long long bytes) {
 
 void CHLFree(void * ptr, long long bytes, int loc){
 	//if (??? == loc) free(ptr);
-	if ((loc >= CHL_WORKERS && loc < CHL_MEMLOCS) || loc == -1) numa_pin_free(ptr, bytes);
+	if (loc >= CHL_WORKERS && loc < CHL_MEMLOCS) numa_pin_free(ptr, bytes);
+	else if ( loc == -1 || loc == -2) free(ptr);
 	else if (loc >= 0 && loc < CHL_WORKERS){
 		int prev_loc; cudaGetDevice(&prev_loc);
 		//if (prev_loc != loc) warning("CHLFree: Freed memory in other device (Previous device: %d, Free in: %d)\n", prev_loc, loc);
@@ -179,7 +191,6 @@ void CHLFree(void * ptr, long long bytes, int loc){
 	CHLSyncCheckErr();
 }
 
-
 short CHLGetPtrLoc(void * in_ptr)
 {
 // This is legacy code for CUDA 9.2 <<. It should not be used due to CUDA ptr_att back-end struct changes in latest versions
@@ -188,21 +199,20 @@ short CHLGetPtrLoc(void * in_ptr)
 #else
 	int loc = -42;
 	cudaPointerAttributes ptr_att;
-	if (cudaSuccess != cudaPointerGetAttributes(&ptr_att, in_ptr)) error("CHLGetPtrLoc(cuda 10+ version, ptr =%p):\
-	//Pointer not visible to CUDA, host alloc or error\n", in_ptr);
-	if (ptr_att.type == cudaMemoryTypeHost){
-		loc = translate_hw_numa_to_mem_idx(get_hw_numa_idx(in_ptr));
-		if (loc == -1) error("CHLGetPtrLoc(cuda 10+ version, ptr =%p): scan_allocated_data_for_ptr_loc(ptr) did not find pointer\n", in_ptr);
-	}
+	if (cudaSuccess != cudaPointerGetAttributes(&ptr_att, in_ptr)) error("CHLGetPtrLoc(cuda 10+ version, ptr =%p): "
+	"Pointer not visible to CUDA, host alloc or error\n", in_ptr);
 	else if (ptr_att.type == cudaMemoryTypeDevice) loc = ptr_att.device;
 	// TODO: Unified memory is considered available in the GPU as cuBLASXt ( not bad, not great)
 	else if (ptr_att.type == cudaMemoryTypeManaged) loc = ptr_att.device;
-	else error("CHLGetPtrLoc(cuda 10+ version, loc = %d, ptr =%p): Invalid memory type\n", ptr_att.device, in_ptr);
+	else{ // if (ptr_att.type == cudaMemoryTypeHost){
+		loc = translate_hw_numa_to_mem_idx(get_hw_numa_idx(in_ptr));
+		if(loc < 0) loc = CHL_MEMLOCS - 1;
+	}
 	return loc;
 #endif
 }
 
-short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSize)
+/*short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSize)
 {
 	int loc = -42;
 	cudaPointerAttributes ptr_att;
@@ -210,8 +220,8 @@ short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSiz
 	"Pointer not visible to CUDA, host alloc or error\n", in_ptr);
 	if (ptr_att.type == cudaMemoryTypeHost){
 		loc = translate_hw_numa_to_mem_idx(get_hw_numa_idx(in_ptr));
-		if (loc == -1) error("CHLGetPtrLoc(cuda 10+ version, ptr =%p): scan_allocated_data_for_ptr_loc(ptr)"
-		"did not find pointer\n", in_ptr);
+		//if (loc == -1)
+			//error("CHLGetPtrLoc(cuda 10+ version, ptr =%p): scan_allocated_data_for_ptr_loc(ptr) did not find pointer\n", in_ptr);
 		int advanced_allocation = 0;
 		//Check for custom chunk-interleaved matrix at host memlocs.
 		if(loc == CHL_WORKERS){
@@ -228,18 +238,18 @@ short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSiz
 		else return loc; 
 	}
 	else return CHLGetPtrLoc(in_ptr);
-}
+}*/
 
 void CHLMemcpy(void* dest, void* src, long long bytes, int loc_dest, int loc_src)
 {
-	massert(loc_dest >= -1 && loc_dest < CHL_MEMLOCS, "CHLMemcpy: Invalid destination device: %d\n", loc_dest);
-	massert(loc_src >= -1 && loc_src < CHL_MEMLOCS, "CHLMemcpy: Invalid source device: %d\n", loc_src);
+	massert(loc_dest >= -2 && loc_dest < CHL_MEMLOCS, "CHLMemcpy: Invalid destination device: %d\n", loc_dest);
+	massert(loc_src >= -2 && loc_src < CHL_MEMLOCS, "CHLMemcpy: Invalid source device: %d\n", loc_src);
 
 	enum cudaMemcpyKind kind;
-	if ((loc_src >= CHL_WORKERS  || loc_src == -1 ) && (loc_dest >= CHL_WORKERS   || loc_dest == -1 )) 
+	if ((loc_src >= CHL_WORKERS  || loc_src < 0 ) && (loc_dest >= CHL_WORKERS   || loc_dest < 0 )) 
 		kind = cudaMemcpyHostToHost;
-	else if (loc_dest >= CHL_WORKERS  || loc_dest == -1) kind = cudaMemcpyDeviceToHost;
-	else if (loc_src >= CHL_WORKERS || loc_src == -1) kind = cudaMemcpyHostToDevice;
+	else if (loc_dest >= CHL_WORKERS  || loc_dest < 0) kind = cudaMemcpyDeviceToHost;
+	else if (loc_src >= CHL_WORKERS ||  loc_src < 0) kind = cudaMemcpyHostToDevice;
 	else kind = cudaMemcpyDeviceToDevice;
 
 #ifdef DEBUG
@@ -278,14 +288,14 @@ void CHLMemcpy2D(void* dest, long int ldest, void* src, long int ldsrc, long int
 	lprintf(lvl, "CHLMemcpy2D(dest=%p, ldest =%zu, src=%p, ldsrc = %zu, rows = %zu, cols = %zu, elemsize = %d, loc_dest = %d, loc_src = %d)\n",
 		dest, ldest, src, ldsrc, rows, cols, elemSize, loc_dest, loc_src);
 #endif
-	massert(loc_dest >= -1 && loc_dest < CHL_MEMLOCS, "CHLMemcpy2D: Invalid destination device: %d\n", loc_dest);
-	massert(loc_src >= -1 && loc_src < CHL_MEMLOCS, "CHLMemcpy2D: Invalid source device: %d\n", loc_src);
+	massert(loc_dest >= -2 && loc_dest < CHL_MEMLOCS, "CHLMemcpy2D: Invalid destination device: %d\n", loc_dest);
+	massert(loc_src >= -2 && loc_src < CHL_MEMLOCS, "CHLMemcpy2D: Invalid source device: %d\n", loc_src);
 
 	enum cudaMemcpyKind kind;
-	if ((loc_src >= CHL_WORKERS  || loc_src == -1 ) && (loc_dest >= CHL_WORKERS   || loc_dest == -1 )) 
+	if ((loc_src >= CHL_WORKERS  || loc_src < 0 ) && (loc_dest >= CHL_WORKERS   || loc_dest < 0 )) 
 		kind = cudaMemcpyHostToHost;
-	else if (loc_dest >= CHL_WORKERS  || loc_dest == -1) kind = cudaMemcpyDeviceToHost;
-	else if (loc_src >= CHL_WORKERS || loc_src == -1) kind = cudaMemcpyHostToDevice;
+	else if (loc_dest >= CHL_WORKERS  || loc_dest < 0) kind = cudaMemcpyDeviceToHost;
+	else if (loc_src >= CHL_WORKERS ||  loc_src < 0) kind = cudaMemcpyHostToDevice;
 	else kind = cudaMemcpyDeviceToDevice;
 
 	if (loc_src == loc_dest) warning("CHLMemcpy2D(dest=%p, ldest =%zu, src=%p, ldsrc = %zu, rows=%zu, cols=%zu, elemSize =%d, loc_dest=%d, loc_src=%d): Source location matches destination\n",
@@ -315,8 +325,8 @@ template<typename VALUETYPE>
 void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc)
 {
   if (!vec) error("CHLVecInit: vec is not allocated (correctly)\n");
-  if (loc < -1  || loc >= CHL_MEMLOCS) error("CHLVecInit: Invalid device id/location %d\n", loc);
-  else if (loc >= CHL_WORKERS || loc == -1) CHLParallelVecInitHost(vec, length, seed);
+  if (loc < -2  || loc >= CHL_MEMLOCS) error("CHLVecInit: Invalid device id/location %d\n", loc);
+  else if (loc >= CHL_WORKERS || loc < 0 ) CHLParallelVecInitHost(vec, length, seed);
   else {
 	int prev_loc; cudaGetDevice(&prev_loc);
 
