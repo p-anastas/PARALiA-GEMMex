@@ -520,9 +520,23 @@ void ATC::initialize_tasks(){
 			A_tile_loc_map[im][ik] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
 				if (loc == A_loc) A_tile_loc_map[im][ik][loc] = 0;
+				else if (strstr(FETCH_ROUTING, "CHAIN") && is_in_list(loc, active_unit_id_list, active_unit_num)){
+					int D1_loc = loc/D2_parts, D2_loc = loc%D2_parts;
+					if(!D1_loc && C_Decom_grid[D1_loc][D2_loc][0] > im)
+						A_tile_loc_map[im][ik][loc] = 1;
+					else if(C_Decom_grid[D1_loc-1][D2_loc][0] <= im && C_Decom_grid[D1_loc][D2_loc][0] > im)
+						A_tile_loc_map[im][ik][loc] = 1;
+					else A_tile_loc_map[im][ik][loc] = -42;
+				}
 				else A_tile_loc_map[im][ik][loc] = -42;
 		}
 	}
+#ifdef PDEBUG
+	for(int im = 0; im < Grid_M; im++)
+		for(int ik = 0; ik < Grid_K; ik++)
+			fprintf(stderr, "------A_tile_loc_map[%d][%d] = %s\n", 
+				im, ik, printlist<int>(A_tile_loc_map[im][ik], CHL_MEMLOCS));
+#endif
 	B_tile_loc_map = (int***) malloc(Grid_K*sizeof(int**));
 	for(int ik = 0; ik < Grid_K; ik++){
 		B_tile_loc_map[ik] = (int**) malloc(Grid_N*sizeof(int*));
@@ -530,9 +544,23 @@ void ATC::initialize_tasks(){
 			B_tile_loc_map[ik][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
 				if (loc == B_loc) B_tile_loc_map[ik][in][loc] = 0;
+				else if (strstr(FETCH_ROUTING, "CHAIN") && is_in_list(loc, active_unit_id_list, active_unit_num)){
+					int D1_loc = loc/D2_parts, D2_loc = loc%D2_parts;
+					if(!D2_loc && C_Decom_grid[D1_loc][D2_loc][1] > in)
+						B_tile_loc_map[ik][in][loc] = 1;
+					else if(C_Decom_grid[D1_loc][D2_loc-1][1] <= in && C_Decom_grid[D1_loc][D2_loc][1] > in)
+						B_tile_loc_map[ik][in][loc] = 1;
+					else B_tile_loc_map[ik][in][loc] = -42;
+				}
 				else B_tile_loc_map[ik][in][loc] = -42;
 		}
 	}
+#ifdef PDEBUG
+	for(int ik = 0; ik < Grid_K; ik++)
+		for(int in = 0; in < Grid_N; in++)
+			fprintf(stderr, "------B_tile_loc_map[%d][%d] = %s\n", 
+				ik, in, printlist<int>(B_tile_loc_map[ik][in], CHL_MEMLOCS));
+#endif
 	C_tile_loc_map = (int***) malloc(Grid_M*sizeof(int**));
 	for(int im = 0; im < Grid_M; im++){
 		C_tile_loc_map[im] = (int**) malloc(Grid_N*sizeof(int*));
@@ -554,7 +582,7 @@ void ATC::optimize_tasks_serial(){
 				int dev_id = active_unit_id_list[dev_idx]; 
 				int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]++]/Grid_K;
 				int im = comp_task_idx/Grid_N, in = comp_task_idx%Grid_N;
-				if(A_tile_loc_map[im][ik][dev_id]!= 0 && A_tile_loc_map[im][ik][dev_id]!= 42){
+				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42){
 					A_tile_loc_map[im][ik][dev_id] = 2; 
 					long int size = T*T*elemSize;
 					LinkRoute_p A_tile_route = new LinkRoute();

@@ -68,8 +68,8 @@ set(MAX_BACKEND_L 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-set(OUTPUT_ALGO_MODE ALGO_WR)
-#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+#set(OUTPUT_ALGO_MODE ALGO_WR)
+set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -145,8 +145,8 @@ set(DISTRIBUTION "2D-BLOCK-CYCLIC")
 # Select which value to use for the largest dimension
 # e.g. for D1xD2 = 8 devices, which dimension should be 4 and which 2.
 # This impacts the reuse pattern and the actual decomposition so it has potential performance implications
-set(ORDER_2DBC D2_lesseq_D1) #Default
-set(ORDER_2DBC D1_lesseq_D2)
+set(ORDER_2DBC D1_lesseq_D2) #Default
+#set(ORDER_2DBC "D2_lesseq_D1") 
 
 #--------------------------------------Experimental----------------------------------------#
 #add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN")
@@ -174,7 +174,8 @@ set(TASK_ORDER SERIAL)
 #--------------------------------Tested (production)--------------------------------------#
 #set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL)
-set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
+#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
+set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
 
 #--------------------------------------Experimental----------------------------------------#
 

@@ -47,20 +47,9 @@ void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_l
 	/// Algorithm may vary for other BLAS3, but not at that bridge yet.
 	/// The assumtion for extra transfers is made based on the 2D cyclic distribution,
 	/// but the estimation is also useful for other distributions as a best case scenario (worse distributions -> more extra transfers).
-	int D1_parts = sqrt(active_unit_num);
-	int D2_parts = D1_parts;
-	if (D1_parts ==0) { D2_parts = active_unit_num; D1_parts = 1; }
-	else { // find the most square decomposition of autotune_controller->active_unit_num in D1_parts x D2_parts
-		int g;
-		for (g = D1_parts+1; g>0; --g) if (active_unit_num % g == 0) break;
-		if (g==0) { D1_parts = active_unit_num; D2_parts = 1; }
-		else { D1_parts = g; D2_parts = active_unit_num/g; }
-	}
-    if (!strcmp(ORDER_2DBC, "D1_lesseq_D2")){
-        int temp = D2_parts;
-        D2_parts = D1_parts;
-        D1_parts = temp;
-    }
+	int D1_parts, D2_parts;
+    DECOM_2D(active_unit_num, &D1_parts, &D2_parts);
+    
     for(int unit_idx = 0; unit_idx < active_unit_num; unit_idx++){
         int dev_id = active_unit_id_list[unit_idx];
         int dev_decom_row = unit_idx/D2_parts, dev_decom_col = unit_idx%D2_parts;

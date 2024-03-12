@@ -286,6 +286,32 @@ long long dot_memory(long int  N, long int x_loc, long int y_loc, short dsize){
 	return (long long) N*(x_loc + y_loc)*dsize;
 }*/
 
+void DECOM_2D(int val, int* valgrid_1_ptr, int* valgrid_2_ptr){
+	// 2D Block cyclic device decomposition
+	int D1_parts, D2_parts; 
+	D1_parts = std::sqrt(val);
+	D2_parts = D1_parts;
+	if (D1_parts ==0) { D2_parts = val; D1_parts = 1; }
+	else {
+		// find the most square decomposition of val in D1_parts x D2_parts
+		int g;
+		for (g = D1_parts+1; g>0; --g)
+		if (val % g == 0) break;
+		if (g==0) { D1_parts = val; D2_parts = 1; }
+		//if (g==0) { D1_parts = 1; D2_parts = val; }
+		else { D1_parts = g; D2_parts = val/g; }
+	}
+	/// If ORDER_2DBC="D2_lesseq_D1", reverse layout. 
+	if (!strcmp(ORDER_2DBC, "D2_lesseq_D1")){
+		int tmp = D1_parts;
+		D1_parts = D2_parts;
+		D2_parts = tmp;
+	}
+	*valgrid_1_ptr = D1_parts;
+	*valgrid_2_ptr = D2_parts;
+}
+
+
 int is_in_list(int elem, int* elem_list, int list_len){ 
 	for (int idx = 0; idx < list_len; idx++)
 		if(elem_list[idx] == elem) return 1; 

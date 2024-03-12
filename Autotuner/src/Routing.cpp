@@ -24,9 +24,9 @@ double get_edge_bw(int dest_loc, int src_loc){
 
 long double LinkRoute::optimize(int* loc_map, long int size){
 	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_INIT")) return optimize_p2p_init(loc_map, size);
-	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_SERIAL")) return optimize_p2p_serial(loc_map, size);
-	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_DISTANCE")) return optimize_p2p_distance(loc_map, size);
-
+	else if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_SERIAL")) return optimize_p2p_serial(loc_map, size);
+	else if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_DISTANCE")) return optimize_p2p_distance(loc_map, size);
+	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_SERIAL")) return optimize_chain_serial(loc_map, size);
 	else error("LinkRoute::optimize() -> %s not implemented", FETCH_ROUTING);
 	return 0;
 }
@@ -34,7 +34,7 @@ long double LinkRoute::optimize(int* loc_map, long int size){
 // Naive fetch from initial data loc every time. Similar to cuBLASXt
 long double LinkRoute::optimize_p2p_init(int* loc_map, long int size){
 #ifdef DEBUG
-	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
+	fprintf(stderr, "|-----> LinkRoute::optimize_p2p_init()\n");
 #endif
 	hop_num = 2;
 	int start_hop = -42, end_hop = -42;
@@ -57,7 +57,7 @@ long double LinkRoute::optimize_p2p_init(int* loc_map, long int size){
 // Similar to BLASX behaviour when its assumed topology does not fit to the interconnect
 long double LinkRoute::optimize_p2p_serial(int* loc_map, long int size){
 #ifdef DEBUG
-	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
+	fprintf(stderr, "|-----> LinkRoute::optimize_p2p_serial()\n");
 #endif
 	hop_num = 2;
 	int start_hop = -42, end_hop = -42;
@@ -81,7 +81,7 @@ long double LinkRoute::optimize_p2p_serial(int* loc_map, long int size){
 // Similar to XKBLAS and PARALiA 1.5
 long double LinkRoute::optimize_p2p_distance(int* loc_map, long int size){
 #ifdef DEBUG
-	fprintf(stderr, "|-----> LinkRoute::optimize()\n");
+	fprintf(stderr, "|-----> LinkRoute::optimize_p2p_distance()\n");
 #endif
 	hop_num = 2;
 	int start_hop = -42, end_hop = -42;
@@ -99,6 +99,46 @@ long double LinkRoute::optimize_p2p_distance(int* loc_map, long int size){
 	hop_uid_list[1] = end_hop;
 	starting_hop = 0; 
 	loc_map[end_hop] = 42;
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+	return 0;
+}
+
+// Naive, for comparison reasons mainly
+long double LinkRoute::optimize_chain_serial(int* loc_map, long int size){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> LinkRoute::optimize_chain_serial()\n");
+#endif
+	hop_num = 1;
+	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++) 
+		if(loc_map[ctr] == 0) hop_uid_list[0] = ctr;
+		else if(loc_map[ctr] == 1 || loc_map[ctr] == 2){
+			hop_uid_list[hop_num++] = ctr;
+			loc_map[ctr] = 42;
+		}
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+	return 0;
+}
+
+long double LinkRoute::optimize_chain_random(int* loc_map, long int size){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> LinkRoute::optimize_chain_random()\n");
+#endif
+	hop_num = 0;
+	int loc_list[CHL_MEMLOCS];
+	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
+	  if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
+	  else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2)
+		loc_list[hop_num++] = ctr;
+	} 
+	int start_idx = int(rand() % hop_num); 
+	int hop_ctr = 1;
+	for(int ctr = start_idx; ctr < hop_num; ctr++) hop_uid_list[hop_ctr++] = loc_list[ctr];
+	for(int ctr = 0; ctr < start_idx; ctr++) hop_uid_list[hop_ctr++] = loc_list[ctr];
+	hop_num++;
 #ifdef DEBUG
 	fprintf(stderr, "<-----|\n");
 #endif
@@ -125,90 +165,6 @@ long double LinkRoute::optimize_reverse_p2p_init(int* loc_map, long int size){
 	return 0;
 }
 /*
-// Fetch selection based on 'distance' from available sources (if multiple exist)
-// Similar to XKBLAS and PARALiA 1.5
-#ifdef P2P_FETCH_FROM_GPU_DISTANCE
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-	DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-	hop_num = 2;
-	int start_hop = -42, end_hop = -42;
-	for(int ctr = 0; ctr < LOC_NUM; ctr++) if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
-	hop_uid_list[1] = end_hop;
-
-	int end_hop_idx = (end_hop);    
-	int pos_max = LOC_NUM;
-	double link_bw_max = 0;
-	for (int pos =0; pos < LOC_NUM; pos++) if (transfer_tile->loc_map[pos] == 0 || transfer_tile->loc_map[pos] == 42){
-		double current_link_bw = get_edge_bw(end_hop_idx, pos);
-		if (current_link_bw > link_bw_max){
-		  link_bw_max = current_link_bw;
-		  pos_max = pos;
-		}
-	}
-	hop_uid_list[0] = pos_max;
-	return 0;
-}
-#endif
-
-// Fetch selection based on 'distance' from available sources (if multiple exist) 
-// Exactly like PARALiA 1.5 
-#ifdef P2P_FETCH_FROM_GPU_DISTANCE_PLUS
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-	DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-	hop_num = 2;
-	int start_hop = -42, end_hop = -42;
-	for(int ctr = 0; ctr < LOC_NUM; ctr++) if(transfer_tile->loc_map[ctr] == 2) end_hop = ctr;
-	hop_uid_list[1] = end_hop;
-
-	int end_hop_idx = (end_hop);    
-	int pos_max = LOC_NUM;
-	double link_bw_max = 0;
-	for (int pos =0; pos < LOC_NUM; pos++){
-		if (pos == end_hop_idx || transfer_tile->StoreBlock[pos] == NULL) {
-	  //if (StoreBlock[pos]!= NULL)
-	  //  error("Tile2D(%d)::getClosestReadLoc(%d): Should not be called, Tile already available in %d.\n",  id, end_hop, end_hop);
-	  continue;
-	}
-	//StoreBlock[pos]->update_state(false);
-	state temp = transfer_tile->StoreBlock[pos]->State;
-	if (temp == AVAILABLE || temp == SHARABLE || temp == NATIVE ){
-	  event_status block_status = transfer_tile->StoreBlock[pos]->Available->query_status();
-	  if(block_status == COMPLETE || block_status == CHECKED || block_status == RECORDED){
-		double current_link_bw = get_edge_bw(end_hop_idx, pos);
-		if (block_status == RECORDED) current_link_bw-=current_link_bw*0.1; //FETCH_UNAVAILABLE_PENALTY=0.1
-		if (current_link_bw > link_bw_max){
-		  link_bw_max = current_link_bw;
-		  pos_max = pos;
-		}
-		else if (current_link_bw == link_bw_max &&
-		final_estimated_linkmap->link_uses[end_hop_idx][pos] < final_estimated_linkmap->link_uses[end_hop_idx][pos_max]){
-		  link_bw_max = current_link_bw;
-		  pos_max = pos;
-		}
-	  }
-	}
-  }
-#ifdef DEBUG
-  fprintf(stderr, "|-----> LinkRoute::optimize(DataTile[%d:%d,%d]): Selecting src = %d for dest = %d\n", transfer_tile->id, transfer_tile->dim1, transfer_tile->dim2, pos_max, end_hop);
-#endif
-   hop_uid_list[0] = pos_max);
-  return 0;
-}
-#endif
-
-// Naive, for comparison reasons mainly
-#ifdef CHAIN_FETCH_SERIAL
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-	DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-	hop_num = 1;
-	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
-	  if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
-	  else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2)
-		hop_uid_list[hop_num++] = ctr;
-	}
-	return 0;
-}
-#endif
 
 #ifdef CHAIN_FETCH_RANDOM
 long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
