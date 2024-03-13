@@ -140,13 +140,8 @@ void RMFreeResources(){
 void RMCleanResources(){
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_MEMLOCS; dev_id_idx++){
 		for(int dev_id_idy = 0 ; dev_id_idy < CHL_MEMLOCS; dev_id_idy++)
-		if(dev_id_idx!=dev_id_idy){
-				if(recv_queues[dev_id_idx][dev_id_idy]) recv_queues[dev_id_idx][dev_id_idy]->ETA_set(0);
-				if(wb_queues[dev_id_idx][dev_id_idy]) wb_queues[dev_id_idx][dev_id_idy]->ETA_set(0);
-		}
 		for (int i = 0; i < MAX_BACKEND_L; i++)
 			if(exec_queue[dev_id_idx]  && exec_queue[dev_id_idx][i]){
-				exec_queue[dev_id_idx][i]->ETA_set(0);
 				exec_queue_ctr[dev_id_idx] = -1;
 			}
 	}

@@ -178,10 +178,9 @@ set(TASK_ORDER SERIAL)
 #set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
 set (FETCH_ROUTING CHAIN_FETCH_TIME)
+#set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 #--------------------------------------Experimental----------------------------------------#
-
-#add_definitions(-DCHAIN_FETCH_QUEUE_WORKLOAD)
 
 ## An extra heuristic to avoid only trusting QUEUE_ETAs for route selection
 ## Since some routes migh result in extremely low botlenecks due to serialization

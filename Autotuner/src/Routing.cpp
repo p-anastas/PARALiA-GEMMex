@@ -29,6 +29,8 @@ long double LinkRoute::optimize(int* loc_map, long int size){
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_SERIAL")) return optimize_chain_serial(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_RANDOM")) return optimize_chain_random(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_TIME")) return optimize_chain_time(loc_map, size);
+	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_chain_ETA(loc_map, size);
+
 	else error("LinkRoute::optimize() -> %s not implemented", FETCH_ROUTING);
 	return 0;
 }
@@ -216,6 +218,7 @@ long double LinkRoute::optimize_chain_time(int* loc_map, long int size){
 typedef class P2P_queue_load{
 	long double queue_ETA[64][64];
 public:
+	P2P_queue_load();
 	void ETA_add_task(int dest, int src, long double task_fire_t, long double task_duration);
 	void ETA_set(int dest, int src, long double new_ETA);
 	long double ETA_get(int dest, int src);
@@ -226,16 +229,20 @@ Queue_load_p queue_load_grid = NULL;
 /*****************************************************/
 /// PARALia 2.0 - timed queues
 
+P2P_queue_load::P2P_queue_load(){
+	for(int idx = 0; idx < 64; idx++) for(int idy = 0; idy < 64; idy++) queue_ETA[idx][idy] = 0.0;
+}
+
 void P2P_queue_load::ETA_add_task(int dest, int src, long double task_fire_t, long double task_duration){
-	queue_ETA = fmax(queue_ETA, task_fire_t) + task_duration;
+	queue_ETA[dest][src] = std::max(queue_ETA[dest][src], task_fire_t) + task_duration;
 }
 
 void P2P_queue_load::ETA_set(int dest, int src,long double new_ETA){
-	queue_ETA = new_ETA; 
+	queue_ETA[dest][src] = new_ETA; 
 }
 
-long double P2P_queue_load::ETA_get(int dest, int src,){
-	return queue_ETA;
+long double P2P_queue_load::ETA_get(int dest, int src){
+	return queue_ETA[dest][src];
 }
 
 /*****************************************************/
@@ -260,73 +267,74 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size){
 //	  min_ETA = optimize_hop_route(transfer_tile_wrapped, update_ETA_flag, hop_uid_list[1], hop_uid_list[0]);
 //#else
 		long double temp_t = size/(1e9*get_edge_bw(hop_uid_list[1], hop_uid_list[0]));
-		recv_queues[(hop_uid_list[1])][(hop_uid_list[0])]->ETA_add_task(fire_t, temp_t);
-		min_ETA = std::max(recv_queues[(hop_uid_list[1])][(hop_uid_list[0])]->ETA_get(), fire_t) + temp_t;
+		queue_load_grid->ETA_add_task(hop_uid_list[1], hop_uid_list[0], fire_t, temp_t);
+		min_ETA = std::max(queue_load_grid->ETA_get(hop_uid_list[1], hop_uid_list[0]), fire_t) + temp_t;
 		hop_num++;
 //#endif
 	}
 	else{
-	  int best_list[factorial(hop_num)][hop_num]; 
-	  int flag = 1, tie_list_num = 0;
-	  while (flag){
-		long double max_t = -1, total_t = 0, temp_t;
-		int temp_ctr = 0, prev = hop_uid_list[0], templist[hop_num]; 
-		for (int x : loc_list){
-		  templist[temp_ctr++] = x; 
-		  temp_t = size/(1e9*get_edge_bw(x, prev));
-		  if (temp_t > max_t) max_t = temp_t;
-		  total_t += temp_t;
-		  prev = x;
+		int best_list[factorial(hop_num)][hop_num]; 
+		int flag = 1, tie_list_num = 0;
+		while (flag){
+			long double max_t = -1, total_t = 0, temp_t;
+			int temp_ctr = 0, prev = hop_uid_list[0], templist[hop_num]; 
+			for (int x : loc_list){
+				templist[temp_ctr++] = x; 
+				temp_t = size/(1e9*get_edge_bw(x, prev));
+				if (temp_t > max_t) max_t = temp_t;
+				total_t += temp_t;
+				prev = x;
+			}
+			temp_t = max_t + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
+			//fprintf(stderr,"Checking location list[%s]: temp_t = %lf\n", printlist(templist,hop_num), temp_t);
+			prev = hop_uid_list[0];
+			long double temp_ETA = 0, queue_ETA; 
+			for(int ctr = 0; ctr < hop_num; ctr++){
+				queue_ETA = std::max(queue_load_grid->ETA_get(templist[ctr], prev), fire_t) + temp_t;
+				//fprintf(stderr,"queue_ETA [%d -> %d]= %lf (temp_t = %lf)\n", prev), templist[ctr], queue_ETA);
+				prev = templist[ctr];
+				if(temp_ETA < queue_ETA) temp_ETA = queue_ETA;
+				//fprintf(stderr,"Checking location list[%s]: queue_ETA = %lf\n", printlist(templist,hop_num), queue_ETA);
+			}
+			//fprintf(stderr,"Checking location list[%s]: temp_ETA = %lf\n", printlist(templist,hop_num), temp_ETA);
+			if(temp_ETA < min_ETA){// && BANDWIDTH_DIFFERENCE_CUTTOF_RATIO*tile_t >= temp_t){
+				//if(abs(temp_ETA - min_ETA)/temp_t > NORMALIZE_NEAR_SPLIT_LIMIT && temp_ETA < min_ETA){
+				min_ETA = temp_ETA;
+				tile_t = temp_t;
+				for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
+				tie_list_num = 1;
+#ifdef DPDEBUG
+				fprintf(stderr,"DataTile[%d:%d,%d]: New min_ETA(%llf) for route = %s\n", 
+				transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, min_ETA, 
+				printlist(best_list[tie_list_num-1],hop_num));
+#endif
+			}
+			else if (temp_ETA == min_ETA){
+			//else if(abs(temp_ETA - min_ETA)/temp_t <= NORMALIZE_NEAR_SPLIT_LIMIT){
+			for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
+			tie_list_num++;
+	#ifdef DPDEBUG
+			fprintf(stderr,"DataTile[%d:%d,%d]: same min_ETA(%llf) for candidate(%d) route = %s\n", 
+				transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, temp_ETA, 
+				tie_list_num, printlist(best_list[tie_list_num-1],hop_num));
+	#endif
+			}
+			flag = std::next_permutation(loc_list.begin(), loc_list.end());
 		}
-		temp_t = max_t + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
-		//fprintf(stderr,"Checking location list[%s]: temp_t = %lf\n", printlist(templist,hop_num), temp_t);
-		prev = hop_uid_list[0];
-		long double temp_ETA = 0, queue_ETA; 
+		
+		int rand_tie_list = int(rand() % tie_list_num); 
+	#ifdef SDEBUG
+		fprintf(stderr,"DataTile[%d:%d,%d]: Selected route = %s from %d candidates with ETA = %llf\n", 
+				transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2,
+				printlist(best_list[tie_list_num-1],hop_num), tie_list_num, min_ETA);
+	#endif
 		for(int ctr = 0; ctr < hop_num; ctr++){
-			queue_ETA = std::max(recv_queues[(templist[ctr])][(prev)]->ETA_get(), fire_t) + temp_t;
-			//fprintf(stderr,"queue_ETA [%d -> %d]= %lf (temp_t = %lf)\n", prev), templist[ctr], queue_ETA);
-			prev = templist[ctr];
-			if(temp_ETA < queue_ETA) temp_ETA = queue_ETA;
-			//fprintf(stderr,"Checking location list[%s]: queue_ETA = %lf\n", printlist(templist,hop_num), queue_ETA);
+				hop_uid_list[ctr+1] = best_list[rand_tie_list][ctr];
+				queue_load_grid->ETA_set(hop_uid_list[ctr+1], hop_uid_list[ctr], min_ETA);
 		}
-		//fprintf(stderr,"Checking location list[%s]: temp_ETA = %lf\n", printlist(templist,hop_num), temp_ETA);
-		if(temp_ETA < min_ETA){// && BANDWIDTH_DIFFERENCE_CUTTOF_RATIO*tile_t >= temp_t){
-		//if(abs(temp_ETA - min_ETA)/temp_t > NORMALIZE_NEAR_SPLIT_LIMIT && temp_ETA < min_ETA){
-		  min_ETA = temp_ETA;
-		  tile_t = temp_t;
-		  for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
-		  tie_list_num = 1;
-#ifdef DPDEBUG
-		fprintf(stderr,"DataTile[%d:%d,%d]: New min_ETA(%llf) for route = %s\n", 
-		  transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, min_ETA, 
-		  printlist(best_list[tie_list_num-1],hop_num));
-#endif
-		}
-		else if (temp_ETA == min_ETA){
-		//else if(abs(temp_ETA - min_ETA)/temp_t <= NORMALIZE_NEAR_SPLIT_LIMIT){
-		  for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
-		  tie_list_num++;
-#ifdef DPDEBUG
-		  fprintf(stderr,"DataTile[%d:%d,%d]: same min_ETA(%llf) for candidate(%d) route = %s\n", 
-			transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, temp_ETA, 
-			tie_list_num, printlist(best_list[tie_list_num-1],hop_num));
-#endif
-		}
-		flag = std::next_permutation(loc_list.begin(), loc_list.end());
-	  }
-	  
-	  int rand_tie_list = int(rand() % tie_list_num); 
-#ifdef SDEBUG
-	  fprintf(stderr,"DataTile[%d:%d,%d]: Selected route = %s from %d candidates with ETA = %llf\n", 
-			transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2,
-			printlist(best_list[tie_list_num-1],hop_num), tie_list_num, min_ETA);
-#endif
-	  for(int ctr = 0; ctr < hop_num; ctr++){
-			hop_uid_list[ctr+1] = best_list[rand_tie_list][ctr];
-			recv_queues[(hop_uid_list[ctr+1])][(hop_uid_list[ctr])]->ETA_set(min_ETA);
-	  }
-	  hop_num++;
+		hop_num++;
 	}
+	for(int ctr = 1; ctr < hop_num; ctr++) loc_map[hop_uid_list[ctr]] = 42;
 	return min_ETA; 
 }
 
