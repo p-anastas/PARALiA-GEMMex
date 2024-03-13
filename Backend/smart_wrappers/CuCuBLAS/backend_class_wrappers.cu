@@ -62,7 +62,6 @@ CommandQueue::CommandQueue(int dev_id_in, CQueue_type type_in)
 	dev_id = dev_id_in;
 	type = type_in;
 	backend_queue_ptr = backend_comp_md = NULL;
-	queue_ETA = 0;
 	CHLSelectDevice(dev_id);
 	// Create the queue backend stream
 	backend_queue_ptr = malloc(sizeof(cudaStream_t));
@@ -358,22 +357,6 @@ void CommandQueue::memcpy2DAsync(void* dest, long int ldest, void* src, long int
 #endif
 }
 
-/*****************************************************/
-/// PARALia 2.0 - timed queues
-
-void CommandQueue::ETA_add_task(long double task_fire_t, long double task_duration){
-	queue_ETA = fmax(queue_ETA, task_fire_t) + task_duration;
-}
-
-void CommandQueue::ETA_set(long double new_ETA){
-	queue_ETA = new_ETA; 
-}
-
-long double CommandQueue::ETA_get(){
-	return queue_ETA;
-}
-
-/*****************************************************/
 /// Event class functions.
 Event::Event()
 {
