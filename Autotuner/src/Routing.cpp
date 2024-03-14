@@ -1,10 +1,13 @@
 
 #include <iostream>
 #include <cfloat>
+#include <climits>
+#include <algorithm>
+#include <iostream>
+#include <list>
 
 #include "chl_smart_wrappers.hpp"
 #include "Autotuner.hpp"
-//#include "Resource_manager.hpp"
 
 double get_edge_bw(int dest_loc, int src_loc){
 	if(best_grid_edge_active[dest_loc][src_loc]!= -1){
@@ -22,15 +25,14 @@ double get_edge_bw(int dest_loc, int src_loc){
 	return -1.0; // Should never reach, just to remove warning
 }
 
-long double LinkRoute::optimize(int* loc_map, long int size){
+long double LinkRoute::optimize(int* loc_map, long int size, int update_flag){
 	if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_INIT")) return optimize_p2p_init(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_SERIAL")) return optimize_p2p_serial(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_DISTANCE")) return optimize_p2p_distance(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_SERIAL")) return optimize_chain_serial(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_RANDOM")) return optimize_chain_random(loc_map, size);
 	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_TIME")) return optimize_chain_time(loc_map, size);
-	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_chain_ETA(loc_map, size);
-
+	else if(!strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_chain_ETA(loc_map, size, update_flag);
 	else error("LinkRoute::optimize() -> %s not implemented", FETCH_ROUTING);
 	return 0;
 }
@@ -150,10 +152,6 @@ long double LinkRoute::optimize_chain_random(int* loc_map, long int size){
 	return 0;
 }
 
-#include <algorithm>
-#include <iostream>
-#include <list>
-
 long double LinkRoute::optimize_chain_time(int* loc_map, long int size){
 #ifdef DEBUG
 	fprintf(stderr, "|-----> LinkRoute::optimize_chain_time()\n");
@@ -247,7 +245,7 @@ long double P2P_queue_load::ETA_get(int dest, int src){
 
 /*****************************************************/
 
-long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size){
+long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int update_flag){
 	if(!queue_load_grid) queue_load_grid = new P2P_queue_load();
 	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = csecond();
 	hop_num = 0;
@@ -267,7 +265,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size){
 //	  min_ETA = optimize_hop_route(transfer_tile_wrapped, update_ETA_flag, hop_uid_list[1], hop_uid_list[0]);
 //#else
 		long double temp_t = size/(1e9*get_edge_bw(hop_uid_list[1], hop_uid_list[0]));
-		queue_load_grid->ETA_add_task(hop_uid_list[1], hop_uid_list[0], fire_t, temp_t);
+		if (update_flag) queue_load_grid->ETA_add_task(hop_uid_list[1], hop_uid_list[0], fire_t, temp_t);
 		min_ETA = std::max(queue_load_grid->ETA_get(hop_uid_list[1], hop_uid_list[0]), fire_t) + temp_t;
 		hop_num++;
 //#endif
@@ -323,18 +321,17 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size){
 		}
 		
 		int rand_tie_list = int(rand() % tie_list_num); 
-	#ifdef SDEBUG
-		fprintf(stderr,"DataTile[%d:%d,%d]: Selected route = %s from %d candidates with ETA = %llf\n", 
-				transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2,
-				printlist(best_list[tie_list_num-1],hop_num), tie_list_num, min_ETA);
-	#endif
 		for(int ctr = 0; ctr < hop_num; ctr++){
 				hop_uid_list[ctr+1] = best_list[rand_tie_list][ctr];
-				queue_load_grid->ETA_set(hop_uid_list[ctr+1], hop_uid_list[ctr], min_ETA);
+				if (update_flag) queue_load_grid->ETA_set(hop_uid_list[ctr+1], hop_uid_list[ctr], min_ETA);
 		}
 		hop_num++;
+#ifdef PDEBUG
+		fprintf(stderr,"Selected route = %s from %d candidates with ETA = %llf\n", 
+				printlist(hop_uid_list, hop_num), tie_list_num, min_ETA);
+#endif
 	}
-	for(int ctr = 1; ctr < hop_num; ctr++) loc_map[hop_uid_list[ctr]] = 42;
+	if (update_flag) for(int ctr = 1; ctr < hop_num; ctr++) loc_map[hop_uid_list[ctr]] = 42;
 	return min_ETA; 
 }
 
@@ -357,101 +354,190 @@ long double LinkRoute::optimize_reverse_p2p_init(int* loc_map, long int size){
 	starting_hop = 0; 
 	return 0;
 }
-/*
 
-#ifdef CHAIN_FETCH_QUEUE_WORKLOAD
-long double LinkRoute::optimize(void* transfer_tile_wrapped, int update_ETA_flag){
-	DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
-	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = csecond();
-	hop_num = 0;
-	std::list<int> loc_list;
-	int tmp_hop = -42; 
-	for(int ctr = 0; ctr < CHL_MEMLOCS; ctr++){
-	  if(transfer_tile->loc_map[ctr] == 0) hop_uid_list[0] = ctr;
-	  else if(transfer_tile->loc_map[ctr] == 1 || transfer_tile->loc_map[ctr] == 2){
-		tmp_hop = ctr;
-		loc_list.push_back(tmp_hop);
-		hop_num++;
-	  }
+/*
+Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkernel_list_len){
+	Subkernel* curr_sk = NULL;
+	int task_idx, min_ETA_tasks[Subkernel_list_len], tie_list_num = 0, doubletie_list_num = 0; 
+	long double min_ETA = DBL_MAX;
+	if(!Subkernel_list_len) error("SubkernelSelect: Gave 0 subkernel len with list = %p\n", Subkernel_list);
+	for (sk_idx = 0; task_idx < Subkernel_list_len; task_idx++)if(!Subkernel_list[sk_idx]->launched){
+		curr_sk = Subkernel_list[sk_idx];
+		long double tmp_ETA = 0; 
+		for (int j = 0; j < curr_sk->TileNum; j++){
+			long double block_ETA = 0; 
+			if ( RONLY == curr_sk->TileList[j]->WRP || WR == curr_sk->TileList[j]->WRP){
+				block_ETA = curr_sk->TileList[j]->ETA_get(dev_id);
+				if(-42 == block_ETA) block_ETA = curr_sk->TileList[j]->ETA_fetch_estimate(dev_id);
+			}
+			tmp_ETA = std::max(block_ETA, tmp_ETA);
+		}
+		if(tmp_ETA < min_ETA){
+		//if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) > NORMALIZE_NEAR_SPLIT_LIMIT && tmp_ETA < min_ETA){
+			min_ETA = tmp_ETA;
+			min_ETA_tasks[0] = task_idx;
+			tie_list_num = 1; 
+		}
+		else if(tmp_ETA == min_ETA){
+		//else if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) <= NORMALIZE_NEAR_SPLIT_LIMIT){
+			min_ETA_tasks[tie_list_num++] = task_idx;
+		}
 	}
-	if (hop_num == 1){
-	  hop_uid_list[1] = tmp_hop;
-#ifdef ENABLE_TRANSFER_HOPS
-	  min_ETA = optimize_hop_route(transfer_tile_wrapped, update_ETA_flag, hop_uid_list[1], hop_uid_list[0]);
-#else
-	  long double temp_t = transfer_tile->size()/(1e9*get_edge_bw(hop_uid_list[1], hop_uid_list[0]));
-	  if (update_ETA_flag)
-		recv_queues[(hop_uid_list[1])][(hop_uid_list[0])]->ETA_add_task(fire_t, temp_t);
-	  min_ETA = std::max(recv_queues[(hop_uid_list[1])][(hop_uid_list[0])]->ETA_get(), 
-				fire_t) + temp_t;
-	  hop_num++;
-#endif
+	int most_fired_sks = -1, potential_tied_sks[tie_list_num];
+	if (tie_list_num){
+		potential_tied_sks[0] = min_ETA_tasks[0];
+		doubletie_list_num = 1; 
 	}
-	else{
-	  int best_list[factorial(hop_num)][hop_num]; 
-	  int flag = 1, tie_list_num = 0;
-	  while (flag){
-		long double max_t = -1, total_t = 0, temp_t;
-		int temp_ctr = 0, prev = hop_uid_list[0], templist[hop_num]; 
-		for (int x : loc_list){
-		  templist[temp_ctr++] = x; 
-		  temp_t = transfer_tile->size()/(1e9*get_edge_bw(x, prev));
-		  if (temp_t > max_t) max_t = temp_t;
-		  total_t += temp_t;
-		  prev = x;
+	else error("SubkernelSelect\n No sk matched search condition\n");
+	for (int ctr = 0; ctr < tie_list_num; ctr++){
+		curr_sk = Subkernel_list[min_ETA_tasks[ctr]];
+		int tmp_fired_sks = 0; 
+		for (int j = 0; j < curr_sk->TileNum; j++){
+			if ( WR_LAZY == curr_sk->TileList[j]->WRP || WR == curr_sk->TileList[j]->WRP
+				|| W_REDUCE == curr_sk->TileList[j]->WRP || WONLY == curr_sk->TileList[j]->WRP){
+				tmp_fired_sks = curr_sk->TileList[j]->fired_times; 
+			}
 		}
-		temp_t = max_t + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
-		//fprintf(stderr,"Checking location list[%s]: temp_t = %lf\n", printlist(templist,hop_num), temp_t);
-		prev = hop_uid_list[0];
-		long double temp_ETA = 0, queue_ETA; 
-		for(int ctr = 0; ctr < hop_num; ctr++){
-			queue_ETA = std::max(recv_queues[(templist[ctr])][(prev)]->ETA_get(), fire_t) + temp_t;
-			//fprintf(stderr,"queue_ETA [%d -> %d]= %lf (temp_t = %lf)\n", prev), templist[ctr], queue_ETA);
-			prev = templist[ctr];
-			if(temp_ETA < queue_ETA) temp_ETA = queue_ETA;
-			//fprintf(stderr,"Checking location list[%s]: queue_ETA = %lf\n", printlist(templist,hop_num), queue_ETA);
+		if(tmp_fired_sks > most_fired_sks){
+			most_fired_sks = tmp_fired_sks;
+			potential_tied_sks[0] = min_ETA_tasks[ctr];
+			doubletie_list_num = 1; 
 		}
-		//fprintf(stderr,"Checking location list[%s]: temp_ETA = %lf\n", printlist(templist,hop_num), temp_ETA);
-		if(temp_ETA < min_ETA && BANDWIDTH_DIFFERENCE_CUTTOF_RATIO*tile_t >= temp_t){
-		//if(abs(temp_ETA - min_ETA)/temp_t > NORMALIZE_NEAR_SPLIT_LIMIT && temp_ETA < min_ETA){
-		  min_ETA = temp_ETA;
-		  tile_t = temp_t;
-		  for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
-		  tie_list_num = 1;
-#ifdef DPDEBUG
-		fprintf(stderr,"DataTile[%d:%d,%d]: New min_ETA(%llf) for route = %s\n", 
-		  transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, min_ETA, 
-		  printlist(best_list[tie_list_num-1],hop_num));
-#endif
-		}
-		else if (temp_ETA == min_ETA){
-		//else if(abs(temp_ETA - min_ETA)/temp_t <= NORMALIZE_NEAR_SPLIT_LIMIT){
-		  for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
-		  tie_list_num++;
-#ifdef DPDEBUG
-		  fprintf(stderr,"DataTile[%d:%d,%d]: same min_ETA(%llf) for candidate(%d) route = %s\n", 
-			transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, temp_ETA, 
-			tie_list_num, printlist(best_list[tie_list_num-1],hop_num));
-#endif
-		}
-		flag = std::next_permutation(loc_list.begin(), loc_list.end());
-	  }
-	  
-	  int rand_tie_list = int(rand() % tie_list_num); 
-#ifdef SDEBUG
-	  fprintf(stderr,"DataTile[%d:%d,%d]: Selected route = %s from %d candidates with ETA = %llf\n", 
-		  transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2,
-		  printlist(best_list[tie_list_num-1],hop_num), tie_list_num, min_ETA);
-#endif
-	  for(int ctr = 0; ctr < hop_num; ctr++){
-		hop_uid_list[ctr+1] = best_list[rand_tie_list][ctr];
-		if (update_ETA_flag) recv_queues[(hop_uid_list[ctr+1])][(hop_uid_list[ctr])]->ETA_set(min_ETA);
-	  }
-	  hop_num++;
+		//else if(tmp_fired_sks == most_fired_sks){
+		//else if(abs(tmp_ETA - min_ETA)/abs(tmp_ETA-csecond()) <= NORMALIZE_NEAR_SPLIT_LIMIT){
+		//	potential_tied_sks[doubletie_list_num++] = min_ETA_tasks[ctr];
+		//}
 	}
-	return min_ETA; 
+	int selected_sk_idx = (doubletie_list_num)? 
+		potential_tied_sks[int(rand() % doubletie_list_num)] : doubletie_list_num; 
+	Subkernel_list[selected_sk_idx]->prepare_launch(dev_id);
+	return Subkernel_list[selected_sk_idx];
 }
-#endif
+*/
+
+void ATC::optimize_tasks_ETA(){
+	if(strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_tasks_serial();
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	long int size = T*T*elemSize;
+	task_num = 0;
+	int comp_task_fired[comp_task_num] = {0};
+	while (comp_task_ctr < comp_task_num){
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			int dev_id = active_unit_id_list[dev_idx];
+			long double min_ETA = DBL_MAX;
+			int min_ETA_tasks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
+				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
+				if(comp_task_fired[comp_task_cand]) continue;
+				LinkRoute_p A_tile_route = new LinkRoute(), 
+					B_tile_route = new LinkRoute(), C_tile_route = new LinkRoute();
+				long comp_task_Cidx = comp_task_cand/Grid_K;
+				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				long double temp_ETA = 0, temp_t;
+				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42)
+					temp_t = A_tile_route->optimize(A_tile_loc_map[im][ik], size, 0);
+				else temp_t = A_tile_ETA[im][ik][dev_id]; 
+				temp_ETA = std::max(temp_t, temp_ETA);
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42)
+					temp_t = B_tile_route->optimize(B_tile_loc_map[ik][in], size, 0);
+				else temp_t = B_tile_ETA[ik][in][dev_id]; 
+				temp_ETA = std::max(temp_t, temp_ETA);
+				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
+					C_tile_loc_map[im][in][dev_id] = 2; 
+					temp_t = C_tile_route->optimize(C_tile_loc_map[im][in], size, 0);
+				}
+				else temp_t = C_tile_ETA[im][in][dev_id]; 
+				temp_ETA = std::max(temp_t, temp_ETA);
+				if(temp_ETA < min_ETA){
+					min_ETA = temp_ETA;
+					min_ETA_tasks[0] = comp_task_cand;
+					tie_list_num = 1; 
+				}
+				else if (temp_ETA == min_ETA)
+					min_ETA_tasks[tie_list_num++] = comp_task_cand;
+				delete A_tile_route;
+				delete B_tile_route;
+				delete C_tile_route;
+			}
+			int selected_task_idx = min_ETA_tasks[int(rand() % tie_list_num)]; 
+			decompose_comp_task(selected_task_idx, dev_idx);
+			comp_task_perdev[dev_idx]++;
+			comp_task_ctr++;
+		}
+	}
+}
+
+void ATC::optimize_tasks_ETA_plus_MinPendingOps(){
+	if(strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_tasks_serial();
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	long int size = T*T*elemSize;
+	task_num = 0;
+	int comp_task_fired[comp_task_num] = {0}, comp_Cops_fired[comp_task_num/Grid_K];
+	while (comp_task_ctr < comp_task_num){
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			int dev_id = active_unit_id_list[dev_idx];
+			long double min_ETA = DBL_MAX;
+			int min_ETA_tasks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
+				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
+				if(comp_task_fired[comp_task_cand]) continue;
+				LinkRoute_p A_tile_route = new LinkRoute(), 
+					B_tile_route = new LinkRoute(), C_tile_route = new LinkRoute();
+				long comp_task_Cidx = comp_task_cand/Grid_K;
+				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				long double temp_ETA = 0, temp_t;
+				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42)
+					temp_t = A_tile_route->optimize(A_tile_loc_map[im][ik], size, 0);
+				else temp_t = A_tile_ETA[im][ik][dev_id]; 
+				temp_ETA = std::max(temp_t, temp_ETA);
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42)
+					temp_t = B_tile_route->optimize(B_tile_loc_map[ik][in], size, 0);
+				else temp_t = B_tile_ETA[ik][in][dev_id]; 
+				temp_ETA = std::max(temp_t, temp_ETA);
+				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
+					C_tile_loc_map[im][in][dev_id] = 2; 
+					temp_t = C_tile_route->optimize(C_tile_loc_map[im][in], size, 0);
+				}
+				else temp_t = C_tile_ETA[im][in][dev_id]; 
+				temp_ETA = std::max(temp_t, temp_ETA);
+				if(temp_ETA < min_ETA){
+					min_ETA = temp_ETA;
+					min_ETA_tasks[0] = comp_task_cand;
+					tie_list_num = 1; 
+				}
+				else if (temp_ETA == min_ETA)
+					min_ETA_tasks[tie_list_num++] = comp_task_cand;
+				delete A_tile_route;
+				delete B_tile_route;
+				delete C_tile_route;
+			}
+			int min_rem_ops = INT_MAX;
+			int min_ETA_plus_minops_tasks[tie_list_num], tie_list_num_minops = 0;
+			for(int comp_idx = 0; comp_idx < tie_list_num; comp_idx++){
+				long comp_task_cand = min_ETA_plus_minops_tasks[comp_idx];
+				int temp_remops = Grid_K - comp_Cops_fired[comp_task_cand/Grid_K];
+				if(temp_remops < min_rem_ops){
+					min_rem_ops = temp_remops;
+					min_ETA_plus_minops_tasks[0] = comp_task_cand;
+					tie_list_num_minops = 1; 
+				}
+				else if (temp_remops == min_rem_ops) 
+					min_ETA_plus_minops_tasks[tie_list_num_minops++] = comp_task_cand;
+			}
+			int selected_task_idx = min_ETA_plus_minops_tasks[int(rand() % tie_list_num_minops)]; 
+			decompose_comp_task(selected_task_idx, dev_idx);
+			comp_Cops_fired[selected_task_idx/Grid_K]++;
+			comp_task_perdev[dev_idx]++;
+			comp_task_ctr++;
+		}
+	}	
+}
+
+/*
 
 long double LinkRoute::optimize_reverse(void* transfer_tile_wrapped, int update_ETA_flag){
   DataTile_p transfer_tile = (DataTile_p) transfer_tile_wrapped;
@@ -462,7 +548,7 @@ long double LinkRoute::optimize_reverse(void* transfer_tile_wrapped, int update_
   {
 	  if(transfer_tile->loc_map[ctr] == 42) start_hop = ctr;
 	  if(transfer_tile->loc_map[ctr] == 0) end_hop = ctr;
-  }
+  0
 #ifdef ENABLE_TRANSFER_HOPS
   long double min_ETA = optimize_hop_route(transfer_tile_wrapped, 0, end_hop, start_hop);
 #else

@@ -58,6 +58,9 @@ typedef class ATC{
 		int*** A_tile_loc_map = NULL; 
 		int*** B_tile_loc_map = NULL; 
 		int*** C_tile_loc_map = NULL; 
+		long double*** A_tile_ETA = NULL;
+		long double*** B_tile_ETA = NULL;
+		long double*** C_tile_ETA = NULL;
 
 		Gamalg_p inter_grid; /// The LinkMap representation of the system memory interconnection.
 
@@ -119,8 +122,12 @@ typedef class ATC{
 	/// 2D block cyclic distribution is prefered
 	void distribute_comp_tasks();
 	void initialize_tasks();
+	void decompose_comp_task(long int comp_task_cand, int dev_idx);
 	void optimize_tasks();
 	void optimize_tasks_serial();
+	void optimize_tasks_MinFetchNum();
+	void optimize_tasks_ETA();
+	void optimize_tasks_ETA_plus_MinPendingOps();
 /******************************************************************************/
 /**************************** Helper Fuctions *********************************/
 	void print(); /// Print the characteristics of the autotune controller to stderr

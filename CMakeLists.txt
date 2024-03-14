@@ -68,8 +68,8 @@ set(MAX_BACKEND_L 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#set(OUTPUT_ALGO_MODE ALGO_WR)
-set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+set(OUTPUT_ALGO_MODE ALGO_WR)
+#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -163,8 +163,9 @@ set(ORDER_2DBC D1_lesseq_D2) #Default
 set(TASK_ORDER SERIAL)
 
 #--------------------------------------Experimental----------------------------------------#
-#add_definitions(-DTASK_ORDER="FETCH_ETA_PLUS_MIN_PENDING")
-
+#set(TASK_ORDER FETCH_MINFETCH)
+#set(TASK_ORDER FETCH_ETA)
+#set(TASK_ORDER FETCH_ETA_PLUS_MIN_PENDING)
 
 ###########################################################################################
 #--------------------------------Fetch routing options--------------------------------#
@@ -172,12 +173,12 @@ set(TASK_ORDER SERIAL)
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
 #set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
-set (FETCH_ROUTING CHAIN_FETCH_TIME)
+#set (FETCH_ROUTING CHAIN_FETCH_TIME)
 #set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 #--------------------------------------Experimental----------------------------------------#
@@ -263,7 +264,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
-#add_definitions(-DPDEBUG)
+add_definitions(-DPDEBUG)
 
 #Run Prediction deep debug mode (all autotuner stuff)
 #add_definitions(-DDPDEBUG)
@@ -387,14 +388,6 @@ ADD_SUBDIRECTORY (Backend)
 set(PROJECT_BENCH_DIR ${PROJECT_SOURCE_DIR}/Benchmarking)
 configure_file(${PROJECT_BENCH_DIR}/Targeted_performance_evaluation.in ${CMAKE_INSTALL_PROJECT}/Targeted_performance_evaluation.sh @ONLY)
 configure_file(${PROJECT_BENCH_DIR}/Heterogeneous_performance_estimation.in ${CMAKE_INSTALL_PROJECT}/Heterogeneous_performance_estimation.sh @ONLY)
-
-#set(VALUETYPEID 1)
-#if (${VALUETYPEID} EQUAL 0)
-#  add_definitions(-DVALUE_TYPE=float)
-#elseif(${VALUETYPEID} EQUAL 1)
-#  add_definitions(-DVALUE_TYPE=double)
-#else()
-#endif()
 
 ADD_SUBDIRECTORY (Autotuner)
 ADD_SUBDIRECTORY (Library)

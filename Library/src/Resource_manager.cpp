@@ -30,7 +30,7 @@ int RMConfigResources(){
 
 void RMInitResources(int* dev_list, int dev_num){
 #ifdef DEBUG
-	fprintf(stderr, "|-----> RMInitResources(%p, %d)\n", dev_list, dev_num);
+	fprintf(stderr, "|-----> RMInitResources(%s)\n", printlist(dev_list, dev_num));
 #endif
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS + 1; dev_id_idx++){
 		for(int dev_id_idy = 0 ; dev_id_idy < CHL_WORKERS + 1; dev_id_idy++)

@@ -514,12 +514,18 @@ void ATC::initialize_tasks(){
 
 	/// Tile maps moved to autotuner in PARALiA 3.0 (removed from DataTile)
 	A_tile_loc_map = (int***) malloc(Grid_M*sizeof(int**));
+	A_tile_ETA = (long double***) malloc(Grid_M*sizeof(long double**));
 	for(int im = 0; im < Grid_M; im++){
 		A_tile_loc_map[im] = (int**) malloc(Grid_K*sizeof(int*));
+		A_tile_ETA[im] = (long double**) malloc(Grid_M*sizeof(long double*));
 		for(int ik = 0; ik < Grid_K; ik++){
 			A_tile_loc_map[im][ik] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
+			A_tile_ETA[im][ik] = (long double*) malloc(CHL_MEMLOCS*sizeof(long double));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
-				if (loc == A_loc) A_tile_loc_map[im][ik][loc] = 0;
+				if (loc == A_loc){
+					A_tile_loc_map[im][ik][loc] = 0;
+					A_tile_ETA[im][ik][loc] = 0;
+				}
 				else if (strstr(FETCH_ROUTING, "CHAIN") && is_in_list(loc, active_unit_id_list, active_unit_num)){
 					int D1_loc = loc/D2_parts, D2_loc = loc%D2_parts;
 					if(!D1_loc && C_Decom_grid[D1_loc][D2_loc][0] > im)
@@ -527,8 +533,13 @@ void ATC::initialize_tasks(){
 					else if(C_Decom_grid[D1_loc-1][D2_loc][0] <= im && C_Decom_grid[D1_loc][D2_loc][0] > im)
 						A_tile_loc_map[im][ik][loc] = 1;
 					else A_tile_loc_map[im][ik][loc] = -42;
+					A_tile_ETA[im][ik][loc] = -42;
 				}
-				else A_tile_loc_map[im][ik][loc] = -42;
+				else {
+					A_tile_loc_map[im][ik][loc] = -42;
+					A_tile_ETA[im][ik][loc] = -42;
+				}
+
 		}
 	}
 #ifdef PDEBUG
@@ -538,12 +549,18 @@ void ATC::initialize_tasks(){
 				im, ik, printlist<int>(A_tile_loc_map[im][ik], CHL_MEMLOCS));
 #endif
 	B_tile_loc_map = (int***) malloc(Grid_K*sizeof(int**));
+	B_tile_ETA = (long double***) malloc(Grid_K*sizeof(long double**));
 	for(int ik = 0; ik < Grid_K; ik++){
 		B_tile_loc_map[ik] = (int**) malloc(Grid_N*sizeof(int*));
+		B_tile_ETA[ik] = (long double**) malloc(Grid_N*sizeof(long double*));
 		for(int in = 0; in < Grid_N; in++){
 			B_tile_loc_map[ik][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
+			B_tile_ETA[ik][in] = (long double*) malloc(CHL_MEMLOCS*sizeof(long double));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
-				if (loc == B_loc) B_tile_loc_map[ik][in][loc] = 0;
+				if (loc == B_loc){
+					B_tile_loc_map[ik][in][loc] = 0;
+					B_tile_ETA[ik][in][loc] = 0; 
+				}
 				else if (strstr(FETCH_ROUTING, "CHAIN") && is_in_list(loc, active_unit_id_list, active_unit_num)){
 					int D1_loc = loc/D2_parts, D2_loc = loc%D2_parts;
 					if(!D2_loc && C_Decom_grid[D1_loc][D2_loc][1] > in)
@@ -551,8 +568,12 @@ void ATC::initialize_tasks(){
 					else if(C_Decom_grid[D1_loc][D2_loc-1][1] <= in && C_Decom_grid[D1_loc][D2_loc][1] > in)
 						B_tile_loc_map[ik][in][loc] = 1;
 					else B_tile_loc_map[ik][in][loc] = -42;
+					B_tile_ETA[ik][in][loc] = -42;
 				}
-				else B_tile_loc_map[ik][in][loc] = -42;
+				else{
+					B_tile_loc_map[ik][in][loc] = -42;
+					B_tile_ETA[ik][in][loc] = -42;
+				}
 		}
 	}
 #ifdef PDEBUG
@@ -562,70 +583,138 @@ void ATC::initialize_tasks(){
 				ik, in, printlist<int>(B_tile_loc_map[ik][in], CHL_MEMLOCS));
 #endif
 	C_tile_loc_map = (int***) malloc(Grid_M*sizeof(int**));
+	C_tile_ETA = (long double***) malloc(Grid_M*sizeof(long double**));
 	for(int im = 0; im < Grid_M; im++){
 		C_tile_loc_map[im] = (int**) malloc(Grid_N*sizeof(int*));
+		C_tile_ETA[im] = (long double**) malloc(Grid_N*sizeof(long double*));
 		for(int in = 0; in < Grid_N; in++){
 			C_tile_loc_map[im][in] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
+			C_tile_ETA[im][in] = (long double*) malloc(CHL_MEMLOCS*sizeof(long double));
 			for(int loc = 0; loc < CHL_MEMLOCS; loc++) 
-				if (loc == C_loc) C_tile_loc_map[im][in][loc] = 0;
+				if (loc == C_loc){
+					C_tile_loc_map[im][in][loc] = 0;
+					C_tile_ETA[im][in][loc] = 0;
+				}
+				else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY") || !strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")){
+					C_tile_loc_map[im][in][loc] = -42;
+					C_tile_ETA[im][in][loc] = 0;		
+				}
 				else C_tile_loc_map[im][in][loc] = -42;
 		}
 	}
 }
 
 void ATC::optimize_tasks_serial(){
-	long int comp_task_ctr, task_ctr = comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	task_num = 0; 
 	while (comp_task_ctr < comp_task_num){
-		for(int ik = 0; ik < Grid_K; ik++){
-			for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
-				if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
-				int dev_id = active_unit_id_list[dev_idx]; 
-				int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]++]/Grid_K;
-				int im = comp_task_idx/Grid_N, in = comp_task_idx%Grid_N;
-				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42){
-					A_tile_loc_map[im][ik][dev_id] = 2; 
-					long int size = T*T*elemSize;
-					LinkRoute_p A_tile_route = new LinkRoute();
-					A_tile_route->optimize(A_tile_loc_map[im][ik], size);
-					task_list[task_ctr++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
-				}
-				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
-					B_tile_loc_map[ik][in][dev_id] = 2; 
-					long int size = T*T*elemSize;
-					LinkRoute_p B_tile_route = new LinkRoute();
-					B_tile_route->optimize(B_tile_loc_map[ik][in], size);
-					task_list[task_ctr++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
-				}
-				LinkRoute_p C_tile_route = new LinkRoute();
-				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
-					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
-					C_tile_loc_map[im][in][dev_id] = 2; 
-					long int size = T*T*elemSize;
-					C_tile_route->optimize(C_tile_loc_map[im][in], size);
-					task_list[task_ctr++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
-				}
-				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY") && (ik == Grid_K - 1) && C_tile_loc_map[im][in][dev_id]){
-					C_tile_loc_map[im][in][dev_id] = 2; 
-					long int size = T*T*elemSize;
-					C_tile_route->optimize(C_tile_loc_map[im][in], size);
-				}
-				task_list[task_ctr++] = new TileTask(COMPUTE, 2, im, in, ik, C_tile_route);
-				if(ik == Grid_K - 1 && C_tile_loc_map[im][in][dev_id]){
-					if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_loc_map[im][in][dev_id] = 42; 
-					long int size = T*T*elemSize;
-					LinkRoute_p C_tile_out_route = new LinkRoute();
-					C_tile_out_route->optimize_reverse(C_tile_loc_map[im][in], size);
-					task_list[task_ctr++] = new TileTask(WRITEBACK, 2, im, in, 0, C_tile_out_route);
-				}
-				comp_task_ctr++;
-			}
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			long int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]];
+			decompose_comp_task(comp_task_idx, dev_idx);
+			comp_task_ctr++;
+			comp_task_perdev[dev_idx]++;
 		}
 	}
-	task_num = task_ctr;
+}
+
+void ATC::optimize_tasks_MinFetchNum(){
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	int comp_task_fired[comp_task_num] = {0}, min_tasks_fetches = 100;
+	task_num = 0;
+	while (comp_task_ctr < comp_task_num){
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			int dev_id = active_unit_id_list[dev_idx];
+			int potential_sks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
+				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
+				if(comp_task_fired[comp_task_cand]) continue;
+				long comp_task_Cidx = comp_task_cand/Grid_K;
+				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				int temp_tasks_fetches = 0; 
+				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42) temp_tasks_fetches++;
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42) temp_tasks_fetches++;
+				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42) temp_tasks_fetches++;
+				if(temp_tasks_fetches < min_tasks_fetches){
+					min_tasks_fetches = temp_tasks_fetches;
+					potential_sks[0] = comp_task_cand;
+					tie_list_num = 1; 
+				}
+				else if (temp_tasks_fetches == min_tasks_fetches)
+					potential_sks[tie_list_num++] = comp_task_cand;
+			}
+			int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
+			decompose_comp_task(selected_task_idx, dev_idx);
+			comp_task_perdev[dev_idx]++;
+			comp_task_ctr++;
+		}
+	}
+}
+
+void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
+	int dev_id = active_unit_id_list[dev_idx];
+	long int size = T*T*elemSize; 
+	long comp_task_Cidx = comp_task_cand/Grid_K;
+	int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+#ifdef DEBUG
+	fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Task Grid dimensions: [%d,%d,%d]\n", 
+		comp_task_cand, dev_idx, im, in, ik);
+#endif
+	if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42){
+		A_tile_loc_map[im][ik][dev_id] = 2; 
+		LinkRoute_p A_tile_route = new LinkRoute();
+		A_tile_route->optimize(A_tile_loc_map[im][ik], size, 1);
+		task_list[task_num++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
+#ifdef PDEBUG
+		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching A_tile[%d,%d]\n", 
+		comp_task_cand, dev_idx, im, ik);
+#endif
+	}
+	if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
+		B_tile_loc_map[ik][in][dev_id] = 2; 
+		LinkRoute_p B_tile_route = new LinkRoute();
+		B_tile_route->optimize(B_tile_loc_map[ik][in], size, 1);
+		task_list[task_num++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
+#ifdef PDEBUG
+		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching B_tile[%d,%d]\n", 
+		comp_task_cand, dev_idx, ik, in);
+#endif
+	}
+	LinkRoute_p C_tile_route = new LinkRoute();
+	if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+		C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
+		C_tile_loc_map[im][in][dev_id] = 2; 
+		C_tile_route->optimize(C_tile_loc_map[im][in], size, 1);
+		task_list[task_num++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
+#ifdef PDEBUG
+		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching C_tile[%d,%d]\n", 
+		comp_task_cand, dev_idx, im, in);
+#endif
+	}
+	if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY") && (ik == Grid_K - 1) && C_tile_loc_map[im][in][dev_id]){
+		C_tile_loc_map[im][in][dev_id] = 2; 
+		C_tile_route->optimize(C_tile_loc_map[im][in], size, 1);
+	}
+	task_list[task_num++] = new TileTask(COMPUTE, 2, im, in, ik, C_tile_route);
+	if(ik == Grid_K - 1 && C_tile_loc_map[im][in][dev_id]){
+		if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_loc_map[im][in][dev_id] = 42; 
+		LinkRoute_p C_tile_out_route = new LinkRoute();
+		C_tile_out_route->optimize_reverse(C_tile_loc_map[im][in], size);
+		task_list[task_num++] = new TileTask(WRITEBACK, 2, im, in, 0, C_tile_out_route);
+	}
+#ifdef DEBUG
+	fprintf(stderr,  "<-----|\n");
+#endif
 }
 
 void ATC::optimize_tasks(){
 	if(!strcmp(TASK_ORDER, "SERIAL")) optimize_tasks_serial();
+	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH")) optimize_tasks_MinFetchNum();
+	// This is defined in Routing, since ti uses ETA heuristics and P2P_queue_load
+	else if(!strcmp(TASK_ORDER, "FETCH_ETA")) optimize_tasks_ETA();
+	else if(!strcmp(TASK_ORDER, "FETCH_ETA_PLUS_MINOPS")) optimize_tasks_ETA_plus_MinPendingOps();
 }
 
 /********************** Memory-related autotuning *****************************/

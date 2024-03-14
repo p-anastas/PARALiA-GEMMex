@@ -33,7 +33,7 @@ public:
 	Event_p hop_event_list[64-1];
 	
 	/// Target: 0/42 -> 2 [+1] wrapper
-	long double optimize(int* loc_map, long int size);
+	long double optimize(int* loc_map, long int size, int update_flag);
 	// Specific implementations
 	long double optimize_p2p_init(int* loc_map, long int size);
 	long double optimize_p2p_serial(int* loc_map, long int size);
@@ -41,7 +41,7 @@ public:
 	long double optimize_chain_serial(int* loc_map, long int size);
 	long double optimize_chain_random(int* loc_map, long int size);
 	long double optimize_chain_time(int* loc_map, long int size);
-	long double optimize_chain_ETA(int* loc_map, long int size);
+	long double optimize_chain_ETA(int* loc_map, long int size, int update_flag);
 
 	/// Target: 42 -> 0 wrapper
 	long double optimize_reverse(int* loc_map, long int size);
