@@ -87,6 +87,7 @@ void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_si
 		autotune_controller->comp_task_num, autotune_controller->comp_task_num/Chunk_size);
 #endif
 	autotune_controller->disable_caching = 1;
+	autotune_controller->use_2d_decom = 0;
 	autotune_controller->D1_parts = autotune_controller->D2_parts = 1; 
 	if (autotune_controller->comp_task_num/Chunk_size + autotune_controller->comp_task_num%Chunk_size/1 <= autotune_controller->active_unit_num){
 		int pred_active_unit_num = autotune_controller->active_unit_num;

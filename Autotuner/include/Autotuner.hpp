@@ -74,11 +74,11 @@ typedef class ATC{
 		/// A flag denoting if memory is constrained (either by the user or the problem/HW).
 		int disable_caching; /// Disable data caching and memory conservation, if e.g. they are incompatible with the algorithm.  
 		int conserve_memory; /// Can be used to switch ordering algorithms and enable caching if need be. 
-
 		long int task_num; /// The number of tasks to be executed.
 		Ttask_p* task_list; 
 //----------------------------------Infered parameters--------------------------------------
 		long int Grid_M, Grid_N, Grid_K; /// The 2D tiling size and the resulting grid sizes from the tiling.
+		int use_2d_decom = 0; /// This flag appears useless for now, the problem it used to solve was a bug. 
 		int D1_parts, D2_parts;
 		int C_Decom_grid[64][64][2];
 		int perfect_balance; // = 1 if there are no remainders in C decomposition

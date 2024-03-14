@@ -55,6 +55,7 @@ ATC::ATC(){
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
 	D1_parts = D2_parts = -1;
 	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
+	if(!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC")) use_2d_decom = 1; 
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = -42; 
 	inter_grid = NULL;
 #ifdef DEBUG
@@ -107,6 +108,7 @@ void ATC::reset(){
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
 	pred_t = -1.0;
 	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
+	if(!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC")) use_2d_decom = 1; 
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = -42; 
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
@@ -187,7 +189,7 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = other_ATC->Block_num[idx];
 	// The following is not implemented
 	//inter_grid->copy(other_ATC->inter_grid);
-
+	use_2d_decom = other_ATC->use_2d_decom; 
 	if (other_ATC->task_num != -1){
 		task_num = other_ATC->task_num;
 		update_comp_task_num(other_ATC->comp_task_num);
@@ -517,7 +519,7 @@ void ATC::initialize_tasks(){
 	A_tile_ETA = (long double***) malloc(Grid_M*sizeof(long double**));
 	for(int im = 0; im < Grid_M; im++){
 		A_tile_loc_map[im] = (int**) malloc(Grid_K*sizeof(int*));
-		A_tile_ETA[im] = (long double**) malloc(Grid_M*sizeof(long double*));
+		A_tile_ETA[im] = (long double**) malloc(Grid_K*sizeof(long double*));
 		for(int ik = 0; ik < Grid_K; ik++){
 			A_tile_loc_map[im][ik] = (int*) malloc(CHL_MEMLOCS*sizeof(int));
 			A_tile_ETA[im][ik] = (long double*) malloc(CHL_MEMLOCS*sizeof(long double));
@@ -604,56 +606,6 @@ void ATC::initialize_tasks(){
 	}
 }
 
-void ATC::optimize_tasks_serial(){
-	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
-	task_num = 0; 
-	while (comp_task_ctr < comp_task_num){
-		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
-			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
-			long int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]];
-			decompose_comp_task(comp_task_idx, dev_idx);
-			comp_task_ctr++;
-			comp_task_perdev[dev_idx]++;
-		}
-	}
-}
-
-void ATC::optimize_tasks_MinFetchNum(){
-	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
-	int comp_task_fired[comp_task_num] = {0}, min_tasks_fetches = 100;
-	task_num = 0;
-	while (comp_task_ctr < comp_task_num){
-		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
-			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
-			int dev_id = active_unit_id_list[dev_idx];
-			int potential_sks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
-			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
-				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
-				if(comp_task_fired[comp_task_cand]) continue;
-				long comp_task_Cidx = comp_task_cand/Grid_K;
-				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
-				int temp_tasks_fetches = 0; 
-				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42) temp_tasks_fetches++;
-				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42) temp_tasks_fetches++;
-				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
-					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42) temp_tasks_fetches++;
-				if(temp_tasks_fetches < min_tasks_fetches){
-					min_tasks_fetches = temp_tasks_fetches;
-					potential_sks[0] = comp_task_cand;
-					tie_list_num = 1; 
-				}
-				else if (temp_tasks_fetches == min_tasks_fetches)
-					potential_sks[tie_list_num++] = comp_task_cand;
-			}
-			long int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
-			decompose_comp_task(selected_task_idx, dev_idx);
-			comp_task_fired[selected_task_idx] = 1; 
-			comp_task_perdev[dev_idx]++;
-			comp_task_ctr++;
-		}
-	}
-}
-
 void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
 	int dev_id = active_unit_id_list[dev_idx];
 	long int size = T*T*elemSize; 
@@ -708,6 +660,56 @@ void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
+}
+
+void ATC::optimize_tasks_serial(){
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	task_num = 0; 
+	while (comp_task_ctr < comp_task_num){
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			long int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]];
+			decompose_comp_task(comp_task_idx, dev_idx);
+			comp_task_ctr++;
+			comp_task_perdev[dev_idx]++;
+		}
+	}
+}
+
+void ATC::optimize_tasks_MinFetchNum(){
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	int comp_task_fired[comp_task_num] = {0}, min_tasks_fetches = 100;
+	task_num = 0;
+	while (comp_task_ctr < comp_task_num){
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			int dev_id = active_unit_id_list[dev_idx];
+			int potential_sks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
+				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
+				if(comp_task_fired[comp_task_cand]) continue;
+				long comp_task_Cidx = comp_task_cand/Grid_K;
+				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				int temp_tasks_fetches = 0; 
+				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42) temp_tasks_fetches++;
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42) temp_tasks_fetches++;
+				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+					C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42) temp_tasks_fetches++;
+				if(temp_tasks_fetches < min_tasks_fetches){
+					min_tasks_fetches = temp_tasks_fetches;
+					potential_sks[0] = comp_task_cand;
+					tie_list_num = 1; 
+				}
+				else if (temp_tasks_fetches == min_tasks_fetches)
+					potential_sks[tie_list_num++] = comp_task_cand;
+			}
+			long int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
+			decompose_comp_task(selected_task_idx, dev_idx);
+			comp_task_fired[selected_task_idx] = 1; 
+			comp_task_perdev[dev_idx]++;
+			comp_task_ctr++;
+		}
+	}
 }
 
 void ATC::optimize_tasks(){

@@ -435,12 +435,16 @@ void ATC::optimize_tasks_ETA(){
 				long comp_task_Cidx = comp_task_cand/Grid_K;
 				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
 				long double temp_ETA = 0, temp_t;
-				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42)
+				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42){
+					A_tile_loc_map[im][ik][dev_id] = 2; 
 					temp_t = A_tile_route->optimize(A_tile_loc_map[im][ik], size, 0);
+				}
 				else temp_t = A_tile_ETA[im][ik][dev_id]; 
 				temp_ETA = std::max(temp_t, temp_ETA);
-				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42)
+				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
+					B_tile_loc_map[ik][in][dev_id] = 2; 
 					temp_t = B_tile_route->optimize(B_tile_loc_map[ik][in], size, 0);
+				}
 				else temp_t = B_tile_ETA[ik][in][dev_id]; 
 				temp_ETA = std::max(temp_t, temp_ETA);
 				if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
