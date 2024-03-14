@@ -68,8 +68,8 @@ set(MAX_BACKEND_L 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-set(OUTPUT_ALGO_MODE ALGO_WR)
-#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+#set(OUTPUT_ALGO_MODE ALGO_WR)
+set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -160,10 +160,10 @@ set(ORDER_2DBC D1_lesseq_D2) #Default
 #Select which optimize_tasks() algorithm to use for selecting the order of firing.
 
 #--------------------------------Tested (production)--------------------------------------#
-set(TASK_ORDER SERIAL)
+#set(TASK_ORDER SERIAL)
 
 #--------------------------------------Experimental----------------------------------------#
-#set(TASK_ORDER FETCH_MINFETCH)
+set(TASK_ORDER FETCH_MINFETCH)
 #set(TASK_ORDER FETCH_ETA)
 #set(TASK_ORDER FETCH_ETA_PLUS_MIN_PENDING)
 
@@ -173,13 +173,13 @@ set(TASK_ORDER SERIAL)
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
-#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL)
+set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL) # Do not use this, its bad
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
-#set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
+#set (FETCH_ROUTING CHAIN_FETCH_SERIAL) # Do not use this, its bad
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
-#set (FETCH_ROUTING CHAIN_FETCH_TIME)
-set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
+#set (FETCH_ROUTING CHAIN_FETCH_TIME) # Do not use this, its bad
+#set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 #--------------------------------------Experimental----------------------------------------#
 

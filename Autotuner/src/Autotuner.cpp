@@ -678,18 +678,24 @@ void ATC::optimize_tasks_serial(){
 
 void ATC::optimize_tasks_MinFetchNum(){
 	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
-	int comp_task_fired[comp_task_num] = {0}, min_tasks_fetches = 100;
+	int comp_task_fired[comp_task_num] = {0};
 	task_num = 0;
 	while (comp_task_ctr < comp_task_num){
 		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
 			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
 			int dev_id = active_unit_id_list[dev_idx];
-			int potential_sks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			long int potential_sks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			int min_tasks_fetches = 100;
 			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
 				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
 				if(comp_task_fired[comp_task_cand]) continue;
 				long comp_task_Cidx = comp_task_cand/Grid_K;
 				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				if(ik != 0 && !comp_task_fired[comp_task_Cidx*Grid_K]) continue;
+				int k_last_rd_flag = 1;
+				if(ik == Grid_K - 1) for (int ctr = 0; ctr < Grid_K - 1; ctr++) 
+					if(!comp_task_fired[comp_task_Cidx*Grid_K + ctr]) k_last_rd_flag = 0; 
+				if(!k_last_rd_flag) continue;
 				int temp_tasks_fetches = 0; 
 				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42) temp_tasks_fetches++;
 				if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42) temp_tasks_fetches++;
@@ -703,6 +709,10 @@ void ATC::optimize_tasks_MinFetchNum(){
 				else if (temp_tasks_fetches == min_tasks_fetches)
 					potential_sks[tie_list_num++] = comp_task_cand;
 			}
+#ifdef PDEBUG
+			fprintf(stderr, "optimize_tasks_MinFetchNum(): %ld candidates with min_tasks_fetches = %d for dev_idx = %d\n", 
+				tie_list_num, min_tasks_fetches, dev_idx);
+#endif
 			long int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
 			decompose_comp_task(selected_task_idx, dev_idx);
 			comp_task_fired[selected_task_idx] = 1; 
