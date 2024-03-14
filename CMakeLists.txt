@@ -161,9 +161,9 @@ set(ORDER_2DBC D1_lesseq_D2) #Default
 
 #--------------------------------Tested (production)--------------------------------------#
 #set(TASK_ORDER SERIAL)
+set(TASK_ORDER FETCH_MINFETCH)
 
 #--------------------------------------Experimental----------------------------------------#
-set(TASK_ORDER FETCH_MINFETCH)
 #set(TASK_ORDER FETCH_ETA)
 #set(TASK_ORDER FETCH_ETA_PLUS_MIN_PENDING)
 
@@ -173,13 +173,13 @@ set(TASK_ORDER FETCH_MINFETCH)
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL) # Do not use this, its bad
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
 #set (FETCH_ROUTING CHAIN_FETCH_SERIAL) # Do not use this, its bad
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
 #set (FETCH_ROUTING CHAIN_FETCH_TIME) # Do not use this, its bad
-#set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
+set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 #--------------------------------------Experimental----------------------------------------#
 
