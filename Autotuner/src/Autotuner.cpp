@@ -645,8 +645,9 @@ void ATC::optimize_tasks_MinFetchNum(){
 				else if (temp_tasks_fetches == min_tasks_fetches)
 					potential_sks[tie_list_num++] = comp_task_cand;
 			}
-			int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
+			long int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
 			decompose_comp_task(selected_task_idx, dev_idx);
+			comp_task_fired[selected_task_idx] = 1; 
 			comp_task_perdev[dev_idx]++;
 			comp_task_ctr++;
 		}
@@ -668,8 +669,8 @@ void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
 		A_tile_route->optimize(A_tile_loc_map[im][ik], size, 1);
 		task_list[task_num++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
 #ifdef PDEBUG
-		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching A_tile[%d,%d]\n", 
-		comp_task_cand, dev_idx, im, ik);
+		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching A_tile[%d,%d] : %s\n", 
+		comp_task_cand, dev_idx, im, ik, printlist(A_tile_route->hop_uid_list, A_tile_route->hop_num));
 #endif
 	}
 	if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
@@ -678,8 +679,8 @@ void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
 		B_tile_route->optimize(B_tile_loc_map[ik][in], size, 1);
 		task_list[task_num++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
 #ifdef PDEBUG
-		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching B_tile[%d,%d]\n", 
-		comp_task_cand, dev_idx, ik, in);
+		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching B_tile[%d,%d] : %s\n", 
+		comp_task_cand, dev_idx, ik, in, printlist(B_tile_route->hop_uid_list, B_tile_route->hop_num));
 #endif
 	}
 	LinkRoute_p C_tile_route = new LinkRoute();
@@ -689,8 +690,8 @@ void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
 		C_tile_route->optimize(C_tile_loc_map[im][in], size, 1);
 		task_list[task_num++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
 #ifdef PDEBUG
-		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching C_tile[%d,%d]\n", 
-		comp_task_cand, dev_idx, im, in);
+		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching C_tile[%d,%d] : %s\n", 
+		comp_task_cand, dev_idx, im, in, printlist(C_tile_route->hop_uid_list, C_tile_route->hop_num));
 #endif
 	}
 	if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY") && (ik == Grid_K - 1) && C_tile_loc_map[im][in][dev_id]){

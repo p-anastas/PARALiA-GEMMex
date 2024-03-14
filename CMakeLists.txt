@@ -173,13 +173,13 @@ set(TASK_ORDER SERIAL)
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
 #set (FETCH_ROUTING CHAIN_FETCH_SERIAL)
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
 #set (FETCH_ROUTING CHAIN_FETCH_TIME)
-#set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
+set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 #--------------------------------------Experimental----------------------------------------#
 

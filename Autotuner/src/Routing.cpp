@@ -463,6 +463,7 @@ void ATC::optimize_tasks_ETA(){
 			}
 			int selected_task_idx = min_ETA_tasks[int(rand() % tie_list_num)]; 
 			decompose_comp_task(selected_task_idx, dev_idx);
+			comp_task_fired[selected_task_idx] = 1; 
 			comp_task_perdev[dev_idx]++;
 			comp_task_ctr++;
 		}
@@ -531,6 +532,7 @@ void ATC::optimize_tasks_ETA_plus_MinPendingOps(){
 			int selected_task_idx = min_ETA_plus_minops_tasks[int(rand() % tie_list_num_minops)]; 
 			decompose_comp_task(selected_task_idx, dev_idx);
 			comp_Cops_fired[selected_task_idx/Grid_K]++;
+			comp_task_fired[selected_task_idx] = 1; 
 			comp_task_perdev[dev_idx]++;
 			comp_task_ctr++;
 		}
