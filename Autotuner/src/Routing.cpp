@@ -96,6 +96,7 @@ long double LinkRoute::optimize_p2p_distance(int* loc_map, long int size){
 	double link_bw_max = 0;
 	for (int pos =0; pos < CHL_MEMLOCS; pos++) if (loc_map[pos] == 0 || loc_map[pos] == 42){
 		double current_link_bw = get_edge_bw(end_hop, pos);
+		//fprintf(stderr, "%lf\n", current_link_bw);
 		if (current_link_bw > link_bw_max){
 		  link_bw_max = current_link_bw;
 		  pos_max = pos;
@@ -247,7 +248,7 @@ long double P2P_queue_load::ETA_get(int dest, int src){
 
 long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int update_flag){
 	if(!queue_load_grid) queue_load_grid = new P2P_queue_load();
-	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = csecond();
+	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = 0;//csecond();
 	hop_num = 0;
 	std::list<int> loc_list;
 	int tmp_hop = -42; 
@@ -265,6 +266,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 //	  min_ETA = optimize_hop_route(transfer_tile_wrapped, update_ETA_flag, hop_uid_list[1], hop_uid_list[0]);
 //#else
 		long double temp_t = size/(1e9*get_edge_bw(hop_uid_list[1], hop_uid_list[0]));
+		//fprintf(stderr, "%lf\n", temp_t);
 		if (update_flag) queue_load_grid->ETA_add_task(hop_uid_list[1], hop_uid_list[0], fire_t, temp_t);
 		min_ETA = std::max(queue_load_grid->ETA_get(hop_uid_list[1], hop_uid_list[0]), fire_t) + temp_t;
 		hop_num++;
@@ -278,12 +280,13 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 			int temp_ctr = 0, prev = hop_uid_list[0], templist[hop_num]; 
 			for (int x : loc_list){
 				templist[temp_ctr++] = x; 
-				temp_t = size/(1e9*get_edge_bw(x, prev));
+				temp_t = 1.0 * size/(1e9*get_edge_bw(x, prev));
 				if (temp_t > max_t) max_t = temp_t;
 				total_t += temp_t;
 				prev = x;
 			}
 			temp_t = max_t + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
+			//fprintf(stderr, "%llf\n", temp_t);
 			//fprintf(stderr,"Checking location list[%s]: temp_t = %lf\n", printlist(templist,hop_num), temp_t);
 			prev = hop_uid_list[0];
 			long double temp_ETA = 0, queue_ETA; 
@@ -416,11 +419,12 @@ Subkernel* SubkernelSelect(int dev_id, Subkernel** Subkernel_list, long Subkerne
 */
 
 void ATC::optimize_tasks_ETA(){
-	if(strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_tasks_serial();
+	if(strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_tasks_MinFetchNum();
 	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
 	long int size = T*T*elemSize;
 	task_num = 0;
-	int comp_task_fired[comp_task_num] = {0};
+	int comp_task_fired[comp_task_num] = {0}, 
+		comp_task_order[active_unit_num][comp_task_num] = {0};
 	while (comp_task_ctr < comp_task_num){
 		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
 			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
@@ -430,10 +434,15 @@ void ATC::optimize_tasks_ETA(){
 			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
 				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
 				if(comp_task_fired[comp_task_cand]) continue;
-				LinkRoute_p A_tile_route = new LinkRoute(), 
-					B_tile_route = new LinkRoute(), C_tile_route = new LinkRoute();
 				long comp_task_Cidx = comp_task_cand/Grid_K;
 				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				if(ik != 0 && !comp_task_fired[comp_task_Cidx*Grid_K]) continue;
+				int k_last_rd_flag = 1;
+				if(ik == Grid_K - 1) for (int ctr = 0; ctr < Grid_K - 1; ctr++) 
+					if(!comp_task_fired[comp_task_Cidx*Grid_K + ctr]) k_last_rd_flag = 0; 
+				if(!k_last_rd_flag) continue;
+				LinkRoute_p A_tile_route = new LinkRoute(), 
+					B_tile_route = new LinkRoute(), C_tile_route = new LinkRoute();
 				long double temp_ETA = 0, temp_t;
 				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42){
 					A_tile_loc_map[im][ik][dev_id] = 2; 
@@ -466,20 +475,42 @@ void ATC::optimize_tasks_ETA(){
 				delete C_tile_route;
 			}
 			int selected_task_idx = min_ETA_tasks[int(rand() % tie_list_num)]; 
-			decompose_comp_task(selected_task_idx, dev_idx);
-			comp_task_fired[selected_task_idx] = 1; 
+			decompose_comp_task_fetch(selected_task_idx, dev_idx);
+#ifdef SUBKERNELS_FIRE_LAZY
+			;
+#else
+			decompose_comp_task_run(selected_task_idx, dev_idx);
+#ifdef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(selected_task_idx, dev_idx);
+#endif
+#endif
+			comp_task_fired[selected_task_idx] = 1;
+			comp_task_order[dev_idx][comp_task_perdev[dev_idx]] = selected_task_idx;
 			comp_task_perdev[dev_idx]++;
 			comp_task_ctr++;
 		}
 	}
+	for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
+		for(int idx = 0; idx < comp_task_perdev[dev_idx]; idx++){
+#ifdef SUBKERNELS_FIRE_LAZY
+			decompose_comp_task_run(comp_task_order[dev_idx][idx], dev_idx);
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#else
+#ifndef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#endif
+#endif
+		}
 }
 
 void ATC::optimize_tasks_ETA_plus_MinPendingOps(){
-	if(strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_tasks_serial();
+	if(strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) return optimize_tasks_MinFetchNum();
 	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
 	long int size = T*T*elemSize;
 	task_num = 0;
-	int comp_task_fired[comp_task_num] = {0}, comp_Cops_fired[comp_task_num/Grid_K];
+	int comp_task_fired[comp_task_num] = {0}, 
+		comp_task_order[active_unit_num][comp_task_num] = {0},  
+		comp_Cops_fired[comp_task_num/Grid_K] = {0};
 	while (comp_task_ctr < comp_task_num){
 		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
 			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
@@ -489,10 +520,15 @@ void ATC::optimize_tasks_ETA_plus_MinPendingOps(){
 			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
 				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
 				if(comp_task_fired[comp_task_cand]) continue;
-				LinkRoute_p A_tile_route = new LinkRoute(), 
-					B_tile_route = new LinkRoute(), C_tile_route = new LinkRoute();
 				long comp_task_Cidx = comp_task_cand/Grid_K;
 				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				if(ik != 0 && !comp_task_fired[comp_task_Cidx*Grid_K]) continue;
+				int k_last_rd_flag = 1;
+				if(ik == Grid_K - 1) for (int ctr = 0; ctr < Grid_K - 1; ctr++) 
+					if(!comp_task_fired[comp_task_Cidx*Grid_K + ctr]) k_last_rd_flag = 0; 
+				if(!k_last_rd_flag) continue;
+				LinkRoute_p A_tile_route = new LinkRoute(), 
+					B_tile_route = new LinkRoute(), C_tile_route = new LinkRoute();
 				long double temp_ETA = 0, temp_t;
 				if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42)
 					temp_t = A_tile_route->optimize(A_tile_loc_map[im][ik], size, 0);
@@ -523,7 +559,7 @@ void ATC::optimize_tasks_ETA_plus_MinPendingOps(){
 			int min_rem_ops = INT_MAX;
 			int min_ETA_plus_minops_tasks[tie_list_num], tie_list_num_minops = 0;
 			for(int comp_idx = 0; comp_idx < tie_list_num; comp_idx++){
-				long comp_task_cand = min_ETA_plus_minops_tasks[comp_idx];
+				long comp_task_cand = min_ETA_tasks[comp_idx];
 				int temp_remops = Grid_K - comp_Cops_fired[comp_task_cand/Grid_K];
 				if(temp_remops < min_rem_ops){
 					min_rem_ops = temp_remops;
@@ -534,13 +570,33 @@ void ATC::optimize_tasks_ETA_plus_MinPendingOps(){
 					min_ETA_plus_minops_tasks[tie_list_num_minops++] = comp_task_cand;
 			}
 			int selected_task_idx = min_ETA_plus_minops_tasks[int(rand() % tie_list_num_minops)]; 
-			decompose_comp_task(selected_task_idx, dev_idx);
+			decompose_comp_task_fetch(selected_task_idx, dev_idx);
+#ifdef SUBKERNELS_FIRE_LAZY
+			;
+#else
+			decompose_comp_task_run(selected_task_idx, dev_idx);
+#ifdef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(selected_task_idx, dev_idx);
+#endif
+#endif
+			comp_task_fired[selected_task_idx] = 1;
+			comp_task_order[dev_idx][comp_task_perdev[dev_idx]] = selected_task_idx;
 			comp_Cops_fired[selected_task_idx/Grid_K]++;
-			comp_task_fired[selected_task_idx] = 1; 
 			comp_task_perdev[dev_idx]++;
 			comp_task_ctr++;
 		}
-	}	
+	}
+	for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
+		for(int idx = 0; idx < comp_task_perdev[dev_idx]; idx++){
+#ifdef SUBKERNELS_FIRE_LAZY
+			decompose_comp_task_run(comp_task_order[dev_idx][idx], dev_idx);
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#else
+#ifndef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#endif
+#endif
+		}
 }
 
 /*

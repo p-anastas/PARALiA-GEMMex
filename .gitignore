@@ -16,3 +16,4 @@ __pycache__
 Benchmarking/Python_Scripts/Plots/
 *.code-workspace
 .vscode/
+core.*

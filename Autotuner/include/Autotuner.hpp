@@ -122,10 +122,13 @@ typedef class ATC{
 	/// 2D block cyclic distribution is prefered
 	void distribute_comp_tasks();
 	void initialize_tasks();
-	void decompose_comp_task(long int comp_task_cand, int dev_idx);
+	void decompose_comp_task_fetch(long int comp_task_cand, int dev_idx);
+	void decompose_comp_task_run(long int comp_task_cand, int dev_idx);
+	void decompose_comp_task_wb(long int comp_task_cand, int dev_idx);
 	void optimize_tasks();
 	void optimize_tasks_serial();
 	void optimize_tasks_MinFetchNum();
+	void optimize_tasks_MinFetchNum_then_MinPendingOps();
 	void optimize_tasks_ETA();
 	void optimize_tasks_ETA_plus_MinPendingOps();
 /******************************************************************************/

@@ -60,6 +60,11 @@ add_definitions(-DPROBLEM_MD_CACHE=10) # Only relevant for "PROBLEMS" reuse leve
 ## The number of parallel workers that can be utilized at each device for comp-comp overlap. 
 set(MAX_BACKEND_L 8)
 
+## The number of sub-buffers FasTCoCoMemcpy2DAsync will use to increase effective BW
+## In general effective_trans_time = max_trans_time(route[]) + 1/SBO * sub_trans_time(route_minus_max[])
+## Rule of thumb: large SBO -> increased transfer latency, small SBO -> decreased bandwidth
+set(STREAMING_BUFFER_OVERLAP 8)
+
 ## The output algorithm for obtaining the actual results of each routine. Options:
 ## - ALGO_WR: The output tiles are processed normally. This entails being fetched at the beggining, 
 ##            locked while being written on (TODO) and written back after all computations are complete.
@@ -71,34 +76,19 @@ set(MAX_BACKEND_L 8)
 #set(OUTPUT_ALGO_MODE ALGO_WR)
 set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
-#--------------------------------------Experimental----------------------------------------#
-
-## Enable using the CPU as an extra device for part of the total workload, if applicable
-add_definitions(-DENABLE_CPU_WORKLOAD)
+# Enable overlapping Send & recv Communication
+add_definitions(-DENABLE_SEND_RECV_OVERLAP)
 
 ## Define if Subkernel operations are fired together with data fetches 
 ## OR when their data become available
-add_definitions(-DSUBKERNELS_FIRE_WHEN_READY)
+#add_definitions(-DSUBKERNELS_FIRE_LAZY)
+
+#--------------------------------------Experimental----------------------------------------#
+## Enable using the CPU as an extra device for part of the total workload, if applicable
+#add_definitions(-DENABLE_CPU_WORKLOAD)
 
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=8)
-
-###########################################################################################
-#---------------------------------Routing optimizations-----------------------------------#
-###########################################################################################
-
-#--------------------------------Tested (production)--------------------------------------#
-## The number of sub-buffers FasTCoCoMemcpy2DAsync will use to increase effective BW
-## In general effective_trans_time = max_trans_time(route[]) + 1/SBO * sub_trans_time(route_minus_max[])
-## Rule of thumb: large SBO -> increased transfer latency, small SBO -> decreased bandwidth
-set(STREAMING_BUFFER_OVERLAP 8)
-
-#--------------------------------------Experimental----------------------------------------#
-# Enable overlapping Send & recv Communication FIXME: disabling this flag is not entirely implemented
-add_definitions(-DENABLE_SEND_RECV_OVERLAP)
-
-## Enable sharing of bandwidth between links that utilize the same underlying hardware communication resources
-add_definitions(-DENABLE_LINK_BW_SHARING) # by putting them on different queues
 
 ###########################################################################################
 #---------------------------General autotuning options------------------------------------#
@@ -155,40 +145,18 @@ set(ORDER_2DBC D1_lesseq_D2) #Default
 #add_definitions(-DDISTRIBUTION="SPLIT-CHUNKS-ROBIN-REVERSE")
 
 ###########################################################################################
-#-----------------------------------Task order options------------------------------------#
-###########################################################################################
-#Select which optimize_tasks() algorithm to use for selecting the order of firing.
-
-#--------------------------------Tested (production)--------------------------------------#
-#set(TASK_ORDER SERIAL)
-set(TASK_ORDER FETCH_MINFETCH)
-
-#--------------------------------------Experimental----------------------------------------#
-#set(TASK_ORDER FETCH_ETA)
-#set(TASK_ORDER FETCH_ETA_PLUS_MIN_PENDING)
-
-###########################################################################################
 #--------------------------------Fetch routing options--------------------------------#
 ###########################################################################################
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
-#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL) # Do not use this, its bad
+set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL) # This is worse than distance
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
-#set (FETCH_ROUTING CHAIN_FETCH_SERIAL) # Do not use this, its bad
+#set (FETCH_ROUTING CHAIN_FETCH_SERIAL) # This is worse than random
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
-#set (FETCH_ROUTING CHAIN_FETCH_TIME) # Do not use this, its bad
-set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
-
-#--------------------------------------Experimental----------------------------------------#
-
-## An extra heuristic to avoid only trusting QUEUE_ETAs for route selection
-## Since some routes migh result in extremely low botlenecks due to serialization
-## The multiplier defines the max bandwidth multiplier that is allowed to be used to replace a route
-## For example, 1 means that only allow replacement with links of >= bandwidth
-## The higher this value is, the more ETA-based the selection criteria
-#add_definitions(-DBANDWIDTH_DIFFERENCE_CUTTOF_RATIO=5) #FIXME: this should be removed at some point in the future
+#set (FETCH_ROUTING CHAIN_FETCH_TIME) # This is worse than ETA
+#set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 ###########################################################################################
 #--------------------------------Writeback routing options--------------------------------#
@@ -205,6 +173,19 @@ set (WB_ROUTING P2P_TO_INIT)
 
 #add_definitions(-DHOP_FETCH_QUEUE_WORKLOAD)
 #add_definitions(-DHOP_FETCH_BW_PLUS_ETA)
+
+###########################################################################################
+#-----------------------------------Task order options------------------------------------#
+###########################################################################################
+#Select which optimize_tasks() algorithm to use for selecting the order of firing.
+
+#--------------------------------Tested (production)--------------------------------------#
+set(TASK_ORDER SERIAL)
+#set(TASK_ORDER FETCH_MINFETCH)
+#set(TASK_ORDER FETCH_MINFETCH_THEN_MINPENDING)
+#set(TASK_ORDER FETCH_ETA)
+#set(TASK_ORDER FETCH_ETA_PLUS_MINPENDING)
+#--------------------------------------Experimental----------------------------------------#
 
 ###########################################################################################
 #---------------------------------Optimization targets------------------------------------#
@@ -387,7 +368,6 @@ ADD_SUBDIRECTORY (Backend)
 
 set(PROJECT_BENCH_DIR ${PROJECT_SOURCE_DIR}/Benchmarking)
 configure_file(${PROJECT_BENCH_DIR}/Targeted_performance_evaluation.in ${CMAKE_INSTALL_PROJECT}/Targeted_performance_evaluation.sh @ONLY)
-configure_file(${PROJECT_BENCH_DIR}/Heterogeneous_performance_estimation.in ${CMAKE_INSTALL_PROJECT}/Heterogeneous_performance_estimation.sh @ONLY)
 
 ADD_SUBDIRECTORY (Autotuner)
 ADD_SUBDIRECTORY (Library)

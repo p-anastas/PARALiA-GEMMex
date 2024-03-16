@@ -213,12 +213,12 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 /********************** Tile & device autotuning ******************************/
 
 double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
-    int M_in, int N_in, int K_in, int elemSize){
+    int M_in, int N_in, int K_in, int elemSize_in){
 	short lvl = 3;
 	double cpu_timer = csecond();
 #ifdef DEBUG
 	fprintf(stderr,  "|-----> ATC::autotune_problem(%d, %d, %d, %d, %d, %d, %d, %d)\n", 
-		A_loc_in, B_loc_in, C_loc_in, D_loc_in, M_in, N_in, K_in, elemSize);
+		A_loc_in, B_loc_in, C_loc_in, D_loc_in, M_in, N_in, K_in, elemSize_in);
 	print();
 #endif
 	A_loc = A_loc_in;
@@ -228,6 +228,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 	M = M_in;
 	N = N_in;
 	K = K_in;
+	elemSize = elemSize_in;
 	int autotune_eval_devices = 0;
 	if (active_unit_num > 0){
 		if (active_unit_id_list){
@@ -606,51 +607,79 @@ void ATC::initialize_tasks(){
 	}
 }
 
-void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
+void ATC::decompose_comp_task_fetch(long int comp_task_cand, int dev_idx){
 	int dev_id = active_unit_id_list[dev_idx];
 	long int size = T*T*elemSize; 
 	long comp_task_Cidx = comp_task_cand/Grid_K;
 	int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
 #ifdef DEBUG
-	fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Task Grid dimensions: [%d,%d,%d]\n", 
+	fprintf(stderr, "|-----> ATC::decompose_comp_task_fetch(%ld, %d): Task Grid dimensions: [%d,%d,%d]\n", 
 		comp_task_cand, dev_idx, im, in, ik);
 #endif
 	if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42){
 		A_tile_loc_map[im][ik][dev_id] = 2; 
 		LinkRoute_p A_tile_route = new LinkRoute();
-		A_tile_route->optimize(A_tile_loc_map[im][ik], size, 1);
+		double ETA = A_tile_route->optimize(A_tile_loc_map[im][ik], size, 1);
+		for(int ctr = 1; ctr < A_tile_route->hop_num; ctr++) A_tile_ETA[im][ik][ctr] = ETA; 
 		task_list[task_num++] = new TileTask(FETCH, 0, im, ik, 0, A_tile_route);
 #ifdef PDEBUG
-		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching A_tile[%d,%d] : %s\n", 
+		fprintf(stderr, "|-----> ATC::decompose_comp_task_fetch(%ld, %d): Fetching A_tile[%d,%d] : %s\n", 
 		comp_task_cand, dev_idx, im, ik, printlist(A_tile_route->hop_uid_list, A_tile_route->hop_num));
 #endif
 	}
 	if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42){
 		B_tile_loc_map[ik][in][dev_id] = 2; 
 		LinkRoute_p B_tile_route = new LinkRoute();
-		B_tile_route->optimize(B_tile_loc_map[ik][in], size, 1);
+		double ETA = B_tile_route->optimize(B_tile_loc_map[ik][in], size, 1);
+		for(int ctr = 1; ctr < B_tile_route->hop_num; ctr++) B_tile_ETA[ik][in][ctr] = ETA; 
 		task_list[task_num++] = new TileTask(FETCH, 1, ik, in, 0, B_tile_route);
 #ifdef PDEBUG
-		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching B_tile[%d,%d] : %s\n", 
+		fprintf(stderr, "|-----> ATC::decompose_comp_task_fetch(%ld, %d): Fetching B_tile[%d,%d] : %s\n", 
 		comp_task_cand, dev_idx, ik, in, printlist(B_tile_route->hop_uid_list, B_tile_route->hop_num));
 #endif
 	}
-	LinkRoute_p C_tile_route = new LinkRoute();
 	if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
 		C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42){
 		C_tile_loc_map[im][in][dev_id] = 2; 
-		C_tile_route->optimize(C_tile_loc_map[im][in], size, 1);
+		LinkRoute_p C_tile_route = new LinkRoute();
+		double ETA = C_tile_route->optimize(C_tile_loc_map[im][in], size, 1);
+		for(int ctr = 1; ctr < C_tile_route->hop_num; ctr++) C_tile_ETA[im][in][ctr] = ETA; 
 		task_list[task_num++] = new TileTask(FETCH, 2, im, in, 0, C_tile_route);
 #ifdef PDEBUG
-		fprintf(stderr, "|-----> ATC::decompose_comp_task(%ld, %d): Fetching C_tile[%d,%d] : %s\n", 
+		fprintf(stderr, "|-----> ATC::decompose_comp_task_fetch(%ld, %d): Fetching C_tile[%d,%d] : %s\n", 
 		comp_task_cand, dev_idx, im, in, printlist(C_tile_route->hop_uid_list, C_tile_route->hop_num));
 #endif
 	}
+}
+
+void ATC::decompose_comp_task_run(long int comp_task_cand, int dev_idx){
+	int dev_id = active_unit_id_list[dev_idx];
+	long int size = T*T*elemSize; 
+	long comp_task_Cidx = comp_task_cand/Grid_K;
+	int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+#ifdef DEBUG
+	fprintf(stderr, "|-----> ATC::decompose_comp_task_run(%ld, %d): Task Grid dimensions: [%d,%d,%d]\n", 
+		comp_task_cand, dev_idx, im, in, ik);
+#endif
+	LinkRoute_p C_tile_route = new LinkRoute();
 	if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY") && (ik == Grid_K - 1) && C_tile_loc_map[im][in][dev_id]){
 		C_tile_loc_map[im][in][dev_id] = 2; 
 		C_tile_route->optimize(C_tile_loc_map[im][in], size, 1);
 	}
 	task_list[task_num++] = new TileTask(COMPUTE, 2, im, in, ik, C_tile_route);
+#ifdef DEBUG
+	fprintf(stderr,  "<-----|\n");
+#endif
+}
+void ATC::decompose_comp_task_wb(long int comp_task_cand, int dev_idx){
+	int dev_id = active_unit_id_list[dev_idx];
+	long int size = T*T*elemSize; 
+	long comp_task_Cidx = comp_task_cand/Grid_K;
+	int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+#ifdef DEBUG
+	fprintf(stderr, "|-----> ATC::decompose_comp_task_wb(%ld, %d): Task Grid dimensions: [%d,%d,%d]\n", 
+		comp_task_cand, dev_idx, im, in, ik);
+#endif	
 	if(ik == Grid_K - 1 && C_tile_loc_map[im][in][dev_id]){
 		if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_loc_map[im][in][dev_id] = 42; 
 		LinkRoute_p C_tile_out_route = new LinkRoute();
@@ -664,21 +693,43 @@ void ATC::decompose_comp_task(long int comp_task_cand, int dev_idx){
 
 void ATC::optimize_tasks_serial(){
 	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	int comp_task_order[active_unit_num][comp_task_num] = {0};
 	task_num = 0; 
 	while (comp_task_ctr < comp_task_num){
 		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
 			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
-			long int comp_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]];
-			decompose_comp_task(comp_task_idx, dev_idx);
-			comp_task_ctr++;
+			long int selected_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]];
+			decompose_comp_task_fetch(selected_task_idx, dev_idx);
+#ifdef SUBKERNELS_FIRE_LAZY
+			;
+#else
+			decompose_comp_task_run(selected_task_idx, dev_idx);
+#ifdef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(selected_task_idx, dev_idx);
+#endif
+#endif
+			comp_task_order[dev_idx][comp_task_perdev[dev_idx]] = selected_task_idx;
 			comp_task_perdev[dev_idx]++;
+			comp_task_ctr++;
 		}
 	}
+	for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
+		for(int idx = 0; idx < comp_task_perdev[dev_idx]; idx++){
+#ifdef SUBKERNELS_FIRE_LAZY
+			decompose_comp_task_run(comp_task_order[dev_idx][idx], dev_idx);
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#else
+#ifndef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#endif
+#endif
+		}
 }
 
 void ATC::optimize_tasks_MinFetchNum(){
 	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
-	int comp_task_fired[comp_task_num] = {0};
+	int comp_task_fired[comp_task_num] = {0}, 
+		comp_task_order[active_unit_num][comp_task_num] = {0};
 	task_num = 0;
 	while (comp_task_ctr < comp_task_num){
 		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
@@ -714,20 +765,124 @@ void ATC::optimize_tasks_MinFetchNum(){
 				tie_list_num, min_tasks_fetches, dev_idx);
 #endif
 			long int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
-			decompose_comp_task(selected_task_idx, dev_idx);
-			comp_task_fired[selected_task_idx] = 1; 
+			decompose_comp_task_fetch(selected_task_idx, dev_idx);
+#ifdef SUBKERNELS_FIRE_LAZY
+			;
+#else
+			decompose_comp_task_run(selected_task_idx, dev_idx);
+#ifdef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(selected_task_idx, dev_idx);
+#endif
+#endif
+			comp_task_fired[selected_task_idx] = 1;
+			comp_task_order[dev_idx][comp_task_perdev[dev_idx]] = selected_task_idx;
 			comp_task_perdev[dev_idx]++;
 			comp_task_ctr++;
 		}
 	}
+	for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
+		for(int idx = 0; idx < comp_task_perdev[dev_idx]; idx++){
+#ifdef SUBKERNELS_FIRE_LAZY
+			decompose_comp_task_run(comp_task_order[dev_idx][idx], dev_idx);
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#else
+#ifndef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#endif
+#endif
+		}
+}
+
+void ATC::optimize_tasks_MinFetchNum_then_MinPendingOps(){
+	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
+	int comp_task_fired[comp_task_num] = {0}, 
+		comp_task_order[active_unit_num][comp_task_num] = {0},  
+		comp_Cops_fired[comp_task_num/Grid_K] = {0};
+	task_num = 0;
+	while (comp_task_ctr < comp_task_num){
+		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
+			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
+			int dev_id = active_unit_id_list[dev_idx];
+			long int potential_sks[comp_task_per_unit_num[dev_idx]], tie_list_num = 0;
+			int min_tasks_fetches = 100;
+			int min_rem_ops = INT_MAX;
+			for(int comp_dev_idx = 0; comp_dev_idx < comp_task_per_unit_num[dev_idx]; comp_dev_idx++){
+				long comp_task_cand = comp_task_per_unit_list[dev_idx][comp_dev_idx];
+				if(comp_task_fired[comp_task_cand]) continue;
+				long comp_task_Cidx = comp_task_cand/Grid_K;
+				int im = comp_task_Cidx/Grid_N, in = comp_task_Cidx%Grid_N, ik = comp_task_cand%Grid_K;
+				if(ik != 0 && !comp_task_fired[comp_task_Cidx*Grid_K]) continue;
+				int k_last_rd_flag = 1;
+				if(ik == Grid_K - 1) for (int ctr = 0; ctr < Grid_K - 1; ctr++) 
+					if(!comp_task_fired[comp_task_Cidx*Grid_K + ctr]) k_last_rd_flag = 0; 
+				if(!k_last_rd_flag) continue;
+				if (comp_task_ctr <= comp_task_num/2){
+					int temp_tasks_fetches = 0; 
+					if(A_tile_loc_map[im][ik][dev_id] && A_tile_loc_map[im][ik][dev_id]!= 42) temp_tasks_fetches++;
+					if(B_tile_loc_map[ik][in][dev_id] && B_tile_loc_map[ik][in][dev_id]!= 42) temp_tasks_fetches++;
+					if(!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR") && 
+						C_tile_loc_map[im][in][dev_id] && C_tile_loc_map[im][in][dev_id]!= 42) temp_tasks_fetches++;
+					if(temp_tasks_fetches < min_tasks_fetches){
+						min_tasks_fetches = temp_tasks_fetches;
+						potential_sks[0] = comp_task_cand;
+						tie_list_num = 1; 
+					}
+					else if (temp_tasks_fetches == min_tasks_fetches)
+						potential_sks[tie_list_num++] = comp_task_cand;
+				}
+				else{
+					int temp_remops = Grid_K - comp_Cops_fired[comp_task_cand/Grid_K];
+					if(temp_remops < min_rem_ops){
+						min_rem_ops = temp_remops;
+						potential_sks[0] = comp_task_cand;
+						tie_list_num = 1; 
+					}
+					else if (temp_remops == min_rem_ops) 
+						potential_sks[tie_list_num++] = comp_task_cand;
+				}
+			}
+#ifdef PDEBUG
+			fprintf(stderr, "optimize_tasks_MinFetchNum(): %ld candidates with min_tasks_fetches = %d for dev_idx = %d\n", 
+				tie_list_num, min_tasks_fetches, dev_idx);
+#endif
+			long int selected_task_idx = potential_sks[int(rand() % tie_list_num)]; 
+			decompose_comp_task_fetch(selected_task_idx, dev_idx);
+#ifdef SUBKERNELS_FIRE_LAZY
+			;
+#else
+			decompose_comp_task_run(selected_task_idx, dev_idx);
+#ifdef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(selected_task_idx, dev_idx);
+#endif
+#endif
+			comp_task_fired[selected_task_idx] = 1;
+			comp_task_order[dev_idx][comp_task_perdev[dev_idx]] = selected_task_idx;
+			comp_Cops_fired[selected_task_idx/Grid_K]++;
+			comp_task_perdev[dev_idx]++;
+			comp_task_ctr++;
+		}
+	}
+	for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
+		for(int idx = 0; idx < comp_task_perdev[dev_idx]; idx++){
+#ifdef SUBKERNELS_FIRE_LAZY
+			decompose_comp_task_run(comp_task_order[dev_idx][idx], dev_idx);
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#else
+#ifndef ENABLE_SEND_RECV_OVERLAP
+			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
+#endif
+#endif
+		}
 }
 
 void ATC::optimize_tasks(){
 	if(!strcmp(TASK_ORDER, "SERIAL")) optimize_tasks_serial();
 	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH")) optimize_tasks_MinFetchNum();
-	// This is defined in Routing, since ti uses ETA heuristics and P2P_queue_load
+	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH_THEN_MINPENDING")) optimize_tasks_MinFetchNum_then_MinPendingOps();
+	// These are defined in Routing, since they uses ETA heuristics and P2P_queue_load
 	else if(!strcmp(TASK_ORDER, "FETCH_ETA")) optimize_tasks_ETA();
-	else if(!strcmp(TASK_ORDER, "FETCH_ETA_PLUS_MINOPS")) optimize_tasks_ETA_plus_MinPendingOps();
+	else if(!strcmp(TASK_ORDER, "FETCH_ETA_PLUS_MINPENDING")) optimize_tasks_ETA_plus_MinPendingOps();
+	else error("ATC::optimize_tasks: TASK_ORDER was %s\n", TASK_ORDER);
 }
 
 /********************** Memory-related autotuning *****************************/

@@ -44,7 +44,7 @@ void RMInitResources(int* dev_list, int dev_num){
 #ifdef ENABLE_SEND_RECV_OVERLAP
 					wb_queues[dev_id_idx][dev_id_idy] = new CommandQueue(queue_id, COMMUNICATION);
 #else 
-					wb_queues[dev_id_idx][dev_id_idy] = recv_queues[dev_id_idx][dev_id_idy];
+					wb_queues[dev_id_idy][dev_id_idx] = recv_queues[dev_id_idx][dev_id_idy];
 #endif
 				}
 				else if(best_grid_edge_replaced[dev_id_idx][dev_id_idy][0]!= -1){
@@ -72,7 +72,7 @@ void RMInitResources(int* dev_list, int dev_num){
 				}
 			}
 		}
-		if (!exec_queue[dev_id_idx][0]) {
+		if (!exec_queue[dev_id_idx][0]){
 			int flag_is_worker = 0; 
 			for (int i = 0; i < dev_num; i++) if(dev_list[i] == dev_id_idx){
 				flag_is_worker = 1; 

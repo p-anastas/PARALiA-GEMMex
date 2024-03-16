@@ -11,29 +11,8 @@
 char* CoCoImplementationPrint(){
 	char* string_out = (char*) malloc (2048*sizeof(char));
 	char* string_helper = (char*) malloc (1024*sizeof(char));
-
-#ifdef RUNTIME_SCHEDULER_VERSION
-#ifdef DISTRIBUTION
-	if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC")) sprintf(string_helper, "RT-2D-BC");
-	else error("ATC::distribute_subkernels: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
-#else
-#error
-#endif
-#else
-#ifdef DISTRIBUTION
-	if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC")) sprintf(string_helper, "ST-2D-BC");
-	else error("ATC::distribute_subkernels: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
-#else
-#error
-#endif
-#endif
-	strcat(string_out, string_helper);
 #ifndef ASYNC_ENABLE
-	sprintf(string_helper, "_SYNC");
-	strcat(string_out, string_helper);
-#endif
-#ifndef UNIHELPER_LOCKFREE_ENABLE
-	sprintf(string_helper, "_UN-LC");
+	sprintf(string_helper, "_NO-ASYNC");
 	strcat(string_out, string_helper);
 #endif
 #ifndef BUFFER_REUSE_ENABLE
@@ -44,100 +23,61 @@ char* CoCoImplementationPrint(){
 	sprintf(string_helper, "_NO-UN-RE");
 	strcat(string_out, string_helper);
 #endif
-	sprintf(string_helper, "_UN-PB-L%d", MAX_BACKEND_L);
+	sprintf(string_helper, "_COMP_STREAMS_PERDEV-%d", MAX_BACKEND_L);
 	strcat(string_out, string_helper);
-#ifndef ENABLE_CPU_WORKLOAD
-	sprintf(string_helper, "_NO-CPU");
+	sprintf(string_helper, "_COMM_STREAM_BUFFERING-%d", STREAMING_BUFFER_OVERLAP);
 	strcat(string_out, string_helper);
-#endif
-#ifdef SUBKERNELS_FIRE_WHEN_READY
-	sprintf(string_helper, "_SK-RD");
-	strcat(string_out, string_helper);
-#else
-	sprintf(string_helper, "_SK-PRE");
-	strcat(string_out, string_helper);
-#endif
 	if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR"))
 	sprintf(string_helper, "_ALGO-BASIC");
 	else if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WR_LAZY"))
 	sprintf(string_helper, "_ALGO-WR-LAZY");
 	else if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE"))
-	sprintf(string_helper, "_ALGO-WREDUCE");
+	sprintf(string_helper, "_ALGO-WREDUCE-%d", REDUCE_WORKERS_PERDEV);
 	strcat(string_out, string_helper);
 #ifndef ENABLE_SEND_RECV_OVERLAP
 	sprintf(string_helper, "_NO-SND-RCV-OVER");
 	strcat(string_out, string_helper);
 #endif
-	sprintf(string_helper, "_SBO-%d", STREAMING_BUFFER_OVERLAP);
-	strcat(string_out, string_helper);
-#ifdef P2P_FETCH_FROM_INIT
-	sprintf(string_helper, "_R-P2P-INIT");
+#ifdef SUBKERNELS_FIRE_LAZY
+	sprintf(string_helper, "_SK-FIRE-LAZY");
 	strcat(string_out, string_helper);
 #endif
-#ifdef P2P_FETCH_FROM_GPU_SERIAL
-	sprintf(string_helper, "_R-P2P-SERIAL");
-	strcat(string_out, string_helper);
-#endif	
-#ifdef P2P_FETCH_FROM_GPU_DISTANCE
-	sprintf(string_helper, "_R-P2P-BW");
-	strcat(string_out, string_helper);
-#endif
-#ifdef CHAIN_FETCH_SERIAL
-	sprintf(string_helper, "_R-CHAIN-SERIAL");
-	strcat(string_out, string_helper);
-#endif	
-#ifdef CHAIN_FETCH_RANDOM
-	sprintf(string_helper, "_R-CHAIN-RAND");
-	strcat(string_out, string_helper);
-#endif	
-#ifdef CHAIN_FETCH_TIME
-	sprintf(string_helper, "_R-CHAIN-TIME");
-	strcat(string_out, string_helper);
-#endif	
-#ifdef CHAIN_FETCH_QUEUE_WORKLOAD
-	sprintf(string_helper, "_R-CHAIN-QUEUE-ETA");
-	strcat(string_out, string_helper);
-	//sprintf(string_helper, "-CO-%d", BANDWIDTH_DIFFERENCE_CUTTOF_RATIO);
-	//strcat(string_out, string_helper);
-#endif
-#ifdef ENABLE_TRANSFER_HOPS
-#ifdef HOP_FETCH_BANDWIDTH
-	sprintf(string_helper, "_BW-");
-	strcat(string_out, string_helper);
-#endif	
-#ifdef HOP_FETCH_QUEUE_WORKLOAD
-	sprintf(string_helper, "_ETA-");
-	strcat(string_out, string_helper);
-#endif
-#ifdef HOP_FETCH_BW_PLUS_ETA
-	sprintf(string_helper, "_BW-ETA-");
-	strcat(string_out, string_helper);
-#endif
-	sprintf(string_helper, "HOPS-%d-%.2lf", MAX_ALLOWED_HOPS, HOP_PENALTY);
-	strcat(string_out, string_helper);
-#endif
-	//sprintf(string_helper, "_RTI-%d", RATIO_TUNE_ITTER);
-	//strcat(string_out, string_helper);
-#ifdef REORDER_DEVICES
-	sprintf(string_helper, "_DEV-REORDER");
-	strcat(string_out, string_helper);
-#endif
+//#ifndef ENABLE_CPU_WORKLOAD
+//	sprintf(string_helper, "_NO-CPU");
+//	strcat(string_out, string_helper);
+//#endif
+/// Tile selection algorithm MD should go here, if any 
 #ifdef APPLY_TILE_SL_TO_WORKLOAD_SPLIT
-	sprintf(string_helper, "_ACCOUNT-TILE-SL");
+	sprintf(string_helper, "_MODEL-TILE-SL");
 	strcat(string_out, string_helper);
 #endif
-#ifdef SERIAL_SUBKERNEL_SELECTION
-	sprintf(string_helper, "_SK-SELECT-SERIAL");
+
+	if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC")) sprintf(string_helper, "_2D-BLOCK-CYCLIC-%s", ORDER_2DBC);
+	else error("CoCoImplementationPrint(): Unknown Subkernel Distribution %s\n", DISTRIBUTION);
 	strcat(string_out, string_helper);
-#endif
-#ifdef SUBKERNEL_SELECT_MIN_RONLY_ETA
-	sprintf(string_helper, "_SK-SELECT-H-RONLY-ETA");
+
+	if (!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_INIT")) sprintf(string_helper, "_FETCH-P2P-INIT");
+	else if (!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_SERIAL")) sprintf(string_helper, "_FETCH-P2P-SERIAL");
+	else if (!strcmp(FETCH_ROUTING, "P2P_FETCH_FROM_GPU_DISTANCE")) sprintf(string_helper, "_FETCH-P2P-DISTANCE");
+	else if (!strcmp(FETCH_ROUTING, "CHAIN_FETCH_SERIAL")) sprintf(string_helper, "_FETCH-CHAIN-SERIAL");
+	else if (!strcmp(FETCH_ROUTING, "CHAIN_FETCH_RANDOM")) sprintf(string_helper, "_FETCH-CHAIN-RANDOM");
+	else if (!strcmp(FETCH_ROUTING, "CHAIN_FETCH_TIME")) sprintf(string_helper, "_FETCH-CHAIN-TIME");
+	else if (!strcmp(FETCH_ROUTING, "CHAIN_FETCH_QUEUE_WORKLOAD")) sprintf(string_helper, "_FETCH-CHAIN-QETA");
+	else error("CoCoImplementationPrint(): Unknown Fetch routing %s\n", FETCH_ROUTING);
 	strcat(string_out, string_helper);
-#endif
-#ifdef SUBKERNEL_SELECT_FETCH_ETA_PLUS_MIN_PENDING
-	sprintf(string_helper, "_SK-SELECT-H-ETA-PLUS-PENDING");
+
+	if (!strcmp(WB_ROUTING, "P2P_TO_INIT")) sprintf(string_helper, "_WB-P2P-INIT");
+	else error("CoCoImplementationPrint(): Unknown WB routing %s\n", WB_ROUTING);
 	strcat(string_out, string_helper);
-#endif
+
+	if (!strcmp(TASK_ORDER, "SERIAL")) sprintf(string_helper, "_TASK-ORDER-SERIAL");
+	else if (!strcmp(TASK_ORDER, "FETCH_MINFETCH")) sprintf(string_helper, "_TASK-ORDER-MINFETCH");
+	else if (!strcmp(TASK_ORDER, "FETCH_MINFETCH_THEN_MINPENDING")) sprintf(string_helper, "_TASK-ORDER-MINFETCH-THEN-MINPENDING");
+	else if (!strcmp(TASK_ORDER, "FETCH_ETA")) sprintf(string_helper, "_TASK-ORDER-QETA");
+	else if (!strcmp(TASK_ORDER, "FETCH_ETA_PLUS_MINPENDING")) sprintf(string_helper, "_TASK-ORDER-QETA-PLUS-MINPENDING");
+	else error("CoCoImplementationPrint(): Unknown Task Order Algorithm %s\n", TASK_ORDER);
+	strcat(string_out, string_helper);
+
 #ifdef ENABLE_POWA
 	if(strcmp(PREDICT_OPTIMIZE_TARGET,"PERF-PER-J")) sprintf(string_helper, "_PW-PRED-%s", PREDICT_OPTIMIZE_TARGET);
 	else sprintf(string_helper, "_PW-PRED-%s-%.2lf", PREDICT_OPTIMIZE_TARGET, PERPER_LIMIT);

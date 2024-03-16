@@ -65,21 +65,16 @@ add_definitions(-DRUNVALIDATION)
 
 add_executable (cuBLASXt_dgemm_runner ${BENCH_DIR_SRC}/cuBLASXt/cuBLASXt_dgemm_runner.cpp )
 ## PARALia Runners and Testers
-add_executable (dgemm_tester_B-${MAX_BACKEND_L}_${OUTPUT_ALGO_MODE}_S-${STREAMING_BUFFER_OVERLAP}_${DISTRIBUTION}-${ORDER_2DBC}_${TASK_ORDER}_F-${FETCH_ROUTING}_WB-${WB_ROUTING}_${PREDICT_OPTIMIZE_TARGET} ${BENCH_DIR_SRC}/PARALia/dgemm_tester.cpp )
-#add_executable (sgemm_tester ${BENCH_DIR_SRC}/PARALia/sgemm_tester.cpp )
-add_executable (dgemm_runner_B-${MAX_BACKEND_L}_${OUTPUT_ALGO_MODE}_S-${STREAMING_BUFFER_OVERLAP}_${DISTRIBUTION}-${ORDER_2DBC}_${TASK_ORDER}_F-${FETCH_ROUTING}_WB-${WB_ROUTING}_${PREDICT_OPTIMIZE_TARGET} ${BENCH_DIR_SRC}/PARALia/dgemm_runner.cpp )
-
-add_executable (dgemm_tester_last ${BENCH_DIR_SRC}/PARALia/dgemm_tester.cpp )
-add_executable (dgemm_runner_last ${BENCH_DIR_SRC}/PARALia/dgemm_runner.cpp )
-
+add_executable (dgemm_tester ${BENCH_DIR_SRC}/PARALia/dgemm_tester.cpp )
+add_executable (dgemm_runner ${BENCH_DIR_SRC}/PARALia/dgemm_runner.cpp )
 #add_executable (dgemm_runner_hetero ${BENCH_DIR_SRC}/PARALia/dgemm_runner_hetero.cu )
 add_executable (dgemm_predictor ${BENCH_DIR_SRC}/PARALia/dgemm_predictor.cpp )
 
 target_link_libraries(cuBLASXt_dgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
-target_link_libraries(dgemm_tester_B-${MAX_BACKEND_L}_${OUTPUT_ALGO_MODE}_S-${STREAMING_BUFFER_OVERLAP}_${DISTRIBUTION}-${ORDER_2DBC}_${TASK_ORDER}_F-${FETCH_ROUTING}_WB-${WB_ROUTING}_${PREDICT_OPTIMIZE_TARGET} ${INTERNAL_LINK_LIB} benchparalia )
-target_link_libraries(dgemm_runner_B-${MAX_BACKEND_L}_${OUTPUT_ALGO_MODE}_S-${STREAMING_BUFFER_OVERLAP}_${DISTRIBUTION}-${ORDER_2DBC}_${TASK_ORDER}_F-${FETCH_ROUTING}_WB-${WB_ROUTING}_${PREDICT_OPTIMIZE_TARGET}  ${INTERNAL_LINK_LIB} benchparalia )
-target_link_libraries(dgemm_tester_last ${INTERNAL_LINK_LIB} benchparalia )
-target_link_libraries(dgemm_runner_last ${INTERNAL_LINK_LIB} benchparalia )
+#target_link_libraries(dgemm_tester_B-${MAX_BACKEND_L}_${OUTPUT_ALGO_MODE}_S-${STREAMING_BUFFER_OVERLAP}_${DISTRIBUTION}-${ORDER_2DBC}_${TASK_ORDER}_F-${FETCH_ROUTING}_WB-${WB_ROUTING}_${PREDICT_OPTIMIZE_TARGET} ${INTERNAL_LINK_LIB} benchparalia )
+#target_link_libraries(dgemm_runner_B-${MAX_BACKEND_L}_${OUTPUT_ALGO_MODE}_S-${STREAMING_BUFFER_OVERLAP}_${DISTRIBUTION}-${ORDER_2DBC}_${TASK_ORDER}_F-${FETCH_ROUTING}_WB-${WB_ROUTING}_${PREDICT_OPTIMIZE_TARGET}  ${INTERNAL_LINK_LIB} benchparalia )
+target_link_libraries(dgemm_tester ${INTERNAL_LINK_LIB} benchparalia )
+target_link_libraries(dgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
 target_link_libraries(dgemm_predictor ${INTERNAL_LINK_LIB} benchparalia )
 
 set (BENCH_INSTALL_INC ${BENCH_INSTALL_INC} PARENT_SCOPE)
