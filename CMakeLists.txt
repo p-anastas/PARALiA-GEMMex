@@ -73,8 +73,8 @@ set(STREAMING_BUFFER_OVERLAP 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#set(OUTPUT_ALGO_MODE ALGO_WR)
-set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+set(OUTPUT_ALGO_MODE ALGO_WR)
+#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 # Enable overlapping Send & recv Communication
 add_definitions(-DENABLE_SEND_RECV_OVERLAP)

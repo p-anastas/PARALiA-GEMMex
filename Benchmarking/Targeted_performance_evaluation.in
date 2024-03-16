@@ -33,12 +33,12 @@ do
 	TransB=N
 	for scenario in "Full_offload" "Partial_offload_result_mixed_in" "Partial_offload_in" "Device_only_offload" "Device_only_offload_mixed3" 
 	do # "Partial_offload_result" "Partial_offload_mixed" "Device_only_offload_mixed1" "Device_only_offload_mixed3" "Device_only_offload_mixed4"
-		C_loc=-1
+		C_loc=12
 		echo $scenario
 		if [ "$scenario" = "Full_offload" ];
 		then
-			A_loc=-1
-			B_loc=-1
+			A_loc=12
+			B_loc=12
 		elif [ "$scenario" = "Partial_offload_result" ];
 			then
 				A_loc=0
@@ -47,15 +47,15 @@ do
 			then
 				A_loc=4
 				B_loc=2
-				C_loc=-1
+				C_loc=12
 		elif [ "$scenario" = "Partial_offload_in" ];
 			then
-				A_loc=-1
-				B_loc=-1
+				A_loc=12
+				B_loc=12
 				C_loc=0
 		elif [ "$scenario" = "Partial_offload_mixed" ];
 			then
-				A_loc=-1
+				A_loc=12
 				B_loc=0
 				C_loc=5
 		elif [ "$scenario" = "Device_only_offload" ];
