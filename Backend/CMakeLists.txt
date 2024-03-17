@@ -1,44 +1,4 @@
-###########################################################################################
-#----------------------------------DEBUG/TEST Options-------------------------------------#
-###########################################################################################
-
-#Run in debug mode, which includes detailed function calls and info for error-checking
-add_definitions(-DCLDEBUG)
-
-#Run in deep debug mode, for command-to-command debugging
-#add_definitions(-DDCLDEBUG)
-
-#Run in Link Hop testing mode; transfers using link hops are logged and timed.
-#add_definitions(-DCLTEST)
-
-###########################################################################################
-#------------------------------------Other options----------------------------------------#
-###########################################################################################
-
-## The smart numa alloc method
-#add_definitions(-DSMART_NUMALLOC_ROWWISE)
-#add_definitions(-DSMART_NUMALLOC_COLWISE)
-
-## The number of parallel workers that can be utilized at each device for comp-comp overlap. 
-#add_definitions(-DMAX_BACKEND_L=8)
-
-#add_definitions(-DREDUCE_WORKERS_PERDEV=10)
-
-## Define at which percentage to normalize float values for similar data (e.g. costs, splits etc) to avoid empirical errors leaking into decisions
-add_definitions(-DNORMALIZE_NEAR_SPLIT_LIMIT=0.05)
-
-## The workspace size that should be assigned to each cublas handle
-## If set to -1, the default ws will be used instead 
-## NOTE-FIXME!!! : Currently WS effects the PCIe BW when a cublas kernel is launched. 
-## NOTE-FIXME!!! This has a serious overhead if SKs are launched during selection
-## NOTE-FIXME!!! Use of SUBKERNELS_FIRE_WHEN_READY is advised for mitigating this
-add_definitions(-DWS_SZ=0)
-
-###########################################################################################
-#----------------------------------------chl_libs-----------------------------------------#
-###########################################################################################
-
-set (PARALIA_BACKEND_SOURCE_DIR ${PROJECT_SOURCE_DIR}/Backend)
+set (PARALIA_BACKEND_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 message( "PARALIA - Backend - PARALIA_BACKEND_SOURCE_DIR = " ${PARALIA_BACKEND_SOURCE_DIR} )
 
 message( "PARALIA - Backend - Included smart_wrappers DIR: " ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers )
@@ -46,24 +6,6 @@ include_directories(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers)
 
 message( "PARALIA - Backend - Included grid_amalgamation DIR: " ${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation )
 include_directories(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation)
-
-set (PARALIA_INSTALL ${CMAKE_INSTALL_PROJECT}/PARALIA_Backend)
-file(MAKE_DIRECTORY ${PARALIA_INSTALL})
-
-set (PARALIA_INSTALL_LIB ${PARALIA_INSTALL}/lib)
-file(MAKE_DIRECTORY ${PARALIA_INSTALL_LIB})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PARALIA_INSTALL_LIB})
-
-set (PARALIA_INSTALL_INC ${PARALIA_INSTALL}/include)
-file(MAKE_DIRECTORY ${PARALIA_INSTALL_INC})
-set(PARALIA_INSTALL_INC ${PARALIA_INSTALL_INC} PARENT_SCOPE)
-
-add_definitions(-DDEPLOYDB="${PARALIA_INSTALL}")
-message( "PARALIA - Backend - DEPLOYDB: " ${PARALIA_INSTALL})
-file(MAKE_DIRECTORY ${PARALIA_INSTALL}/Benchmark-Results)
-
-add_definitions(-DSCONFIG_PATH="$ENV{PARALIA_SCONFIG_FILE_PATH}")
-message( "PARALIA - Backend - SCONFIG_PATH: " $ENV{PARALIA_SCONFIG_FILE_PATH})
 
 add_library(chl_smart_wrappers SHARED
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/general_utils.cpp
@@ -117,6 +59,7 @@ set(NVEMAPI_PREFIX "${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure")
 set (NVEMAPI_INCLUDE_DIRS ${NVEMAPI_PREFIX}/include) # -L${CUDA_LD}
 include_directories(${NVEMAPI_INCLUDE_DIRS} )
 message( "PARALIA - Backend - NVEMAPI_INCLUDE_DIRS: " ${NVEMAPI_INCLUDE_DIRS} )
+message( "------------------------------------------------------------------------------------------------")
 ADD_SUBDIRECTORY (${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure)
 
 add_executable (CHLMicrobench2DGrids ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_microbench_grids.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
@@ -132,5 +75,3 @@ target_link_libraries(CHLTestMemlocs ${INTERNAL_LINK_LIB} chl_grid_amalgamation 
 target_link_libraries(CHLTest2DThroughput ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 
 #target_link_libraries(RunCuCuBlasLinkBenchGPUs ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
-
-

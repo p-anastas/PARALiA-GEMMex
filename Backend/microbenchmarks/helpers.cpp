@@ -91,7 +91,9 @@ int confidence_interval_5_percent(long int sample_sz, double cpu_timer, double* 
 	boost::math::students_t dist(sample_sz - 1);
 	double Td = boost::math::quantile(boost::math::complement(dist, alphaCI / 2));
 	(*error_margin_ptr) = Td*std_dev/sqrt(sample_sz);
-	//fprintf(stderr, "\tItter %d:\t mean=%lf, std_dev = %lf, Error margin =%lf\n", sample_sz, (*transfer_t_mean_ptr) , std_dev, (*error_margin_ptr));
+#ifdef CLDEBUG
+	fprintf(stderr, "\tItter %d:\t mean=%lf, std_dev = %lf, Error margin =%lf\n", sample_sz, (*transfer_t_mean_ptr) , std_dev, (*error_margin_ptr));
+#endif
 	if ((*error_margin_ptr)/(*transfer_t_mean_ptr)  * 100 <= 0.5) return 1;
 	else return 0;
 }
@@ -226,8 +228,8 @@ double perform_microbenchmark_2D(void** loc_buffs, void** worker_buffs, int loc,
 	int dim, int* unit_ids, int unit_num, double* worker_wise_bws, int rev_dim, int* rev_unit_ids, int rev_unit_num, double* worker_wise_rev_bws, double* h2d_bw, double* d2h_bw, double* bid_bw){
 	Event_timer_p device_timer[CHL_WORKERS], rev_device_timer[CHL_WORKERS];
 	for(int idx = 0; idx < CHL_WORKERS; idx++){
-		device_timer[idx] = new Event_timer((idx));
-		rev_device_timer[idx] = new Event_timer((idx));
+		device_timer[idx] = new Event_timer(idx);
+		rev_device_timer[idx] = new Event_timer(idx);
 	}
 #ifdef CLDEBUG
 	fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
@@ -242,7 +244,8 @@ double perform_microbenchmark_2D(void** loc_buffs, void** worker_buffs, int loc,
 	for (sample_sz = 1; sample_sz < MICRO_MAX_ITER + 1; sample_sz++){
 		for(int active_unit_idx = 0; active_unit_idx < unit_num; active_unit_idx++){
 			int loc_dest = unit_ids[active_unit_idx];
-#ifdef DCLDEBUG
+#ifdef CLDEBUG
+			//fprintf(stderr, "perform_microbenchmark_2D: Running microbench itter %d\n", sample_sz-1);
 			int memloc = CHLGetPtrLoc(loc_buffs[2*loc_dest]);
 			if(memloc != loc) warning("perform_microbenchmark_2D: Suspicious input buffer %p for loc = %d (%s), pointed to %d (%s) instead\n", 
 				loc_buffs[2*loc_dest], loc, mem_name(loc), memloc, mem_name(memloc));

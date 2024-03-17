@@ -1,13 +1,9 @@
-cmake_minimum_required (VERSION 3.10)
-### Initialize the project
-project (PARALiA-Benchmarks VERSION ${PROJECT_VERSION} DESCRIPTION "Library wrappers for performance comparisson with PARALiA" LANGUAGES CXX CUDA)
-message( "------------------------------------------------------------------------------------------------")
-message( "Benchmarking - PROJECT_SOURCE_DIR: " ${PROJECT_SOURCE_DIR} )
-#message( "Library Scheduler - CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
-#message( "Library Scheduler - CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
+set ( BENCH_DIR_BASE ${CMAKE_CURRENT_SOURCE_DIR}/ )
+message( "Benchmarking - BENCH_DIR_BASE: " ${BENCH_DIR_BASE} )
+set (BENCH_DIR_BASE ${BENCH_DIR_BASE} PARENT_SCOPE)
 
-set ( BENCH_DIR ${PROJECT_SOURCE_DIR}/${BACKEND} )
-message( "Benchmarking - LIBSC_DIR: " ${BENCH_DIR} )
+set ( BENCH_DIR ${BENCH_DIR_BASE}/${BACKEND} )
+message( "Benchmarking - BENCH_DIR: " ${BENCH_DIR} )
 
 set (BENCH_DIR_INC ${BENCH_DIR}/include)
 include_directories( ${BENCH_DIR_INC})
@@ -16,34 +12,15 @@ message( "Benchmarking - Included DIR: " ${BENCH_DIR_INC} )
 include_directories(${PARALIA_INSTALL_INC})
 message( "Benchmarking - Included DIR: " ${PARALIA_INSTALL_INC} )
 
-include_directories(${AUTOTUNE_INSTALL_INC})
-message( "Benchmarking - Included DIR: " ${AUTOTUNE_INSTALL_INC} )
-
-include_directories(${LIBSC_INSTALL_INC})
-message( "Benchmarking - Included DIR: " ${LIBSC_INSTALL_INC} )
-
-include_directories(${CACHING_INSTALL_INC})
-message( "Benchmarking - Included DIR: " ${CACHING_INSTALL_INC} )
-
 set (BENCH_DIR_SRC ${BENCH_DIR}/src)
 message( "Benchmarking - Source DIR: " ${BENCH_DIR_SRC} )
 
-set (BENCH_INSTALL ${CMAKE_INSTALL_PROJECT}/Benchmarking)
-file(MAKE_DIRECTORY ${BENCH_INSTALL})
+file(MAKE_DIRECTORY ${PARALIA_INSTALL}/testLogs)
+add_definitions(-DTESTLIBDIR="${PARALIA_INSTALL}/testLogs")
 
-set (BENCH_INSTALL_INC ${BENCH_INSTALL}/include)
-file(MAKE_DIRECTORY ${BENCH_INSTALL_INC})
-
-#set (BENCH_INSTALL_LIB ${BENCH_INSTALL}/lib)
-#file(MAKE_DIRECTORY ${BENCH_INSTALL_LIB})
-#set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIBSC_INSTALL_LIB})
-
-set (BENCH_INSTALL_BIN ${BENCH_INSTALL}/testing-bin)
-file(MAKE_DIRECTORY ${BENCH_INSTALL_BIN})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BENCH_INSTALL_BIN})
-
-file(MAKE_DIRECTORY ${BENCH_INSTALL}/testLogs)
-add_definitions(-DTESTLIBDIR="${BENCH_INSTALL}/testLogs")
+set (BENCHMARK_INSTALL_BIN ${PARALIA_INSTALL}/testing-bin)
+file(MAKE_DIRECTORY ${BENCHMARK_INSTALL_BIN})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BENCHMARK_INSTALL_BIN})
 
 add_library(benchparalia SHARED
 ${BENCH_DIR_SRC}/cuBLASXt/cuBLASXtWrappers.cpp
@@ -77,8 +54,4 @@ target_link_libraries(dgemm_tester ${INTERNAL_LINK_LIB} benchparalia )
 target_link_libraries(dgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
 target_link_libraries(dgemm_predictor ${INTERNAL_LINK_LIB} benchparalia )
 
-set (BENCH_INSTALL_INC ${BENCH_INSTALL_INC} PARENT_SCOPE)
-#message( "->\nBenchmarking - Shared Library: " ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} )
-#message( "Benchmarking - Shared Library headers: " ${BENCH_INSTALL_INC} )
-message( "Benchmarking - Library testing bin DIR: " ${BENCH_INSTALL_BIN} )
 message( "------------------------------------------------------------------------------------------------")

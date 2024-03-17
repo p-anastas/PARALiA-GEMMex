@@ -43,9 +43,9 @@ int main(const int argc, const char *argv[]) {
 	if (loc_src == loc_dest) error("Transfer benchmark@%s %d->%d: Same device\n",TESTBED, loc_src, loc_dest);
 
 	char *filename = (char *) malloc(1024 * sizeof(char));
-	sprintf(filename, "%s/Benchmark-Results/CuCuBLAS_link_benchmark_loc_dest-%d_loc_src-%d_%s.log", DEPLOYDB, loc_dest, loc_src, VERSION);
+	sprintf(filename, "%s/Database/CuCuBLAS_link_benchmark_loc_dest-%d_loc_src-%d_%s.log", DEPLOYDB, loc_dest, loc_src, VERSION);
 	char *filename_over = (char *) malloc(1024 * sizeof(char));
-	sprintf(filename_over, "%s/Benchmark-Results/CuCuBLAS_link_overlap_benchmark_loc_dest-%d_loc_src-%d_%s.log", DEPLOYDB, loc_dest, loc_src, VERSION);
+	sprintf(filename_over, "%s/Database/CuCuBLAS_link_overlap_benchmark_loc_dest-%d_loc_src-%d_%s.log", DEPLOYDB, loc_dest, loc_src, VERSION);
 	//check_benchmark(filename);
 	//check_benchmark(filename_over);
 

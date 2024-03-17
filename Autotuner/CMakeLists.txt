@@ -1,12 +1,4 @@
-cmake_minimum_required (VERSION 3.10)
-### Initialize the project
-project (CoCopeLia-Autotune VERSION ${PROJECT_VERSION} DESCRIPTION "Auto-tuning function lib for CoCoPeLia" LANGUAGES CXX)
-message( "------------------------------------------------------------------------------------------------")
-message( "Autotuner - PROJECT_SOURCE_DIR: " ${PROJECT_SOURCE_DIR} )
-#message( "Autotuner - CMAKE_CURRENT_SOURCE_DIR: " ${CMAKE_CURRENT_SOURCE_DIR} )
-#message( "Autotuner - CMAKE_CURRENT_BINARY_DIR: " ${CMAKE_CURRENT_BINARY_DIR} )
-
-set ( AUTOTUNE_DIR ${PROJECT_SOURCE_DIR} )
+set ( AUTOTUNE_DIR ${CMAKE_CURRENT_SOURCE_DIR} )
 message( "Autotuner - AUTOTUNE_DIR: " ${AUTOTUNE_DIR} )
 
 set (AUTOTUNE_DIR_INC ${AUTOTUNE_DIR}/include)
@@ -19,23 +11,6 @@ message( "Autotuner - Included DIR: " ${PARALIA_INSTALL_INC} )
 set (AUTOTUNE_DIR_SRC ${AUTOTUNE_DIR}/src)
 message( "Autotuner - Source DIR: " ${AUTOTUNE_DIR_SRC} )
 
-set (AUTOTUNE_INSTALL ${CMAKE_INSTALL_PROJECT}/Autotuner)
-file(MAKE_DIRECTORY ${AUTOTUNE_INSTALL})
-
-set (AUTOTUNE_INSTALL_INC ${AUTOTUNE_INSTALL}/include)
-file(MAKE_DIRECTORY ${AUTOTUNE_INSTALL_INC})
-
-set (AUTOTUNE_INSTALL_LIB ${AUTOTUNE_INSTALL}/lib)
-file(MAKE_DIRECTORY ${AUTOTUNE_INSTALL_LIB})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${AUTOTUNE_INSTALL_LIB})
-
-set (AUTOTUNE_INSTALL_BIN ${AUTOTUNE_INSTALL}/bin)
-file(MAKE_DIRECTORY ${AUTOTUNE_INSTALL_BIN})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${AUTOTUNE_INSTALL_BIN})
-
-file(MAKE_DIRECTORY ${AUTOTUNE_INSTALL}/testLogs)
-add_definitions(-DTESTDIR="${AUTOTUNE_INSTALL}/testLogs")
-
 add_library(autotuner SHARED
 ${AUTOTUNE_DIR_SRC}/TaskDistribution.cpp
 ${AUTOTUNE_DIR_SRC}/Autotuner.cpp
@@ -43,13 +18,6 @@ ${AUTOTUNE_DIR_SRC}/Routing.cpp
 )
 
 target_link_libraries(autotuner ${INTERNAL_LINK_LIB} chl_grid_amalgamation)
-configure_file(${AUTOTUNE_DIR_INC}/Autotuner.hpp ${AUTOTUNE_INSTALL_INC}/Autotuner.hpp COPYONLY)
+configure_file(${AUTOTUNE_DIR_INC}/Autotuner.hpp ${PARALIA_INSTALL_INC}/Autotuner.hpp COPYONLY)
 
-#add_executable (CoCoPeLiaPredictTileTester ${AUTOTUNE_DIR}/testing/CoCoPeLiaPredictTileTester.cpp )
-#target_link_libraries(CoCoPeLiaPredictTileTester ${INTERNAL_LINK_LIB} autotuner linkmap)
-
-set (AUTOTUNE_INSTALL_INC ${AUTOTUNE_INSTALL_INC} PARENT_SCOPE)
-message( "->\nAutotuner - Shared Library: " ${CMAKE_LIBRARY_OUTPUT_DIRECTORY} )
-message( "Autotuner - Shared Library headers: " ${AUTOTUNE_INSTALL_INC} )
-message( "Autotuner - Model testing bin DIR: " ${CMAKE_RUNTIME_OUTPUT_DIRECTORY} )
 message( "------------------------------------------------------------------------------------------------")

@@ -24,7 +24,7 @@ int main(const int argc, const char *argv[]) {
 		loc = atoi(argv[ctr++]);
 		break;
 	default:
-		error("Incorrect input arguments. Usage: ./correct_run N loc use_square_tile:\n"
+		error("Incorrect input arguments. Usage: ./correct_run N loc:\n"
 		"dim : A test buff dimension\n"
 		"loc: the initial allocation memory. If = -1 will check smart numa-split malloc.\n");
   	}
@@ -40,7 +40,7 @@ int main(const int argc, const char *argv[]) {
 		TESTBED, maxDim, ldhost, lddev);
 	fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 
-	//maxDim/=8;
+	maxDim/=8;
 	if (dim <= 0) error("chl_2D_throughput_test: Invalid dim = %d \n", dim);
 	if (dim > maxDim) error("chl_2D_throughput_test: Input dim = %d too large for system memories\n", dim);
 	int active_unit_num = CHL_WORKERS, active_unit_id_list[CHL_WORKERS], rev_active_unit_num = CHL_WORKERS, rev_active_unit_id_list[CHL_WORKERS];

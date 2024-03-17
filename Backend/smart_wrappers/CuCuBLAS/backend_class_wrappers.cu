@@ -633,6 +633,16 @@ Event_timer::Event_timer(int dev_id) {
 
 void Event_timer::start_point(CQueue_p start_queue)
 {
+	if(Event_start->query_status() == RECORDED)
+		error("[dev_id=%3d] |-----| Event_timer::start_point(Queue(%d)) Event_start already in use\n", 
+		start_queue->dev_id, start_queue->id);
+	else if(Event_stop->query_status() == RECORDED) 
+		error("[dev_id=%3d] |-----| Event_timer::start_point(Queue(%d)) Event_stop already in use\n", 
+		start_queue->dev_id, start_queue->id);
+	else{
+		if(Event_start->status == COMPLETE) Event_start->reset();
+		if(Event_stop->status == COMPLETE) Event_stop->reset();
+	}
 	Event_start->record_to_queue(start_queue);
 }
 
@@ -645,10 +655,11 @@ double Event_timer::sync_get_time()
 {
 	float temp_t;
 	if(Event_start->query_status() != UNRECORDED){
-		Event_start->sync_barrier();
-		if(Event_stop->query_status() != UNRECORDED) Event_stop->sync_barrier();
-		else error("Event_timer::sync_get_time: Event_start is %s but Event_stop still UNRECORDED\n",
-			print_event_status(Event_start->query_status()));
+		if(Event_start->query_status() == RECORDED) Event_start->sync_barrier();
+		if(Event_stop->query_status() == RECORDED) Event_stop->sync_barrier();
+		else if(Event_stop->status == UNRECORDED)
+			error("Event_timer::sync_get_time: Event_start is %s but Event_stop still UNRECORDED\n",
+				print_event_status(Event_start->query_status()));
 		cudaEvent_t cuda_event_start = *(cudaEvent_t*) Event_start->event_backend_ptr;
 		cudaEvent_t cuda_event_stop = *(cudaEvent_t*) Event_stop->event_backend_ptr;
 		cudaEventElapsedTime(&temp_t, cuda_event_start, cuda_event_stop);

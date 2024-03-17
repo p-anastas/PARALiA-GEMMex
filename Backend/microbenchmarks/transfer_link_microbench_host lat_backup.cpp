@@ -119,7 +119,7 @@ int main(const int argc, const char *argv[]) {
   	}
 
 	char *filename = (char *) malloc(1024 * sizeof(char));
-	sprintf(filename, "%s/Benchmark-Results/transfer_link_microbenchmark_host_%s.log", DEPLOYDB, VERSION);
+	sprintf(filename, "%s/Database/transfer_link_microbenchmark_host_%s.log", DEPLOYDB, VERSION);
 	//check_benchmark(filename);
 
 	short elemSize = sizeof(double);
