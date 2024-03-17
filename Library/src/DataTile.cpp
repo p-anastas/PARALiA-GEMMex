@@ -25,7 +25,7 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
                int in_ldim, int inGrid1, int inGrid2, dtype_enum dtype_in, int init_loc, Buffer_p* init_loc_cache_p){
 #ifdef DDEBUG
 	fprintf(stderr, "|-----> Tile2D(%d)::Tile2D(in_addr(%d) = %p,%d,%d,%d, %d, %d)\n",
-			Tile2D_num, CHLGetPtrLoc(in_addr), in_addr, in_dim1, in_dim2, in_ldim, inGrid1, inGrid2);
+			Tile2D_num, init_loc, in_addr, in_dim1, in_dim2, in_ldim, inGrid1, inGrid2);
 #endif
 	dtype = dtype_in;
 	dim1 = in_dim1;

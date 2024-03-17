@@ -35,18 +35,18 @@ void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size,
   int current_ctr;
   void* tile_addr = NULL;
   int loc_idx = loc;
-  for (int itt1 = 0; itt1 < GridSz1; itt1++){
-		for (int itt2 = 0 ; itt2 < GridSz2; itt2++){
+  for (long int itt1 = 0; itt1 < GridSz1; itt1++){
+		for (long int itt2 = 0 ; itt2 < GridSz2; itt2++){
       current_ctr = itt1*GridSz2 + itt2;
       if (transpose == 'N'){
-         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*new_T1 + itt2*new_T2*ldim);
-         else if(dtype == FLOAT) tile_addr = ((float*)adrs) + (itt1*new_T1 + itt2*new_T2*ldim);
+         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*new_T1 + itt2*new_T2*ldim));
+         else if(dtype == FLOAT) tile_addr = ((float*)adrs) + ((long)(itt1*new_T1 + itt2*new_T2*ldim));
          else error("Decom2D::Reset: dtype not implemented");
          Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p);
        }
       else if (transpose == 'T'){
-        if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*new_T1*ldim + itt2*new_T2);
-         else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + (itt1*new_T1*ldim + itt2*new_T2);
+        if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*new_T1*ldim + itt2*new_T2));
+         else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + ((long)(itt1*new_T1*ldim + itt2*new_T2));
         else error("Decom2D::Reset: dtype not implemented");
         Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p);
       }
@@ -88,23 +88,23 @@ void Decom2D::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_propert
   int current_ctr, T1tmp, T2tmp;
   void* tile_addr = NULL;
   int loc_idx = CHLGetPtrLoc(adrs);
-  for (int itt1 = 0; itt1 < GridSz1; itt1++){
+  for (long int itt1 = 0; itt1 < GridSz1; itt1++){
     if ( itt1 == GridSz1 - 1) T1tmp = T1Last;
     else  T1tmp = T1;
-		for (int itt2 = 0 ; itt2 < GridSz2; itt2++){
+		for (long int itt2 = 0 ; itt2 < GridSz2; itt2++){
       if ( itt2 == GridSz2 - 1) T2tmp = T2Last;
       else  T2tmp = T2;
       current_ctr = itt1*GridSz2 + itt2;
       /// For column major format assumed with T1tmp = rows and T2tmp = cols
       if (transpose == 'N'){
-         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*T1 + itt2*T2*ldim);
-         else if(dtype == FLOAT) tile_addr = ((float*)adrs) + (itt1*T1 + itt2*T2*ldim);
+         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*T1 + itt2*T2*ldim));
+         else if(dtype == FLOAT) tile_addr = ((float*)adrs) + ((long)(itt1*T1 + itt2*T2*ldim));
          else error("Decom2D::InitTileMap: dtype not implemented");
          Tile_map[current_ctr] = new Tile2D(tile_addr, T1tmp, T2tmp, ldim, itt1, itt2, dtype, loc_idx, init_loc_cache_p);
        }
       else if (transpose == 'T'){
-        if (dtype == DOUBLE) tile_addr = ((double*)adrs) + (itt1*T1*ldim + itt2*T2);
-         else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + (itt1*T1*ldim + itt2*T2);
+        if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*T1*ldim + itt2*T2));
+         else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + ((long)(itt1*T1*ldim + itt2*T2));
         else error("Decom2D::InitTileMap: dtype not implemented");
         Tile_map[current_ctr] = new Tile2D(tile_addr, T2tmp, T1tmp, ldim, itt2, itt1, dtype, loc_idx, init_loc_cache_p);
       }

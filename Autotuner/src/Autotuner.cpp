@@ -956,7 +956,7 @@ void ATC::assert_memory_requirements(){
 			CHLSelectDevice(prev_dev);
 		}
 		// TODO: hard coded 100 GB value, should put something that reads it from system?
-		else free_dev_mem = max_dev_mem = 100000000000;
+		else free_dev_mem = max_dev_mem = 250000000000;
 		// TODO: Note: This is without native blocks, since these are already allocated in memory 
 		max_hw_block_num = (free_dev_mem - ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)))/Block_sz;
 

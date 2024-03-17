@@ -15,7 +15,7 @@ message("PARALiA-GEMMex - PROJECT_VERSION: " ${PROJECT_VERSION})
 add_definitions(-DVERSION="${PROJECT_VERSION}")
 
 ## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
-set(PROBLEM_GPU_PERCENTAGE 70)
+set(PROBLEM_GPU_PERCENTAGE 90)
 message("PARALiA-GEMMex - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
 add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 
@@ -73,8 +73,8 @@ set(STREAMING_BUFFER_OVERLAP 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-set(OUTPUT_ALGO_MODE ALGO_WR)
-#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+#set(OUTPUT_ALGO_MODE ALGO_WR)
+set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 # Enable overlapping Send & recv Communication
 add_definitions(-DENABLE_SEND_RECV_OVERLAP)
@@ -150,13 +150,13 @@ set(ORDER_2DBC D1_lesseq_D2) #Default
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL) # This is worse than distance
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
 #set (FETCH_ROUTING CHAIN_FETCH_SERIAL) # This is worse than random
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
 #set (FETCH_ROUTING CHAIN_FETCH_TIME) # This is worse than ETA
-#set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
+set (FETCH_ROUTING CHAIN_FETCH_QUEUE_WORKLOAD)
 
 ###########################################################################################
 #--------------------------------Writeback routing options--------------------------------#
@@ -180,8 +180,8 @@ set (WB_ROUTING P2P_TO_INIT)
 #Select which optimize_tasks() algorithm to use for selecting the order of firing.
 
 #--------------------------------Tested (production)--------------------------------------#
-set(TASK_ORDER SERIAL)
-#set(TASK_ORDER FETCH_MINFETCH)
+#set(TASK_ORDER SERIAL)
+set(TASK_ORDER FETCH_MINFETCH)
 #set(TASK_ORDER FETCH_MINFETCH_THEN_MINPENDING)
 #set(TASK_ORDER FETCH_ETA)
 #set(TASK_ORDER FETCH_ETA_PLUS_MINPENDING)
