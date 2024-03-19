@@ -73,8 +73,8 @@ set(STREAMING_BUFFER_OVERLAP 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-#set(OUTPUT_ALGO_MODE ALGO_WR)
-set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+set(OUTPUT_ALGO_MODE ALGO_WR)
+#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
 
 # Enable overlapping Send & recv Communication
 add_definitions(-DENABLE_SEND_RECV_OVERLAP)
@@ -181,9 +181,9 @@ set (WB_ROUTING P2P_TO_INIT)
 
 #--------------------------------Tested (production)--------------------------------------#
 #set(TASK_ORDER SERIAL)
-set(TASK_ORDER FETCH_MINFETCH)
+#set(TASK_ORDER FETCH_MINFETCH)
 #set(TASK_ORDER FETCH_MINFETCH_THEN_MINPENDING)
-#set(TASK_ORDER FETCH_ETA)
+set(TASK_ORDER FETCH_ETA)
 #set(TASK_ORDER FETCH_ETA_PLUS_MINPENDING)
 #--------------------------------------Experimental----------------------------------------#
 
@@ -233,16 +233,16 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DPRODUCTION)
 
 #Run in debug mode, which includes detailed function calls and info for error-checking
-#add_definitions(-DDEBUG)
+add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
-#add_definitions(-DDDEBUG)
+add_definitions(-DDDEBUG)
 
 #Run Grid amalgamantion debug mode
 #add_definitions(-DCLDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
-#add_definitions(-DSDEBUG)
+add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
 #add_definitions(-DPDEBUG)

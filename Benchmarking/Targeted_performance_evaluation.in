@@ -1,8 +1,6 @@
 #!/bin/bash
 echo "Bash version ${BASH_VERSION}..."
 
-PROJECT_INSTALL_DIR=@CMAKE_INSTALL_PROJECT@
-
 module load Boost/1.81.0-GCC-12.2.0
 module load OpenBLAS/0.3.21-GCC-12.2.0
 module load Python/3.10.8-GCCcore-12.2.0
@@ -10,9 +8,9 @@ module load CMake/3.24.3-GCCcore-12.2.0
 source ~/.bashrc
 
 machine=@TESTBED_NAME@
+PROJECT_INSTALL_DIR=@CMAKE_INSTALL_PROJECT@
 
-LIBSC_DIR=$PROJECT_INSTALL_DIR/Benchmarking
-LIBSC_TEST_LOG_DIR=$LIBSC_DIR/testLogs
+LIBSC_TEST_LOG_DIR=$PROJECT_INSTALL_DIR/testLogs
 
 mkdir -p "${LIBSC_TEST_LOG_DIR}/exec_logs"
 
@@ -25,8 +23,8 @@ do
 	perf_log="${LIBSC_TEST_LOG_DIR}/exec_logs/${FUNC}_perf_eval.log"
 	rm $perf_log
 
-	#PARALiA_run=$LIBSC_DIR/testing-bin/${FUNC}_runner_B-@MAX_BACKEND_L@_@OUTPUT_ALGO_MODE@_S-@STREAMING_BUFFER_OVERLAP@_@DISTRIBUTION@-@ORDER_2DBC@_@TASK_ORDER@_F-@FETCH_ROUTING@_WB-@WB_ROUTING@_@PREDICT_OPTIMIZE_TARGET@
-	PARALiA_run=$LIBSC_DIR/testing-bin/${FUNC}_runner
+	#PARALiA_run=$PROJECT_INSTALL_DIR/testing-bin/${FUNC}_runner_B-@MAX_BACKEND_L@_@OUTPUT_ALGO_MODE@_S-@STREAMING_BUFFER_OVERLAP@_@DISTRIBUTION@-@ORDER_2DBC@_@TASK_ORDER@_F-@FETCH_ROUTING@_WB-@WB_ROUTING@_@PREDICT_OPTIMIZE_TARGET@
+	PARALiA_run=$PROJECT_INSTALL_DIR/testing-bin/${FUNC}_runner
 	echo "Performing Benchmarks for ${FUNC} evaluation..."
 	## A = Full offload scenario (Initially all data on CPU), B = Partial offload scenario
 	TransA=N
@@ -92,7 +90,7 @@ do
 			#echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			#$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-			#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+			$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -118,7 +116,7 @@ do
 		#	echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 		#	$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-			#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+			$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 		#	echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 		#	$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -139,10 +137,10 @@ do
 		done
 		#exit 1
 		# III) Non-square Problems
-		for inbalanced in 8192 10240 12288 14336 16384 24576 32768
+		for inbalanced in 8192 12288 16384
 		do
 			# K < M,N
-			for ctr in 4 6 8; #21 problems
+			for ctr in 4 6 8; #9 problems
 			do
 				fat=$(($inbalanced*$ctr/2))
 				double_thin=$(($inbalanced*4/$ctr/$ctr))
@@ -169,7 +167,7 @@ do
 				#LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
 			done
 			# K > M,N
-			for ctr in 4 6 8; # 21 problems
+			for ctr in 4 6 8; # 9 problems
 			do
 				double_fat=$(($inbalanced*$ctr*$ctr/4))
 				thin=$(($inbalanced*2/$ctr))

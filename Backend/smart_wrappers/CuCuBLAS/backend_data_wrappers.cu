@@ -162,10 +162,10 @@ void gpu_free(void *gpuptr) {
           cudaGetErrorString(cudaGetLastError()));
 }
 
-void pin_free(void *gpuptr) {
+/*void pin_free(void *gpuptr) {
   massert(cudaFreeHost(gpuptr) == cudaSuccess,
           cudaGetErrorString(cudaGetLastError()));
-}
+}*/
 
 void numa_pin_free(void *gpuptr, long long bytes) {
   cudaHostUnregister(gpuptr);

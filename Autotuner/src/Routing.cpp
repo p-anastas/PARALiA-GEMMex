@@ -305,9 +305,8 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 				for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
 				tie_list_num = 1;
 #ifdef DPDEBUG
-				fprintf(stderr,"DataTile[%d:%d,%d]: New min_ETA(%llf) for route = %s\n", 
-				transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, min_ETA, 
-				printlist(best_list[tie_list_num-1],hop_num));
+				fprintf(stderr,"New min_ETA(%llf) for route = %s\n", 
+					min_ETA, printlist(best_list[tie_list_num-1],hop_num));
 #endif
 			}
 			else if (temp_ETA == min_ETA){
@@ -315,8 +314,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 			for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
 			tie_list_num++;
 	#ifdef DPDEBUG
-			fprintf(stderr,"DataTile[%d:%d,%d]: same min_ETA(%llf) for candidate(%d) route = %s\n", 
-				transfer_tile->id, transfer_tile->GridId1, transfer_tile->GridId2, temp_ETA, 
+			fprintf(stderr,"same min_ETA(%llf) for candidate(%d) route = %s\n", 
 				tie_list_num, printlist(best_list[tie_list_num-1],hop_num));
 	#endif
 			}

@@ -428,7 +428,14 @@ fprintf(stderr,  "|-----> ATC::optimize_tile( autotune_controller{ T=%ld, active
 
 	if (active_unit_num <= 0)
 	error("ATC::optimize_tile: Called with active_unit_num = %d\n", active_unit_num);
+	// This is a legal tile that might disrupt active_unit_num decomposition
 	int max_allowed_T = std::min(M, std::min(N, K));
+	if(!strcmp(DISTRIBUTION,"2D-BLOCK-CYCLIC")){
+		int D1_parts_tmp, D2_parts_temp; 
+		DECOM_2D(active_unit_num, &D1_parts_tmp, &D2_parts_temp);
+		// This is a tile small enough to allow 2D-block-cyclic decomposition in active_unit_num
+		max_allowed_T = std::min(M/(D1_parts_tmp-1)-1, std::min(N/(D2_parts_temp-1)-1, K));
+	}
 	int best_T = -1;
 	double* best_T_sl = (double*) calloc(6,sizeof(double));
 	for(int idx = 0; idx < 6; idx++) best_T_sl[idx] = DBL_MAX;

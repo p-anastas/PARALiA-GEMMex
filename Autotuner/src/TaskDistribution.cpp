@@ -253,7 +253,7 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 		fprintf(stderr, "DistributeCompTasks2DBlockCyclic: task_ctr[%d,%d,%d] = %ld, devidx = %d\n",
 			D1GridIdx,D2GridIdx,D3GridIdx, task_ctr, devidx);
 #endif
-		autotune_controller->comp_task_unit_list[task_ctr] = devidx;
+		autotune_controller->comp_task_unit_list[task_ctr] = autotune_controller->active_unit_id_list[devidx];
 		autotune_controller->comp_task_per_unit_list[devidx][autotune_controller->comp_task_per_unit_num[devidx]] = task_ctr;
 		autotune_controller->comp_task_per_unit_num[devidx]++;
 	}
