@@ -738,7 +738,7 @@ void ATC::optimize_tasks_taco_PARALiA(){
 	int comp_task_order[active_unit_num][comp_task_num] = {0};
 	task_num = 0; 
 	while (comp_task_ctr < comp_task_num){
-		int dev_fired[active_unit_num] = 0; 
+		int dev_fired[active_unit_num] = {0}; 
 		for(int idx = 0; idx < active_unit_num; idx++){
 			int dev_idx = int(rand() % active_unit_num);
 			while(dev_fired[dev_idx]) dev_idx = int(rand() % active_unit_num);
