@@ -127,6 +127,7 @@ typedef class ATC{
 	void decompose_comp_task_wb(long int comp_task_cand, int dev_idx);
 	void optimize_tasks();
 	void optimize_tasks_serial();
+	void optimize_tasks_taco_PARALiA();
 	void optimize_tasks_MinFetchNum();
 	void optimize_tasks_MinFetchNum_then_MinPendingOps();
 	void optimize_tasks_ETA();

@@ -90,7 +90,7 @@ do
 			#echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			#$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-			$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+			#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -116,7 +116,7 @@ do
 		#	echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 		#	$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-			$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+		#	$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 		#	echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 		#	$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -137,62 +137,62 @@ do
 		done
 		#exit 1
 		# III) Non-square Problems
-		for inbalanced in 8192 12288 16384
+		for fat in {16384..40960..4096}
 		do
 			# K < M,N
-			for ctr in 4 6 8; #9 problems
+			for ctr in 4 8 16; #21 problems
 			do
-				fat=$(($inbalanced*$ctr/2))
-				double_thin=$(($inbalanced*4/$ctr/$ctr))
-				#echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				thin=$(($fat/$ctr))
+				#echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 
-				#echo "$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
-				#echo "$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
-				#echo "$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
-				#echo "LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $double_thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log
 			done
+		done
+		for thin in {5120..11264..1024}
+		do
 			# K > M,N
-			for ctr in 4 6 8; # 9 problems
+			for ctr in 4 8 16; #21 problems
 			do
-				double_fat=$(($inbalanced*$ctr*$ctr/4))
-				thin=$(($inbalanced*2/$ctr))
+				fat=$(($thin*$ctr))
+				#echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 
-				#echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 6 111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				#echo "$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$PARALiA_run 6 10101111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-
-				#echo "$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
-				#echo "$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
-				#echo "$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
-				#echo "LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				#LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $double_fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$cuBLASXt_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$BLASX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$BLASXEX_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#LD_PRELOAD=/zhome/academic/HLRS/xex/xexpanas/xkblas-basic/install_vulcan_11/lib/libxkblas_blaswrapper.so XKBLAS_GPUSET=255 XKBLAS_CACHE_LIMIT=70  $XKBLAS_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log
 			done
 		done
 	done

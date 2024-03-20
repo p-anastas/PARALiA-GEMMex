@@ -178,9 +178,9 @@ const char* Tile2D::get_WRP_string(){
 //--------------------------------------------WTile properties-----------------------------------------//
 
 inline int get_next_queue_ctr(int dev_id){
-	exec_queue_ctr[(dev_id)]++;
-	if (exec_queue_ctr[(dev_id)] == MAX_BACKEND_L) exec_queue_ctr[(dev_id)] = 0; 
-	return exec_queue_ctr[(dev_id)];
+	exec_queue_ctr[dev_id]++;
+	if (exec_queue_ctr[dev_id] == MAX_BACKEND_L) exec_queue_ctr[dev_id] = 0; 
+	return exec_queue_ctr[dev_id];
 }
 
 void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
