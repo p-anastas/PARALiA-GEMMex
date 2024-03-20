@@ -71,6 +71,7 @@ char* CoCoImplementationPrint(){
 	strcat(string_out, string_helper);
 
 	if (!strcmp(TASK_ORDER, "SERIAL")) sprintf(string_helper, "_TASK-ORDER-SERIAL");
+	else if (!strcmp(TASK_ORDER, "TACO_PARALIA")) sprintf(string_helper, "_TACO-PARALIA");
 	else if (!strcmp(TASK_ORDER, "FETCH_MINFETCH")) sprintf(string_helper, "_TASK-ORDER-MINFETCH");
 	else if (!strcmp(TASK_ORDER, "FETCH_MINFETCH_THEN_MINPENDING")) sprintf(string_helper, "_TASK-ORDER-MINFETCH-THEN-MINPENDING");
 	else if (!strcmp(TASK_ORDER, "FETCH_ETA")) sprintf(string_helper, "_TASK-ORDER-QETA");

@@ -434,7 +434,7 @@ fprintf(stderr,  "|-----> ATC::optimize_tile( autotune_controller{ T=%ld, active
 		int D1_parts_tmp, D2_parts_temp; 
 		DECOM_2D(active_unit_num, &D1_parts_tmp, &D2_parts_temp);
 		// This is a tile small enough to allow 2D-block-cyclic decomposition in active_unit_num
-		max_allowed_T = std::min(M/(D1_parts_tmp-1)-1, std::min(N/(D2_parts_temp-1)-1, K));
+		max_allowed_T = std::min(M/(D1_parts_tmp), std::min(N/(D2_parts_temp), K));
 	}
 	int best_T = -1;
 	double* best_T_sl = (double*) calloc(6,sizeof(double));

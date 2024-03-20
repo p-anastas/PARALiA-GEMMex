@@ -234,19 +234,19 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DPRODUCTION)
 
 #Run in debug mode, which includes detailed function calls and info for error-checking
-add_definitions(-DDEBUG)
+#add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
-add_definitions(-DDDEBUG)
+#add_definitions(-DDDEBUG)
 
 #Run Grid amalgamantion debug mode
 #add_definitions(-DCLDEBUG)
 
 #Run Simple Prediction debug mode (well-presented simple autotuner stuff)
-add_definitions(-DSDEBUG)
+#add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
-#add_definitions(-DPDEBUG)
+add_definitions(-DPDEBUG)
 
 #Run Prediction deep debug mode (all autotuner stuff)
 #add_definitions(-DDPDEBUG)
