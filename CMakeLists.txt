@@ -150,9 +150,9 @@ set(ORDER_2DBC D1_lesseq_D2) #Default
 #Select which optimize_tasks() algorithm to use for fetch communication optimization.
 
 #--------------------------------Tested (production)--------------------------------------#
-set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
+#set (FETCH_ROUTING P2P_FETCH_FROM_INIT)
 #set (FETCH_ROUTING P2P_FETCH_FROM_GPU_SERIAL) # This is worse than distance
-#set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
+set (FETCH_ROUTING P2P_FETCH_FROM_GPU_DISTANCE)
 #set (FETCH_ROUTING CHAIN_FETCH_SERIAL) # This is worse than random
 #set (FETCH_ROUTING CHAIN_FETCH_RANDOM)
 #set (FETCH_ROUTING CHAIN_FETCH_TIME) # This is worse than ETA
@@ -246,7 +246,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DSDEBUG)
 
 #Run Prediction debug mode (autotuner stuff)
-add_definitions(-DPDEBUG)
+#add_definitions(-DPDEBUG)
 
 #Run Prediction deep debug mode (all autotuner stuff)
 #add_definitions(-DDPDEBUG)

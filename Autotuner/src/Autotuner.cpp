@@ -922,7 +922,7 @@ void ATC::optimize_tasks_MinFetchNum_then_MinPendingOps(){
 
 void ATC::optimize_tasks(){
 	if(!strcmp(TASK_ORDER, "SERIAL")) optimize_tasks_serial();
-	if(!strcmp(TASK_ORDER, "TACO_PARALIA")) optimize_tasks_taco_PARALiA();
+	else if(!strcmp(TASK_ORDER, "TACO_PARALIA")) optimize_tasks_taco_PARALiA();
 	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH")) optimize_tasks_MinFetchNum();
 	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH_THEN_MINPENDING")) optimize_tasks_MinFetchNum_then_MinPendingOps();
 	// These are defined in Routing, since they uses ETA heuristics and P2P_queue_load
