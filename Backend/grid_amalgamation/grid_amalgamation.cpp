@@ -251,12 +251,31 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
         fscanf(fp, "\n");
     }
     fscanf(fp, "Bidirectional:\n");
+    int last_idx_hostsrc = -42, last_idx_hostdest = -42;
     for(int idx = 0; idx < CHL_MEMLOCS; idx++){
         for(int idx1 = 0; idx1 < CHL_MEMLOCS; idx1++){
             fscanf(fp, "%lf", &(simu_edge_bw[idx][idx1]));
-            if (simu_edge_bw[idx][idx1] != -1.0) edge_active[idx][idx1] = 1;
-            //else error("Grid_amalgamation::load_edges() simu_edge_bw[%d][%d] was %lf\n", 
-            //    idx, idx1, simu_edge_bw[idx][idx1]);
+            if (simu_edge_bw[idx][idx1] != -1.0){
+                edge_active[idx][idx1] = 1;
+                if (idx >= CHL_WORKERS && idx1 < CHL_WORKERS) last_idx_hostdest = idx1;
+                if (idx1 >= CHL_WORKERS && idx < CHL_WORKERS) last_idx_hostsrc = idx;
+            }
+            else if(idx != idx1){
+                if(idx >= CHL_WORKERS){
+                    if (idx1 < CHL_WORKERS){
+                        edge_replaced[idx][idx1][0] = idx;
+                        edge_replaced[idx][idx1][1] = last_idx_hostdest;
+                    }
+                }
+                else if (idx1 >= CHL_WORKERS){
+                    if (idx < CHL_WORKERS){
+                        edge_replaced[idx][idx1][0] = last_idx_hostsrc;
+                        edge_replaced[idx][idx1][1] = idx1;
+                    }
+                }
+                else error("Grid_amalgamation::load_edges() simu_edge_bw[%d][%d] was -1...incompatible with backend\n", 
+                    idx, idx1, simu_edge_bw[idx][idx1]);
+            } 
         }
         fscanf(fp, "\n");
     }
