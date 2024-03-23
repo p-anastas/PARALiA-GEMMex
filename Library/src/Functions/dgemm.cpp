@@ -360,7 +360,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		Ttask_p curr = local_PMD->autotuner->task_list[local_PMD->autotuner->task_num - remaining_tasks];
 		Tile2D_p target_tile = local_PMD->decom[curr->DecomIdx]->getTile(curr->TileIdx, curr->TileIdy);
 		if (curr->type == FETCH) target_tile->fetch(curr->predef_route);
-		else if (curr->type == COMPUTE) target_tile->run_operation(curr->op_id, curr->predef_route);
+		else if (curr->type == COMPUTE)target_tile->run_operation(curr->op_id, curr->predef_route);
 		else if (curr->type == WRITEBACK) target_tile->writeback(curr->predef_route);
 		remaining_tasks--;
 		//usleep(3000);
