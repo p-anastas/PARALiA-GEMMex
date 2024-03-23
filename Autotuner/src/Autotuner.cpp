@@ -275,7 +275,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			test_grid = new Grid_amalgamation(active_case_id);
 			int load_success = test_grid->load_edges(queue_configuration_list[config_idx][0], 
 				queue_configuration_list[config_idx][1]);
-			//if(!load_success) continue;
+			if(!load_success) continue;
 			//if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_memlocs,active_memloc_num)) continue;
 			for (int idx = 0; idx < active_unit_num; idx++) active_unit_score[idx] = 1.0/active_unit_num;
 			long long edge_load[64][64];

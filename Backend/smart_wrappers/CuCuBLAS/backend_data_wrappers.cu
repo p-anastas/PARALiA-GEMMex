@@ -103,7 +103,7 @@ void* CHLMalloc(long long bytes, int loc, short W_flag){
 #ifdef CLDEBUG
 		fprintf(stderr, "Allocating %lld bytes with simple malloc and pinning...\n", bytes);
 #endif
-		ptr = numa_inter_pin_malloc(bytes, W_flag);		
+		ptr = pin_malloc(bytes, W_flag);		
 	}
 	else if (loc > CHL_WORKERS) {
 //#ifdef CLDEBUG
