@@ -19,28 +19,32 @@ void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_l
         int dev_id = active_unit_id_list[idx];
 
         if(A_loc >= 0) edge_load[dev_id][A_loc]+= (long long) (active_unit_score[idx]*M*K*elemSize);
-        else if (A_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[dev_id][idx2] +=  
-            (long long) (active_unit_score[idx]*M*K*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
-        else if(A_loc == -2) edge_load[dev_id][CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]] +=  
-            (long long) (active_unit_score[idx]*M*K*elemSize);
+        else error("gemm_translate_problem_comm: A_loc = %d not supported\n", A_loc);
+        //else if (A_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[dev_id][idx2] +=  
+        //    (long long) (active_unit_score[idx]*M*K*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
+        //else if(A_loc == -2) edge_load[dev_id][CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]] +=  
+        //    (long long) (active_unit_score[idx]*M*K*elemSize);
 
         if(B_loc >= 0) edge_load[dev_id][B_loc]+= (long long) (active_unit_score[idx]*N*K*elemSize);
-        else if (B_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[dev_id][idx2] +=  
-            (long long) (active_unit_score[idx]*N*K*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
-        else if(B_loc == -2) edge_load[dev_id][CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]] +=  
-            (long long) (active_unit_score[idx]*N*K*elemSize);
+        else error("gemm_translate_problem_comm: B_loc = %d not supported\n", B_loc);
+        //else if (B_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[dev_id][idx2] +=  
+        //    (long long) (active_unit_score[idx]*N*K*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
+        //else if(B_loc == -2) edge_load[dev_id][CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]] +=  
+        //    (long long) (active_unit_score[idx]*N*K*elemSize);
 
         if(C_loc >= 0) edge_load[dev_id][C_loc]+= (long long) (active_unit_score[idx]*M*N*elemSize);
-        else if (C_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[dev_id][idx2] +=  
-            (long long) (active_unit_score[idx]*M*N*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
-        else if(C_loc == -2) edge_load[dev_id][CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]] +=  
-            (long long) (active_unit_score[idx]*M*N*elemSize);
+        else error("gemm_translate_problem_comm: C_loc = %d not supported\n", C_loc);
+        //else if (C_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[dev_id][idx2] +=  
+        //    (long long) (active_unit_score[idx]*M*N*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
+        //else if(C_loc == -2) edge_load[dev_id][CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]] +=  
+        //    (long long) (active_unit_score[idx]*M*N*elemSize);
 
         if(D_loc >= 0) edge_load[D_loc][dev_id]+= (long long) (active_unit_score[idx]*M*N*elemSize);
-        else if (D_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[idx2][dev_id] +=  
-            (long long) (active_unit_score[idx]*M*N*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
-        else if(D_loc == -2) edge_load[CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]][dev_id] +=  
-            (long long) (active_unit_score[idx]*M*N*elemSize);
+        else error("gemm_translate_problem_comm: D_loc = %d not supported\n", D_loc);
+        //else if (D_loc == -1) for(int idx2 = CHL_WORKERS; idx2 < CHL_MEMLOCS - 1; idx2++) edge_load[idx2][dev_id] +=  
+        //    (long long) (active_unit_score[idx]*M*N*elemSize/(CHL_MEMLOCS - CHL_WORKERS - 1));
+        //else if(D_loc == -2) edge_load[CHL_WORKER_CLOSE_TO_MEMLOC[dev_id]][dev_id] +=  
+        //   (long long) (active_unit_score[idx]*M*N*elemSize);
     }
 
     /// Calculate extra transfers created from internal dims due to multi-unit spliting.

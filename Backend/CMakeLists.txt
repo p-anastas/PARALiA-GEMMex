@@ -10,7 +10,7 @@ include_directories(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation)
 add_library(chl_smart_wrappers SHARED
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/general_utils.cpp
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/data_helpers.cpp
-  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/numa_awareness.cpp
+  #${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/numa_awareness.cpp # This is deprecated
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_util_wrappers.cu
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_class_wrappers.cu
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_data_wrappers.cu

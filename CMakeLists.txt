@@ -14,15 +14,20 @@ set(PROJECT_VERSION "2.99")
 message("PARALiA-GEMMex - PROJECT_VERSION: " ${PROJECT_VERSION})
 add_definitions(-DVERSION="${PROJECT_VERSION}")
 
+## Define a name for the testbed, to be used for the whole framework setup
+set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
+message("PARALiA-GEMMex - TESTBED_NAME: " ${TESTBED_NAME})
+add_definitions(-DTESTBED="${TESTBED_NAME}")
+
 ## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
 set(PROBLEM_GPU_PERCENTAGE 90)
 message("PARALiA-GEMMex - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
 add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 
-## Define a name for the testbed, to be used for the whole framework setup
-set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
-message("PARALiA-GEMMex - TESTBED_NAME: " ${TESTBED_NAME})
-add_definitions(-DTESTBED="${TESTBED_NAME}")
+## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
+set(NUM_DEVICES $ENV{PARALIA_NUM_DEVICES})
+message("PARALiA-GEMMex - NUM_DEVICES: " ${NUM_DEVICES})
+add_definitions(-DCHL_WORKERS=${NUM_DEVICES})
 
 ## Define the workspace where execution of the library (benchmarks & deployment) will be invoked from (e.g. to avoid Disk quota problems in /home)
 set(CD_LOCATION $ENV{CD_FOLDER})
@@ -53,7 +58,7 @@ add_definitions(-DMETADATA_REUSE_PROBLEMS)
 add_definitions(-DPROBLEM_MD_CACHE=10) # Only relevant for "PROBLEMS" reuse level
 
 ###########################################################################################
-#---------------------------Algorithmic/Software Optimizations----------------------------#
+#---------------------------Hardware/Software Optimizations----------------------------#
 ###########################################################################################
 
 #--------------------------------Tested (production)--------------------------------------#
@@ -86,22 +91,12 @@ add_definitions(-DENABLE_SEND_RECV_OVERLAP)
 #--------------------------------------Experimental----------------------------------------#
 ## Enable using the CPU as an extra device for part of the total workload, if applicable
 #add_definitions(-DENABLE_CPU_WORKLOAD)
-
 #add_definitions(-DOUTPUT_ALGO_MODE="ALGO_WREDUCE")
 add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 
 ###########################################################################################
 #---------------------------General autotuning options------------------------------------#
 ###########################################################################################
-
-#--------------------------------------Experimental----------------------------------------#
-## The number of itterations that will performed to tune the per-device ratio workload split.
-## Inconsequential for homogeneous cases, higher = better for heterogeneous ones.
-#add_definitions(-DRATIO_TUNE_ITTER=10)
-
-#Enable device reordering optimization during split optimizing based on maximizing d2d bandwidths.
-# Seems buggy for now...
-#add_definitions(-DREORDER_DEVICES)
 
 ###########################################################################################
 #---------------------------------Tiling size selection-----------------------------------#

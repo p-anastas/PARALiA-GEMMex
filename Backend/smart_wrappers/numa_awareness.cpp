@@ -1,7 +1,7 @@
 ///
 /// \author Anastasiadis Petros (panastas@cslab.ece.ntua.gr)
 ///
-/// \brief Some convinient C/C++ utilities for CHL.
+/// \brief Some convenient C/C++ utilities for CHL.
 ///
 
 #include "smart_wrappers.hpp"
@@ -14,9 +14,6 @@
 #include <numaif.h>
 #include <omp.h>
 
-long PAGE_sz = sysconf (_SC_PAGESIZE);
-//memed_p allocated_data[1024*1024] = {NULL};
-//int allocated_data_num = 0;
 
 int DEV_NUM = -1, NUMA_HW_NUM = -1, NIC_NUM = -1, HW_THREADS = -1, NIC_AT_DEV[32] = {0}, NUMA_AT_DEV[32] = {0};
 int CHL_WORKERS = -1, CHL_MEMLOCS = -1, CHL_HWNUMA_AT_MEMLOC[32] = {0}, 

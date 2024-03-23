@@ -5,12 +5,13 @@
 ///
 
 #include "smart_wrappers.hpp"
+#include <omp.h>
 
 template<typename VALUETYPE>
 void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed)
 {
 	srand(seed);
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for (long long i = 0; i < length; i++) vec[i] = (VALUETYPE) Drandom();
 }
 
