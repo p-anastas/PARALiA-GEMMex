@@ -133,6 +133,8 @@ extern Gamalg_p* system_gamalg;
 extern int system_gamalg_ctr; 
 void system_gamalg_init_from_DB();
 
+void gamalg_backend_get_configs(int case_id, int queue_configuration_list[64][2], int* queue_configuration_num);
+
 void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_loc, int C_loc, int D_loc, 
     int M, int N, int K, int elemSize, int active_unit_num, int* active_unit_id_list, double* active_unit_score);
 

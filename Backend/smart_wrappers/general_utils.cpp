@@ -338,6 +338,19 @@ int translate_unit_list_to_binary(int* active_unit_id_list, int active_unit_num)
 	return case_id_out;
 }
 
+int binary_case_id_split(int case_id){
+    int active_unit_id_list[CHL_WORKERS], active_unit_num;
+    translate_binary_to_unit_list(case_id, &active_unit_num, active_unit_id_list);
+	int out_active_unit_id_list[CHL_WORKERS], out_active_unit_num = 0;
+	for(int idx = 0; idx < active_unit_num; idx+=2)
+		out_active_unit_id_list[out_active_unit_num++] = active_unit_id_list[idx];
+	if (!(out_active_unit_num*2 == active_unit_num)) 
+		error("binary_case_id_split(%d): active_unit_num(=%d)%%2 is not 0\n", case_id, active_unit_num);
+	fprintf(stderr, "active_unit_id_list = %s, out_active_unit_id_list = %s\n", 
+		printlist(active_unit_id_list, active_unit_num), printlist(out_active_unit_id_list, out_active_unit_num));
+	return translate_unit_list_to_binary(out_active_unit_id_list, out_active_unit_num);
+}
+
 int is_subset(int case_id, int case_id_set){
 	int mask;
 	for (int mask_offset = 0; mask_offset < CHL_WORKERS; mask_offset++){

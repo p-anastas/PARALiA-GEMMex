@@ -100,6 +100,7 @@ int is_in_list(int elem, int* elem_list, int list_len);
 void translate_binary_to_unit_list(int case_id, int* active_unit_num_p, int* active_unit_id_list);
 int translate_unit_list_to_binary(int* active_unit_id_list, int active_unit_num);
 int is_subset(int case_id, int case_id_set);
+int binary_case_id_split(int case_id);
 
 /// double/float arethmetic comparrison that compares based on NORMALIZE_NEAR_SPLIT_LIMIT minimum difference.
 int normal_equal(double n1, double n2);
@@ -210,7 +211,7 @@ char* mem_name(int idx);
 int get_hostmem_idx(void* ptr);
 
 // Supposedly returns an estimation of the free and max host memory available in the system
-void CHLGetMaxCPUmem(size_t* free_mem, size_t* max_mem);
+void CHLGetMaxCPUmem(long long int* free_mem, long long int* max_mem);
 
 // Pin *ptr
 void pin_mem_wrap(void** ptr, long long bytes);

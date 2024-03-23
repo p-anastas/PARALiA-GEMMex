@@ -15,35 +15,58 @@ void system_gamalg_init_from_DB(){
     if(system_gamalg || system_gamalg_ctr) 
         warning("system_gamalg_init_from_DB(): system_gamalg = %p and system_gamalg_ctr = %d, overwriting...\n", 
             system_gamalg, system_gamalg_ctr);
-    int explored_cases = std::pow(2, CHL_WORKERS);
     system_gamalg_ctr = 0; 
     if(system_gamalg){ 
         free(system_gamalg); 
         system_gamalg = NULL;
     }
-    Gamalg_p temp_gamalgs[explored_cases*explored_cases] = {NULL};
-    for (int case_id = 1; case_id < explored_cases; case_id++)
-        for (int rev_case_id = 1; rev_case_id < explored_cases; rev_case_id++){
-            temp_gamalgs[system_gamalg_ctr] = new Grid_amalgamation(case_id);
-            if (temp_gamalgs[system_gamalg_ctr]->load_edges(case_id, rev_case_id)){
-#ifdef CLDEBUG
-                fprintf(stderr,"system_gamalg_init_from_DB(): Loaded Grid_amalgamation (case_id = %d, rev_case_id = %d) from DB in system_gamalg_ctr = %d\n",
-                    case_id, rev_case_id, system_gamalg_ctr);
-#endif
+    int explored_cases = std::pow(2, CHL_WORKERS);
+    Gamalg_p temp_gamalgs[explored_cases*64] = {NULL};
+    for (int case_idx = 1; case_idx < explored_cases; case_idx++){
+        int queue_configuration_list[64][2], queue_configuration_num = 0;
+		gamalg_backend_get_configs(case_idx, queue_configuration_list, &queue_configuration_num);
+        for (int config_idx = 0; config_idx < queue_configuration_num; config_idx++){
+            temp_gamalgs[system_gamalg_ctr] = new Grid_amalgamation(case_idx);
+            int load_success = temp_gamalgs[system_gamalg_ctr]->load_edges(queue_configuration_list[config_idx][0], 
+				queue_configuration_list[config_idx][1]);
+            if (load_success){
+//#ifdef CLDEBUG
+                fprintf(stderr,"system_gamalg_init_from_DB(): Loaded Grid_amalgamation (in_queue_id = %d, out_queue_id = %d) from DB in system_gamalg_ctr = %d\n",
+                    queue_configuration_list[config_idx][0], queue_configuration_list[config_idx][1], system_gamalg_ctr);
+//#endif
                 system_gamalg_ctr++;
             }
             else{ 
-#ifdef CLDEBUG
-                fprintf(stderr,"system_gamalg_init_from_DB(): Combination (case_id = %d, rev_case_id = %d) not found in DB\n", case_id, rev_case_id);
-#endif
+//#ifdef CLDEBUG
+                fprintf(stderr,"system_gamalg_init_from_DB(): Combination (in_queue_id = %d, out_queue_id = %d) not found in DB\n", 
+                    queue_configuration_list[config_idx][0], queue_configuration_list[config_idx][1]);
+//#endif
                 delete temp_gamalgs[system_gamalg_ctr];
             }
         }
+    }
     if (!system_gamalg_ctr) warning("system_gamalg_init_from_DB(): Found 0 matching configurations in files...something might crash\n");
     system_gamalg = (Gamalg_p*) malloc(system_gamalg_ctr*sizeof(Gamalg_p));
     for (int ctr = 0; ctr < system_gamalg_ctr; ctr++) system_gamalg[ctr] = temp_gamalgs[ctr];
 }
 
+void gamalg_backend_get_configs(int case_id, int queue_configuration_list[64][2], int* queue_configuration_num){
+    *queue_configuration_num = 1;
+    int active_unit_id_list[CHL_WORKERS], active_unit_num;
+    translate_binary_to_unit_list(case_id, &active_unit_num, active_unit_id_list);
+    //printf("active_unit_id_list = %s\n", printlist(active_unit_id_list, active_unit_num));
+    // Configuration with all h<->d links used (e.g. bidirectional, two copy engines per device)
+    queue_configuration_list[0][0] = case_id;
+    queue_configuration_list[0][1] = case_id;
+    // Configuration with all h->d used, half h<-d used
+    if(0 == active_unit_num%2){
+        queue_configuration_list[*queue_configuration_num][0] = case_id;
+        queue_configuration_list[*queue_configuration_num][1] = binary_case_id_split(case_id);
+        (*queue_configuration_num)++;
+
+    }
+}
+ 
 Grid_amalgamation::Grid_amalgamation(int active_nodes_id_in){
     active_nodes_id = active_nodes_id_in;
     for (int d1 = 0; d1 < 64; d1++)
@@ -232,24 +255,8 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
         for(int idx1 = 0; idx1 < CHL_MEMLOCS; idx1++){
             fscanf(fp, "%lf", &(simu_edge_bw[idx][idx1]));
             if (simu_edge_bw[idx][idx1] != -1.0) edge_active[idx][idx1] = 1;
-            else if (idx >= CHL_WORKERS && is_subset(std::pow(2, idx1), case_id)){
-                for(int idx2 = 0; idx2 < CHL_WORKERS; idx2++) 
-                //if(idx1!= idx2 && CHL_WORKER_CLOSE_TO_MEMLOC[idx1] == CHL_WORKER_CLOSE_TO_MEMLOC[idx2]
-                if(idx1!= idx2 && NIC_AT_DEV[idx1] == NIC_AT_DEV[idx2] 
-                && is_subset(std::pow(2, idx2), case_id) ){
-                    edge_replaced[idx][idx1][0] = idx;
-                    edge_replaced[idx][idx1][1] = idx2;
-                }
-            }
-            else if (idx1 >= CHL_WORKERS && is_subset(std::pow(2, idx), case_id)){
-                for(int idx2 = 0; idx2 < CHL_WORKERS; idx2++) 
-                //if(idx!= idx2 && CHL_WORKER_CLOSE_TO_MEMLOC[idx] == CHL_WORKER_CLOSE_TO_MEMLOC[idx2] 
-                if(idx!= idx2 && NIC_AT_DEV[idx] == NIC_AT_DEV[idx2] 
-                && is_subset(std::pow(2, idx2), case_id) ){
-                    edge_replaced[idx][idx1][0] = idx2;
-                    edge_replaced[idx][idx1][1] = idx1;
-                }
-            }
+            //else error("Grid_amalgamation::load_edges() simu_edge_bw[%d][%d] was %lf\n", 
+            //    idx, idx1, simu_edge_bw[idx][idx1]);
         }
         fscanf(fp, "\n");
     }

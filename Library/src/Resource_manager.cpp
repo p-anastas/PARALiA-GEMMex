@@ -88,7 +88,7 @@ void RMInitResources(int* dev_list, int dev_num){
 	}
 	for(int dev_id_idx = 0 ; dev_id_idx < CHL_MEMLOCS; dev_id_idx++)	
 		for (int i = 0; i < REDUCE_WORKERS_PERDEV; i++){
-		int queue_id = (dev_id_idx >= CHL_WORKERS)? (CHL_MEMLOC_CLOSE_TO_WORKER[dev_id_idx]) : (dev_id_idx);
+		int queue_id = (dev_id_idx >= CHL_WORKERS)? (i) : (dev_id_idx);
 			if (!reduce_queue[dev_id_idx][i]) 
 			//if(best_grid_edge_replaced[i][dev_id_idx][0] == -1) 
 			reduce_queue[dev_id_idx][i] = new CommandQueue(queue_id, COMPUTATION);

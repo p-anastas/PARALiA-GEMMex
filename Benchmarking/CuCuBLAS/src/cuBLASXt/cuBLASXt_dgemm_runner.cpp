@@ -49,11 +49,7 @@ int main(const int argc, const char *argv[]) {
 			dev_ids[idx] = predef_control_values->active_unit_id_list[idx];
 	}
 	else{
-#ifdef ENABLE_CPU_WORKLOAD
-		dev_num = DEV_NUM-1; /// Don't use CPU.
-#else
-		dev_num = DEV_NUM;
-#endif
+		dev_num = CHL_WORKERS;
 		dev_ids = (int*) malloc(dev_num*sizeof(int));
 		for (int i = 0; i < dev_num; i++) dev_ids[i] = i;
 	}

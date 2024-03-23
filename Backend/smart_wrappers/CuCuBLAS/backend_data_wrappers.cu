@@ -10,7 +10,9 @@
 
 #include "sys/types.h"
 #include "sys/sysinfo.h"
+
 #include <numa.h>
+#include <numaif.h>
 
 #include "smart_wrappers.hpp"
 
@@ -20,10 +22,10 @@ int CHL_MEMLOCS = CHL_WORKERS + 2;
 char* mem_name(int idx){
 	char* ans = (char*) malloc (10*sizeof(char));
 	if(idx < 0) error("mem_name(%d) unsupported\n", idx);
-	else if(idx < CHL_WORKERS) sprintf(ans, "Dev-%d", translate_mem_idx_to_hw(idx));
-	else if (idx < CHL_MEMLOCS - 1) sprintf(ans, "Host");
+	else if(idx < CHL_WORKERS) sprintf(ans, "Dev-%d", idx);
+	else if (idx < CHL_MEMLOCS - 1) sprintf(ans, "Host ");
 	else if (idx == CHL_MEMLOCS - 1){
-		sprintf(ans, "Numa-inter");
+		sprintf(ans, "Inter");
 	}
 	else error("mem_name(%d) unsupported\n", idx);
 	return ans;
@@ -39,19 +41,19 @@ int get_hostmem_idx(void* addr){
 	return CHL_WORKERS;
 }
 
-void CHLGetMaxCPUmem(size_t* free_mem, size_t* max_mem){
+void CHLGetMaxCPUmem(long long int* free_mem, long long int* max_mem){
 	struct sysinfo memInfo;
 	sysinfo (&memInfo);
 	long long virtualMemFree = memInfo.freeram;
 	//Add other values in next statement to avoid int overflow on right hand side...
 	virtualMemFree += memInfo.freeswap;
 	virtualMemFree *= memInfo.mem_unit;
-	*free_mem = (size_t) virtualMemFree;
+	*free_mem = (long long int) virtualMemFree;
 	long long totalVirtualMem = memInfo.totalram;
 	//Add other values in next statement to avoid int overflow on right hand side...
 	totalVirtualMem += memInfo.totalswap;
 	totalVirtualMem *= memInfo.mem_unit;
-	*max_mem = (size_t) totalVirtualMem;
+	*max_mem = (long long int) totalVirtualMem;
 	return;
 }
 
@@ -84,7 +86,7 @@ void *numa_inter_pin_malloc(long long count, short W_flag){
 
 void *numa_bind_pin_malloc(long long count, int node_num, short W_flag){
 	void *ret;
-	ret = numa_alloc_onnode(count, translate_mem_idx_to_hw(node_num));
+	ret = numa_alloc_onnode(count, node_num - CHL_WORKERS - 1);
 	cudaHostRegister(ret,count,cudaHostRegisterPortable);
 	return ret;
 }
@@ -188,7 +190,7 @@ short CHLGetPtrLoc(void * in_ptr)
 	else if (ptr_att.type == cudaMemoryTypeManaged) loc = ptr_att.device;
 	else{ // if (ptr_att.type == cudaMemoryTypeHost){
 		// Note: This does not take into account if memory is pinned or not because it is not needed!
-		loc = get_hostmem_idx();
+		loc = get_hostmem_idx(in_ptr);
 	}
 	return loc;
 #endif
@@ -294,12 +296,12 @@ template void CHLVecInit<double>(double *vec, long long length, int seed, int lo
 template void CHLVecInit<float>(float *vec, long long length, int seed, int loc);
 
 long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc){
-	size_t free_mem, max_mem;
+	long long int free_mem, max_mem;
 	if (loc >= 0){
-		int prev_loc; cudaGetDevice(&prev_loc);
-		cudaSetDevice(loc);
-		massert(cudaSuccess == cudaMemGetInfo(&free_mem, &max_mem), "backend_get_max_dim_sq_Asset2D: cudaMemGetInfo failed");
-		cudaSetDevice(prev_loc);
+		int prev_dev = CHLGetDevice();
+		CHLSelectDevice(loc);
+		CHLDevGetMemInfo(&free_mem, &max_mem);
+		CHLSelectDevice(prev_dev);
 	} else CHLGetMaxCPUmem(&free_mem, &max_mem);
 
 	// Define the max size of a benchmark kernel to run on this machine.
@@ -308,12 +310,12 @@ long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int
 }
 
 long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, int loc){
-	size_t free_mem, max_mem;
+	long long int free_mem, max_mem;
 	if (loc >= 0){
-		int prev_loc; cudaGetDevice(&prev_loc);
-		cudaSetDevice(loc);
-		massert(cudaSuccess == cudaMemGetInfo(&free_mem, &max_mem), "backend_get_max_dim_sq_Asset2D: cudaMemGetInfo failed");
-		cudaSetDevice(prev_loc);
+		int prev_dev = CHLGetDevice();
+		CHLSelectDevice(loc);
+		CHLDevGetMemInfo(&free_mem, &max_mem);
+		CHLSelectDevice(prev_dev);
 	} else CHLGetMaxCPUmem(&free_mem, &max_mem);
 
 	long int maxDim = (( (long int) (free_mem*PROBLEM_GPU_PERCENTAGE/100.0)/(Asset1DNum*dsize)) / step) * step;
