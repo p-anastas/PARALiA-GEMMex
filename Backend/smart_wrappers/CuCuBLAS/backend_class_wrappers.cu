@@ -209,7 +209,7 @@ void CommandQueue::run_operation(void* backend_data, const char* opname, int tar
 		if (!strcmp(opname, "Dgemm")) add_host_func( (cudaHostFn_t*) &cblas_wrap_dgemm, backend_data);
 		else if (!strcmp(opname, "Daxpy")) add_host_func( (cudaHostFn_t*) &cblas_wrap_daxpy, backend_data);
 		else if (!strcmp(opname, "Daxpby")) add_host_func( (cudaHostFn_t*) &cblas_wrap_daxpby, backend_data);
-		else if (!strcmp(opname, "Dslaxpby")) add_host_func( (cudaHostFn_t*) &custom_cpu_wrap_dslaxpby, backend_data);
+		//else if (!strcmp(opname, "Dslaxpby")) add_host_func( (cudaHostFn_t*) &custom_cpu_wrap_dslaxpby, backend_data);
 		else error("CommandQueue(%d)::run_operation(): unsupported opname = %s\n", id, opname);
 	}
 	else{

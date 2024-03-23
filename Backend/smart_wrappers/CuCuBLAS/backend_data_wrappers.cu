@@ -10,61 +10,57 @@
 
 #include "sys/types.h"
 #include "sys/sysinfo.h"
+
 #include <numa.h>
+#include <numaif.h>
 
 #include "smart_wrappers.hpp"
 
-void CHLGetMaxCPUmem(size_t* free_mem, size_t* max_mem){
+int CHL_MEMLOCS = CHL_WORKERS + 2; 
+//long PAGE_sz = sysconf (_SC_PAGESIZE);
+
+char* mem_name(int idx){
+	char* ans = (char*) malloc (10*sizeof(char));
+	if(idx < 0) error("mem_name(%d) unsupported\n", idx);
+	else if(idx < CHL_WORKERS) sprintf(ans, "Dev-%d", idx);
+	else if (idx < CHL_MEMLOCS - 1) sprintf(ans, "Host ");
+	else if (idx == CHL_MEMLOCS - 1){
+		sprintf(ans, "Inter");
+	}
+	else error("mem_name(%d) unsupported\n", idx);
+	return ans;
+}
+
+int get_hostmem_idx(void* addr){
+	int is_interleaved = -1;
+	get_mempolicy(&is_interleaved, NULL, 0, addr, MPOL_F_ADDR);
+	if(is_interleaved == MPOL_INTERLEAVE) return CHL_MEMLOCS -1;
+	//int numa_node = -1;
+	//get_mempolicy(&numa_node, NULL, 0, addr, MPOL_F_NODE | MPOL_F_ADDR);
+	//return numa_node; 
+	return CHL_WORKERS;
+}
+
+void CHLGetMaxCPUmem(long long int* free_mem, long long int* max_mem){
 	struct sysinfo memInfo;
 	sysinfo (&memInfo);
 	long long virtualMemFree = memInfo.freeram;
 	//Add other values in next statement to avoid int overflow on right hand side...
 	virtualMemFree += memInfo.freeswap;
 	virtualMemFree *= memInfo.mem_unit;
-	*free_mem = (size_t) virtualMemFree;
+	*free_mem = (long long int) virtualMemFree;
 	long long totalVirtualMem = memInfo.totalram;
 	//Add other values in next statement to avoid int overflow on right hand side...
 	totalVirtualMem += memInfo.totalswap;
 	totalVirtualMem *= memInfo.mem_unit;
-	*max_mem = (size_t) totalVirtualMem;
+	*max_mem = (long long int) totalVirtualMem;
 	return;
-}
-
-long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc){
-	size_t free_mem, max_mem;
-	if (loc >= 0){
-		int prev_loc; cudaGetDevice(&prev_loc);
-		cudaSetDevice(loc);
-		massert(cudaSuccess == cudaMemGetInfo(&free_mem, &max_mem), "backend_get_max_dim_sq_Asset2D: cudaMemGetInfo failed");
-		cudaSetDevice(prev_loc);
-	} else CHLGetMaxCPUmem(&free_mem, &max_mem);
-
-	// Define the max size of a benchmark kernel to run on this machine.
-	long int maxDim = (( (long int) sqrt((free_mem*PROBLEM_GPU_PERCENTAGE/100.0)/(Asset2DNum*dsize))) / step) * step;
-	return maxDim;
-}
-
-long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, int loc){
-	size_t free_mem, max_mem;
-	if (loc >= 0){
-		int prev_loc; cudaGetDevice(&prev_loc);
-		cudaSetDevice(loc);
-		massert(cudaSuccess == cudaMemGetInfo(&free_mem, &max_mem), "backend_get_max_dim_sq_Asset2D: cudaMemGetInfo failed");
-		cudaSetDevice(prev_loc);
-	} else CHLGetMaxCPUmem(&free_mem, &max_mem);
-
-	long int maxDim = (( (long int) (free_mem*PROBLEM_GPU_PERCENTAGE/100.0)/(Asset1DNum*dsize)) / step) * step;
-	return maxDim;
 }
 
 void *gpu_malloc(long long count) {
 	void *ret;
 	massert(cudaMalloc(&ret, count) == cudaSuccess,
 		cudaGetErrorString(cudaGetLastError()));
-	//long long chunk_count = 1;
-	//int* slice_memloc_in = (int*) malloc (chunk_count*sizeof(int));
-	//slice_memloc_in[0] = CHLGetDevice(); 
-	//allocated_data[allocated_data_num++] = new MEMMetadata(ret, slice_memloc_in, count, 1);
 	return ret;
 }
 
@@ -74,34 +70,23 @@ void pin_mem_wrap(void** ptr, long long bytes){
 
 void *pin_malloc(long long count, short W_flag) {
 	void *ret;
-	massert(cudaHostAlloc ( &ret, count, cudaHostAllocDefault)  == cudaSuccess,
-	cudaGetErrorString(cudaGetLastError()));
+	ret = malloc(count);
+	cudaHostRegister(ret,count,cudaHostRegisterPortable);
+	//massert(cudaHostAlloc ( &ret, count, cudaHostAllocDefault)  == cudaSuccess,
+	//cudaGetErrorString(cudaGetLastError()));
 	return ret;
 }
 
 void *numa_inter_pin_malloc(long long count, short W_flag){
 	void *ret;
-	ret = numa_alloc_interleaved(count);//numa_alloc_onnode(count, 0);//
-
-	//long long chunk_count = 1;
-	//int* slice_memloc_in = (int*) malloc (chunk_count*sizeof(int));
-	//slice_memloc_in[0] = CHL_MEMLOCS - 1; 
-	//allocated_data[allocated_data_num++] = new MEMMetadata(ret, slice_memloc_in, count, 1);
-	//if (!W_flag) cudaHostRegister(ret,count,cudaHostRegisterPortable | cudaHostRegisterReadOnly);
-	//else 
+	ret = numa_alloc_interleaved(count);
 	cudaHostRegister(ret,count,cudaHostRegisterPortable);
 	return ret;
 }
 
 void *numa_bind_pin_malloc(long long count, int node_num, short W_flag){
 	void *ret;
-	ret = numa_alloc_onnode(count, translate_mem_idx_to_hw(node_num));
-	//long long chunk_count = 1;
-	//int* slice_memloc_in = (int*) malloc (chunk_count*sizeof(int));
-	//slice_memloc_in[0] = node_num + CHL_WORKERS; 
-	//allocated_data[allocated_data_num++] = new MEMMetadata(ret, slice_memloc_in, count, 1);
-	//if (!W_flag) cudaHostRegister(ret,count,cudaHostRegisterPortable | cudaHostRegisterReadOnly);
-	//else 
+	ret = numa_alloc_onnode(count, node_num - CHL_WORKERS - 1);
 	cudaHostRegister(ret,count,cudaHostRegisterPortable);
 	return ret;
 }
@@ -110,34 +95,31 @@ void* CHLMalloc(long long bytes, int loc, short W_flag){
 	void *ptr = NULL;
 	if (loc == CHL_MEMLOCS - 1) {
 #ifdef CLDEBUG
-		fprintf(stderr, "Allocating %lld bytes to interleaved NUMA alloc...\n", bytes);
+		fprintf(stderr, "Allocating %lld bytes with interleaved NUMA alloc and pinning...\n", bytes);
 #endif
 		ptr = numa_inter_pin_malloc(bytes, W_flag);
 	}
-	else if (loc >= CHL_WORKERS && loc < CHL_MEMLOCS - 1) {
+	else if (loc == CHL_WORKERS) {
 #ifdef CLDEBUG
-		fprintf(stderr, "Allocating %lld bytes to NUM MEM %d [%s]...\n", bytes, loc, mem_name(loc));
+		fprintf(stderr, "Allocating %lld bytes with simple malloc and pinning...\n", bytes);
 #endif
+		ptr = pin_malloc(bytes, W_flag);		
+	}
+	else if (loc > CHL_WORKERS) {
+//#ifdef CLDEBUG
+		warning("Allocating %lld bytes to NUM MEM %d [%s]...\n", bytes, loc, mem_name(loc));
+//#endif
 		ptr = numa_bind_pin_malloc(bytes, loc, W_flag);
 	}
 	else if (loc == -1){
 #ifdef CLDEBUG
-    	fprintf(stderr, "Allocating %lld bytes with simple malloc and pinning\n", bytes);
+    	fprintf(stderr, "Allocating %lld bytes with interleaved NUMA alloc without pinning...\n", bytes);
 #endif
-		ptr = malloc(bytes);
-		cudaHostRegister(ptr,bytes,cudaHostRegisterPortable);
-/*
-#ifdef CLDEBUG
-    fprintf(stderr, "Allocating %lld bytes and touching in close numa nodes with CHLMallocHostTouchSmart\n", bytes);
-#endif
-	ptr = CHLMallocHostTouchSerial(bytes);
-		//CHLMallocHostTouchSmart(std::sqrt(bytes/sizeof(double)),
-		 //std::sqrt(bytes/sizeof(double)), sizeof(double), 'N');
-*/
+		ptr = numa_alloc_interleaved(bytes);
 	}
 	else if (loc == -2){
 #ifdef CLDEBUG
-    	fprintf(stderr, "Allocating %lld bytes with simple malloc without pinning\n", bytes);
+    	fprintf(stderr, "Allocating %lld bytes with simple malloc without pinning...\n", bytes);
 #endif
 		ptr = malloc(bytes);
 	}
@@ -153,29 +135,32 @@ void* CHLMalloc(long long bytes, int loc, short W_flag){
 		if (prev_loc != loc) cudaSetDevice(prev_loc);
 	}
 	else error("CHLMalloc: Invalid device id/location %d\n", loc);
-	CHLSyncCheckErr();
 	return ptr;
 }
 
 void gpu_free(void *gpuptr) {
-  massert(cudaFree(gpuptr) == cudaSuccess,
-          cudaGetErrorString(cudaGetLastError()));
+	massert(cudaFree(gpuptr) == cudaSuccess,
+			cudaGetErrorString(cudaGetLastError()));
 }
 
-/*void pin_free(void *gpuptr) {
-  massert(cudaFreeHost(gpuptr) == cudaSuccess,
-          cudaGetErrorString(cudaGetLastError()));
-}*/
+void pin_free(void *ptr) {
+	//massert(cudaFreeHost(gpuptr) == cudaSuccess,
+	//        cudaGetErrorString(cudaGetLastError()));
+	cudaHostUnregister(ptr);
+	free(ptr);
+}
 
-void numa_pin_free(void *gpuptr, long long bytes) {
-  cudaHostUnregister(gpuptr);
-  numa_free(gpuptr,bytes);
+void numa_pin_free(void *ptr, long long bytes) {
+	cudaHostUnregister(ptr);
+	numa_free(ptr,bytes);
 }
 
 void CHLFree(void * ptr, long long bytes, int loc){
 	//if (??? == loc) free(ptr);
-	if (loc >= CHL_WORKERS && loc < CHL_MEMLOCS) numa_pin_free(ptr, bytes);
-	else if ( loc == -1 || loc == -2) free(ptr);
+	if (loc > CHL_WORKERS && loc < CHL_MEMLOCS) numa_pin_free(ptr, bytes);
+	else if (loc == CHL_WORKERS) pin_free(ptr);
+	else if (loc == -1) numa_free(ptr,bytes);
+	else if (loc == -2 ) free(ptr);
 	else if (loc >= 0 && loc < CHL_WORKERS){
 		int prev_loc; cudaGetDevice(&prev_loc);
 		//if (prev_loc != loc) warning("CHLFree: Freed memory in other device (Previous device: %d, Free in: %d)\n", prev_loc, loc);
@@ -188,7 +173,6 @@ void CHLFree(void * ptr, long long bytes, int loc){
 		}
 	}
 	else error("CHLFree: Invalid device id/location %d\n", loc);
-	CHLSyncCheckErr();
 }
 
 short CHLGetPtrLoc(void * in_ptr)
@@ -205,79 +189,40 @@ short CHLGetPtrLoc(void * in_ptr)
 	// TODO: Unified memory is considered available in the GPU as cuBLASXt ( not bad, not great)
 	else if (ptr_att.type == cudaMemoryTypeManaged) loc = ptr_att.device;
 	else{ // if (ptr_att.type == cudaMemoryTypeHost){
-		loc = translate_hw_numa_to_mem_idx(get_hw_numa_idx(in_ptr));
-		if(loc < 0) loc = CHL_MEMLOCS - 1;
+		// Note: This does not take into account if memory is pinned or not because it is not needed!
+		loc = get_hostmem_idx(in_ptr);
 	}
 	return loc;
 #endif
 }
-
-/*short CHLGetPtrAdvLoc(void * in_ptr, long long dim1, long long dim2, int elemSize)
-{
-	int loc = -42;
-	cudaPointerAttributes ptr_att;
-	if (cudaSuccess != cudaPointerGetAttributes(&ptr_att, in_ptr)) error("CHLGetPtrAdvLoc(cuda 10+ version, ptr =%p):"
-	"Pointer not visible to CUDA, host alloc or error\n", in_ptr);
-	if (ptr_att.type == cudaMemoryTypeHost){
-		loc = translate_hw_numa_to_mem_idx(get_hw_numa_idx(in_ptr));
-		//if (loc == -1)
-			//error("CHLGetPtrLoc(cuda 10+ version, ptr =%p): scan_allocated_data_for_ptr_loc(ptr) did not find pointer\n", in_ptr);
-		int advanced_allocation = 0;
-		//Check for custom chunk-interleaved matrix at host memlocs.
-		if(loc == CHL_WORKERS){
-			advanced_allocation = 1; 
-			long long addr_chunk_sz = dim1*dim2*elemSize / (CHL_MEMLOCS - CHL_WORKERS - 1);
-			for (int idx = 1; idx < CHL_MEMLOCS - CHL_WORKERS - 1; idx++) if (CHL_WORKERS + idx != 
-				translate_hw_numa_to_mem_idx(get_hw_numa_idx(in_ptr +idx*addr_chunk_sz))) advanced_allocation = 0; 
-		}
-		if (advanced_allocation){
-			fprintf(stderr, "CHLGetPtrAdvLoc(%p, %lld, %lld, %d):"
-			"Advanced allocation identified (type = chunk-interleaved matrix)\n", in_ptr, dim1, dim2, elemSize); 
-			return -1;
-		}
-		else return loc; 
-	}
-	else return CHLGetPtrLoc(in_ptr);
-}*/
 
 void CHLMemcpy(void* dest, void* src, long long bytes, int loc_dest, int loc_src)
 {
 	massert(loc_dest >= -2 && loc_dest < CHL_MEMLOCS, "CHLMemcpy: Invalid destination device: %d\n", loc_dest);
 	massert(loc_src >= -2 && loc_src < CHL_MEMLOCS, "CHLMemcpy: Invalid source device: %d\n", loc_src);
 
-	enum cudaMemcpyKind kind;
-	if ((loc_src >= CHL_WORKERS  || loc_src < 0 ) && (loc_dest >= CHL_WORKERS   || loc_dest < 0 )) 
-		kind = cudaMemcpyHostToHost;
-	else if (loc_dest >= CHL_WORKERS  || loc_dest < 0) kind = cudaMemcpyDeviceToHost;
-	else if (loc_src >= CHL_WORKERS ||  loc_src < 0) kind = cudaMemcpyHostToDevice;
-	else kind = cudaMemcpyDeviceToDevice;
-
 #ifdef DEBUG
 	if (loc_src == loc_dest) warning("CHLMemcpy(dest=%p, src=%p, bytes=%lld, loc_dest=%d, loc_src=%d): Source location matches destination\n",
 	dest, src, bytes, loc_dest, loc_src);
 #endif
-	massert(CUBLAS_STATUS_SUCCESS == cudaMemcpy(dest, src, bytes, kind), "CHLMemcpy: cudaMemcpy from device src=%d to dest=%d failed\n", loc_src, loc_dest);
+	massert(CUBLAS_STATUS_SUCCESS == cudaMemcpy(dest, src, bytes, cudaMemcpyDefault), "CHLMemcpy: cudaMemcpy from device src=%d to dest=%d failed\n", loc_src, loc_dest);
 	CHLSyncCheckErr();
 }
 
 /*void CHLMemcpyAsync(void* dest, void* src, long long bytes, int loc_dest, int loc_src, CQueue_p transfer_queue)
 {
+	massert(loc_dest >= -2 && loc_dest < CHL_MEMLOCS, "CHLMemcpy: Invalid destination device: %d\n", loc_dest);
+	massert(loc_src >= -2 && loc_src < CHL_MEMLOCS, "CHLMemcpy: Invalid source device: %d\n", loc_src);
 
 	cudaStream_t stream = *((cudaStream_t*) transfer_queue->backend_queue_ptr);
 
 	massert(loc_dest >= -1 && loc_dest < CHL_MEMLOCS, "CHLMemcpyAsync: Invalid destination device: %d\n", loc_dest);
 	massert(loc_src >= -1 && loc_src < CHL_MEMLOCS, "CHLMemcpyAsync: Invalid source device: %d\n", loc_src);
 
-	enum cudaMemcpyKind kind;
-	if ((loc_src >= CHL_WORKERS  || loc_src == -1 ) && (loc_dest >= CHL_WORKERS   || loc_dest == -1 )) 
-		kind = cudaMemcpyHostToHost;
-	else if (loc_dest >= CHL_WORKERS  || loc_dest == -1) kind = cudaMemcpyDeviceToHost;
-	else if (loc_src >= CHL_WORKERS || loc_src == -1) kind = cudaMemcpyHostToDevice;
-	else kind = cudaMemcpyDeviceToDevice;
 
 	if (loc_src == loc_dest) warning("CHLMemcpyAsync(dest=%p, src=%p, bytes=%lld, loc_dest=%d, loc_src=%d): Source location matches destination\n",
 	dest, src, bytes, loc_dest, loc_src);
-	massert(cudaSuccess == cudaMemcpyAsync(dest, src, bytes, kind, stream),
+	massert(cudaSuccess == cudaMemcpyAsync(dest, src, bytes, cudaMemcpyDefault, stream),
 	"CHLMemcpy2D: cudaMemcpyAsync failed\n");
 	//CHLSyncCheckErr();
 }*/
@@ -291,19 +236,12 @@ void CHLMemcpy2D(void* dest, long int ldest, void* src, long int ldsrc, long int
 	massert(loc_dest >= -2 && loc_dest < CHL_MEMLOCS, "CHLMemcpy2D: Invalid destination device: %d\n", loc_dest);
 	massert(loc_src >= -2 && loc_src < CHL_MEMLOCS, "CHLMemcpy2D: Invalid source device: %d\n", loc_src);
 
-	enum cudaMemcpyKind kind;
-	if ((loc_src >= CHL_WORKERS  || loc_src < 0 ) && (loc_dest >= CHL_WORKERS   || loc_dest < 0 )) 
-		kind = cudaMemcpyHostToHost;
-	else if (loc_dest >= CHL_WORKERS  || loc_dest < 0) kind = cudaMemcpyDeviceToHost;
-	else if (loc_src >= CHL_WORKERS ||  loc_src < 0) kind = cudaMemcpyHostToDevice;
-	else kind = cudaMemcpyDeviceToDevice;
-
 	if (loc_src == loc_dest) warning("CHLMemcpy2D(dest=%p, ldest =%zu, src=%p, ldsrc = %zu, rows=%zu, cols=%zu, elemSize =%d, loc_dest=%d, loc_src=%d): Source location matches destination\n",
 	dest, ldest, src, ldsrc, rows, cols, elemSize, loc_dest, loc_src);
 	//if (loc_src == -1 && loc_dest >=0) massert(CUBLAS_STATUS_SUCCESS == cublasSetMatrix(rows, cols, elemSize, src, ldsrc, dest, ldest), "CHLMemcpy2DAsync: cublasSetMatrix failed\n");
 	//else if (loc_src >=0 && loc_dest == -1) massert(CUBLAS_STATUS_SUCCESS == cublasGetMatrix(rows, cols, elemSize, src, ldsrc, dest, ldest),  "CHLMemcpy2DAsync: cublasGetMatrix failed");
 	//else 
-	massert(cudaSuccess == cudaMemcpy2D(dest, ldest*elemSize, src, ldsrc*elemSize, rows*elemSize, cols, kind),
+	massert(cudaSuccess == cudaMemcpy2D(dest, ldest*elemSize, src, ldsrc*elemSize, rows*elemSize, cols, cudaMemcpyDefault),
 	"CHLMemcpy2D: cudaMemcpy2D failed\n");
 
 
@@ -356,3 +294,30 @@ void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc)
 
 template void CHLVecInit<double>(double *vec, long long length, int seed, int loc);
 template void CHLVecInit<float>(float *vec, long long length, int seed, int loc);
+
+long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc){
+	long long int free_mem, max_mem;
+	if (loc >= 0){
+		int prev_dev = CHLGetDevice();
+		CHLSelectDevice(loc);
+		CHLDevGetMemInfo(&free_mem, &max_mem);
+		CHLSelectDevice(prev_dev);
+	} else CHLGetMaxCPUmem(&free_mem, &max_mem);
+
+	// Define the max size of a benchmark kernel to run on this machine.
+	long int maxDim = (( (long int) sqrt((free_mem*PROBLEM_GPU_PERCENTAGE/100.0)/(Asset2DNum*dsize))) / step) * step;
+	return maxDim;
+}
+
+long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, int loc){
+	long long int free_mem, max_mem;
+	if (loc >= 0){
+		int prev_dev = CHLGetDevice();
+		CHLSelectDevice(loc);
+		CHLDevGetMemInfo(&free_mem, &max_mem);
+		CHLSelectDevice(prev_dev);
+	} else CHLGetMaxCPUmem(&free_mem, &max_mem);
+
+	long int maxDim = (( (long int) (free_mem*PROBLEM_GPU_PERCENTAGE/100.0)/(Asset1DNum*dsize)) / step) * step;
+	return maxDim;
+}

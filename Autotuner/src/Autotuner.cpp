@@ -268,11 +268,15 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 		int initial_T = T;
 		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
 		Gamalg_p test_grid;
-		for (int idx = 0; idx < MAX_WORKER_CONFIG; idx++){
-			test_grid = new Grid_amalgamation(CHL_INPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx]);
-			if(!test_grid->load_edges(CHL_INPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx], 
-				CHL_OUTPUT_QUEUES_CASE_IDS[num_dev_locs-1][idx])) continue;
-			if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_memlocs,active_memloc_num)) continue;
+		int active_case_id = translate_unit_list_to_binary(active_unit_id_list, active_unit_num);
+		int queue_configuration_list[64][2], queue_configuration_num = 0; 
+		gamalg_backend_get_configs(active_case_id, queue_configuration_list, &queue_configuration_num);
+		for (int config_idx = 0; config_idx < queue_configuration_num; config_idx++){
+			test_grid = new Grid_amalgamation(active_case_id);
+			int load_success = test_grid->load_edges(queue_configuration_list[config_idx][0], 
+				queue_configuration_list[config_idx][1]);
+			if(!load_success) continue;
+			//if(test_grid->active_nodes_id != translate_unit_list_to_binary(active_memlocs,active_memloc_num)) continue;
 			for (int idx = 0; idx < active_unit_num; idx++) active_unit_score[idx] = 1.0/active_unit_num;
 			long long edge_load[64][64];
 			gemm_translate_problem_comm(edge_load, A_loc, B_loc, C_loc, D_loc, M, N, K, elemSize, active_unit_num, active_unit_id_list, active_unit_score);
@@ -1001,8 +1005,7 @@ void ATC::assert_memory_requirements(){
 			CHLDevGetMemInfo(&free_dev_mem, &max_dev_mem);
 			CHLSelectDevice(prev_dev);
 		}
-		// TODO: hard coded 100 GB value, should put something that reads it from system?
-		else free_dev_mem = max_dev_mem = 250000000000;
+		else CHLGetMaxCPUmem(&free_dev_mem, &max_dev_mem);
 		// TODO: Note: This is without native blocks, since these are already allocated in memory 
 		max_hw_block_num = (free_dev_mem - ((long long) max_dev_mem*(1-PROBLEM_GPU_PERCENTAGE/100.0)))/Block_sz;
 

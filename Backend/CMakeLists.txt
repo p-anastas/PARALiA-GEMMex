@@ -10,7 +10,7 @@ include_directories(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation)
 add_library(chl_smart_wrappers SHARED
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/general_utils.cpp
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/data_helpers.cpp
-  ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/numa_awareness.cpp
+  #${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/numa_awareness.cpp # This is deprecated
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_util_wrappers.cu
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_class_wrappers.cu
   ${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_data_wrappers.cu
@@ -62,16 +62,17 @@ message( "PARALIA - Backend - NVEMAPI_INCLUDE_DIRS: " ${NVEMAPI_INCLUDE_DIRS} )
 message( "------------------------------------------------------------------------------------------------")
 ADD_SUBDIRECTORY (${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure)
 
-add_executable (CHLMicrobench2DGrids ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_microbench_grids.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
 add_executable (CHLTestGamalgGEMM ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_test_gamalg_gemm.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
 add_executable (CHLTestMemlocs ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_test_memloc_numbering.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (CHLTest2DThroughput ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_throughput_test.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
 
-#add_executable (RunCuCuBlasLinkBenchGPUs ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/transfer_link_microbench_GPUs.cpp )
 
-target_link_libraries(CHLMicrobench2DGrids ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 target_link_libraries(CHLTestGamalgGEMM ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 target_link_libraries(CHLTestMemlocs ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
-target_link_libraries(CHLTest2DThroughput ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 
+#add_executable (CHLMicrobench2DGrids ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_microbench_grids.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
+#add_executable (CHLTest2DThroughput ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_2D_throughput_test.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
+#target_link_libraries(CHLTest2DThroughput ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
+#target_link_libraries(CHLMicrobench2DGrids ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
+
+#add_executable (RunCuCuBlasLinkBenchGPUs ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/transfer_link_microbench_GPUs.cpp )
 #target_link_libraries(RunCuCuBlasLinkBenchGPUs ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)

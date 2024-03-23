@@ -12,9 +12,8 @@ export PARALIA_SYSTEM=${system}
 # CHECKME: A folder to change to before firing benchmarks, to avoid disk errors. 
 export PARALIA_CD_FOLDER=/mnt/proj1/dd-23-129
 
-# CHECKME: A file that contains information found by numactl and nvidia-smi in a tidied form.
-# FIXME: Currently must be defined by the user, will be automated later
-export PARALIA_SCONFIG_FILE_PATH="/home/users/panastas/PhD_stuff/PARALiA-GEMMex/sconfig_silver1.in"
+# Define the (max) num of devices PARALiA can use (will pick the first 'num' dev_ids)
+export PARALIA_NUM_DEVICES=2
 
 # CHECKME: Define cuda architecture (Tesla K40 = 35, GTX 1060/70 = 61,) P100 = 60, V100 = 70, A100 = 80
 export PARALIA_CUDA_ARCH=70

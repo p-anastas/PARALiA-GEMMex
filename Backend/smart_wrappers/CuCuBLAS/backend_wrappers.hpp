@@ -130,8 +130,8 @@ void cblas_wrap_dgemv(void* backend_data);
 void cblas_wrap_dgemm(void* backend_data);
 void cblas_wrap_sgemm(void* backend_data);
 
-void custom_cpu_wrap_dslaxpby(void* backend_data);
-void custom_avx2_cpu_wrap_dslaxpby(void* backend_data);
+//void custom_cpu_wrap_dslaxpby(void* backend_data);
+//void custom_avx2_cpu_wrap_dslaxpby(void* backend_data);
 
 void custom_gpu_wrap_dslaxpby(void* backend_data, CQueue_p run_queue);
 

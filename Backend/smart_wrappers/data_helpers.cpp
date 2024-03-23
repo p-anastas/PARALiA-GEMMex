@@ -5,6 +5,7 @@
 ///
 
 #include "smart_wrappers.hpp"
+#include <omp.h>
 
 template<typename VALUETYPE>
 void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed)

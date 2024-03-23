@@ -4,8 +4,8 @@
 /// \brief The headers for functions for general use throught CHL
 ///
 
-#ifndef UNIHELPERS_H
-#define UNIHELPERS_H
+#ifndef SMART_WRAPPERS_H
+#define SMART_WRAPPERS_H
 
 #include<iostream>
 //#include <cstdlib>
@@ -20,14 +20,7 @@
 //#define _GNU_SOURCE 
 #include <pthread.h>
 
-/// How many configurations will be stored and tested for each device. Must be at least 2!
-/// Increasing this results inmore microbenchmark time + autotuning overhead, but might find better combinations (e.g. more perf)
-#define MAX_WORKER_CONFIG 2
-
-extern int DEV_NUM, NUMA_HW_NUM, NIC_NUM, HW_THREADS, NIC_AT_DEV[32], NUMA_AT_DEV[32];
-extern int CHL_WORKERS, CHL_MEMLOCS, CHL_HWNUMA_AT_MEMLOC[32], CHL_WORKER_CLOSE_TO_MEMLOC[32], 
-	CHL_MEMLOC_CLOSE_TO_WORKER[64], CHL_INPUT_QUEUES_CASE_IDS[32][MAX_WORKER_CONFIG], 
-	CHL_OUTPUT_QUEUES_CASE_IDS[32][MAX_WORKER_CONFIG];
+extern int CHL_MEMLOCS;
 
 #include <execinfo.h>
 #include <signal.h>
@@ -107,6 +100,7 @@ int is_in_list(int elem, int* elem_list, int list_len);
 void translate_binary_to_unit_list(int case_id, int* active_unit_num_p, int* active_unit_id_list);
 int translate_unit_list_to_binary(int* active_unit_id_list, int active_unit_num);
 int is_subset(int case_id, int case_id_set);
+int binary_case_id_split(int case_id);
 
 /// double/float arethmetic comparrison that compares based on NORMALIZE_NEAR_SPLIT_LIMIT minimum difference.
 int normal_equal(double n1, double n2);
@@ -209,6 +203,16 @@ class Event
 /*****************************************************/
 /// Generalised data management functions
 
+//extern long PAGE_sz;
+
+char* mem_name(int idx);
+
+// Checks if *ptr points to interleaved memory or not (anything else in host)
+int get_hostmem_idx(void* ptr);
+
+// Supposedly returns an estimation of the free and max host memory available in the system
+void CHLGetMaxCPUmem(long long int* free_mem, long long int* max_mem);
+
 // Pin *ptr
 void pin_mem_wrap(void** ptr, long long bytes);
 
@@ -300,39 +304,5 @@ typedef class Event_timer
 
 
 /*****************************************************/
-/// NUMA awareness;
-/*
-typedef class MEMMetadata{
-	public:
-		void* mem_ptr;
-		long long slice_num;
-		/// Assume all slices are equal. 
-		long long total_sz, slice_size;
-		int* slices_memloc;
-		//int ldim;
 
-		MEMMetadata(void* mem_ptr_in, int* slice_memloc_in, long long slice_size_in, long long slice_num_in);
-		~MEMMetadata();
-		void get_slices(int** slice_copy_p, int* slice_num_p);
-		int get_relative_memloc(void* sub_ptr);
-		void print_slices();
-
-}* memed_p;
-int scan_allocated_data_for_ptr_loc(void* ptr);
-
-*/
-int get_hw_numa_num();
-int get_hw_numa_idx(void* addr);
-
-void* search_sub_addrs_at_memloc(void* addr, int memloc, long long chunk_offset, long long size, long long* found_chunk_idx);
-void get_hw_numa_list(void* addr, long long chunk_offset, long long chunk_num, long long* numa_list_num, int* numa_list);
-
-char* mem_name(int idx);
-int translate_mem_idx_to_hw(int mem_idx);
-int translate_hw_numa_to_mem_idx(int hw_numa_idx);
-int get_mem_idx(void* ptr);
-
-extern long PAGE_sz; 
-//extern memed_p allocated_data[1024*1024];
-//extern int allocated_data_num;
 #endif
