@@ -73,7 +73,7 @@ void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_l
     }
 }
 
-void gemm_translate_problem_ops(long long node_ops[32], long long node_mem_ops[32], 
+void gemm_translate_problem_ops(long long node_ops[32],
 	int M, int N, int K, int active_unit_num, int* active_unit_id_list, double* active_unit_score){
 #ifdef PDEBUG
     fprintf(stderr, "gemm_translate_problem_comm():\n-> M = %d, N = %d, K = %d\n"
@@ -83,10 +83,9 @@ void gemm_translate_problem_ops(long long node_ops[32], long long node_mem_ops[3
 #endif
     long long dgemm_ops = gemm_ops(M, N, K);
     long long dgemm_mem_ops = gemm_mem_ops(M, N, K);
-    for (int idx = 0; idx < CHL_WORKERS; idx++) node_ops[idx] = node_mem_ops[idx] = 0;
+    for (int idx = 0; idx < CHL_WORKERS; idx++) node_ops[idx] = 0;
     for (int idx = 0; idx < active_unit_num; idx++){
         int dev_id = active_unit_id_list[idx];
         node_ops[dev_id] = dgemm_ops/active_unit_num;
-        node_mem_ops[dev_id] = dgemm_mem_ops/active_unit_num;
     }
 }

@@ -90,7 +90,7 @@ typedef class Grid_amalgamation{
 		void print_simu_edge_bws();
 
 		char* dtype_name[DTYPE_NUM];
-		double node_Gops_s[DTYPE_NUM][32], node_mem_Gb_s[32], node_watts[32];
+		double node_Gops_s[DTYPE_NUM][32], node_watts[32];
 		void load_nodes();
 
 		void print_nodes();
@@ -111,8 +111,8 @@ typedef class Grid_amalgamation{
 		void print_problem_edge_bws();
 
 		int problem_dtype_idx; 
-		long long node_ops[32], node_mem_ops[32];
-		void set_node_load(char* op_dtype, long long node_ops_in[32], long long node_mem_ops_in[32]);
+		long long node_ops[32];
+		void set_node_load(char* op_dtype, long long node_ops_in[32]);
 
 		void print_node_load();
 
@@ -140,7 +140,7 @@ void gamalg_backend_get_configs(int case_id, int queue_configuration_list[64][2]
 void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_loc, int C_loc, int D_loc, 
     int M, int N, int K, int elemSize, int active_unit_num, int* active_unit_id_list, double* active_unit_score);
 
-void gemm_translate_problem_ops(long long node_ops[32], long long node_mem_ops[32], 
+void gemm_translate_problem_ops(long long node_ops[32],
 	int M, int N, int K, int active_unit_num, int* active_unit_id_list, double* active_unit_score);
 
 extern double best_grid_edge_bws[64][64];

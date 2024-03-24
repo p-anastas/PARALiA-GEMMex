@@ -294,11 +294,15 @@ double ATC::autotune_problem(char* problem_name_in, int A_loc_in, int B_loc_in, 
 			temp_controller->inter_grid->set_edge_load(edge_load);
 			temp_controller->inter_grid->update_problem_edges();
 			temp_controller->inter_grid->load_nodes();
-			long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
-			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, 
+			long long node_ops[CHL_WORKERS];
+			gemm_translate_problem_ops(node_ops, M, N, K, 
 				temp_controller->active_unit_num, temp_controller->active_unit_id_list, temp_controller->active_unit_score);
-			temp_controller->inter_grid->set_node_load(problem_name_in, node_ops, node_mem_ops);
-			temp_controller->set_prediction_values(temp_controller->inter_grid->get_problem_perf_estimation());
+			temp_controller->inter_grid->set_node_load(problem_name_in, node_ops);
+			double temp_t = temp_controller->inter_grid->get_problem_perf_estimation();
+#ifdef APPLY_TILE_SL_TO_WORKLOAD_SPLIT
+			temp_t *= (1 + T_aggregate_sl);
+#endif
+			temp_controller->set_prediction_values(temp_t);
 #ifndef ENABLE_POWA
 			if (normal_less(temp_controller->pred_t +
 				temp_controller->pred_t*((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_t)) mimic_ATC(temp_controller);
@@ -375,12 +379,12 @@ double ATC::autotune_problem(char* problem_name_in, int A_loc_in, int B_loc_in, 
 			test_grid->set_edge_load(edge_load);
 			test_grid->update_problem_edges();
 			test_grid->load_nodes();
-			long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
-			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_score);
-			test_grid->set_node_load(problem_name_in, node_ops, node_mem_ops);
+			long long node_ops[CHL_WORKERS];
+			gemm_translate_problem_ops(node_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_score);
+			test_grid->set_node_load(problem_name_in, node_ops);
 			double temp_t = test_grid->get_problem_perf_estimation();
 #ifdef APPLY_TILE_SL_TO_WORKLOAD_SPLIT
-			temp_t += T_aggregate_sl;
+			temp_t *= (1 + T_aggregate_sl);
 #endif
 			if(temp_t <= best_t){
 				inter_grid = test_grid;

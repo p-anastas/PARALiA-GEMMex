@@ -76,7 +76,7 @@ Grid_amalgamation::Grid_amalgamation(int active_nodes_id_in){
         simu_edge_bw[d1][d2] = -1;
         problem_edge_bw[d1][d2] = -1;
     }
-    for (int d1 = 0; d1 < 32; d1++) node_ops[d1] = node_mem_ops[d1] = 0;
+    for (int d1 = 0; d1 < 32; d1++) node_ops[d1] = 0;
     for (int d0 = 0; d0 < DTYPE_NUM; d0++) dtype_name[d0] = NULL;
     problem_dtype_idx = -1;
 }
@@ -209,10 +209,8 @@ void Grid_amalgamation::copy(class Grid_amalgamation* gamalg){
             node_Gops_s[d0][d1] = gamalg->node_Gops_s[d0][d1];
     }
     for (int d1 = 0; d1 < 32; d1++){
-        node_mem_Gb_s[d1] = gamalg->node_mem_Gb_s[d1];
         node_watts[d1] = gamalg->node_watts[d1];
         node_ops[d1] = gamalg->node_ops[d1];
-        node_mem_ops[d1] = gamalg->node_mem_ops[d1];
     }
     problem_dtype_idx = gamalg->problem_dtype_idx;
 }
@@ -336,13 +334,7 @@ void Grid_amalgamation::load_nodes(){
         fscanf(fp, "\n");
     }
 
-    fscanf(fp, "\nWORKER_MEMOPS:\nGB_S:");
-    for (int widx = 0; widx < CHL_WORKERS; widx++){
-            massert(fscanf(fp, " %lf", &(node_mem_Gb_s[widx])), "Grid_amalgamation::load_nodes(): "
-            "%s -> Wrong worker grid file layout at node_mem_Gb_s[%d]\n", filename, widx);
-    }
-
-    fscanf(fp, "\n\nWORKER_POWER:\nWATTS:");
+    fscanf(fp, "\nWORKER_POWER:\nWATTS:");
     for (int widx = 0; widx < CHL_WORKERS; widx++){
             massert(fscanf(fp, " %lf", &(node_watts[widx])), "Grid_amalgamation::load_nodes(): "
             "%s -> Wrong worker grid file layout at node_watts[%d]\n", filename, widx);
@@ -365,10 +357,6 @@ void Grid_amalgamation::print_nodes(){
         for (int d2 = 0; d2 < CHL_WORKERS; d2++){
             fprintf(stderr, "%7.0lf  | ", node_Gops_s[d1][d2]);
         }
-    }
-    fprintf(stderr, "\n node_mem_Gb_s  | ");
-    for (int d2 = 0; d2 < CHL_WORKERS; d2++){
-        fprintf(stderr, "%7.0lf  | ", node_mem_Gb_s[d2]);
     }
     fprintf(stderr, "\n node_watts     | ");
     for (int d2 = 0; d2 < CHL_WORKERS; d2++){
@@ -398,16 +386,15 @@ void Grid_amalgamation::update_problem_edges(){
     }
 }
 
-void Grid_amalgamation::set_node_load(char* op_dtype, long long node_ops_in[32], long long node_mem_ops_in[32]){
+void Grid_amalgamation::set_node_load(char* op_dtype, long long node_ops_in[32]){
     for (int dtidx = 0; dtidx < DTYPE_NUM; dtidx++) if(!strcmp(dtype_name[dtidx], op_dtype)){
         problem_dtype_idx = dtidx;
         break;
     }
     massert(problem_dtype_idx != -1, "Grid_amalgamation::set_node_load: could not find loaded dtype_name = %s\n", op_dtype);
-    for (int idx = 0; idx < CHL_WORKERS; idx++){
+    for (int idx = 0; idx < CHL_WORKERS; idx++)
         node_ops[idx] = node_ops_in[idx];
-        node_mem_ops[idx] = node_mem_ops_in[idx];
-    }
+    
 }
 
 void Grid_amalgamation::print_node_load(){
@@ -421,10 +408,6 @@ void Grid_amalgamation::print_node_load(){
     for (int d2 = 0; d2 < CHL_WORKERS; d2++){
         fprintf(stderr, "%7lld  | ", node_ops[d2]/(1024*1024*1024));
     }
-    fprintf(stderr, "\n node_mem_ops (Mops) | ");
-    for (int d2 = 0; d2 < CHL_WORKERS; d2++){
-        fprintf(stderr, "%7lld  | ", node_mem_ops[d2]/(1024*1024));
-    }
     fprintf(stderr, "\n");  
 }
 
@@ -436,9 +419,7 @@ double Grid_amalgamation::get_problem_perf_estimation(){
     for (int idx = 0; idx < CHL_WORKERS; idx++){
         if(is_in_list(idx, active_unit_id_list, active_unit_num)){
             exec_t = std::max(node_ops[idx]/(node_Gops_s[problem_dtype_idx][idx]*1e9), exec_t);
-            total_ops+= node_ops[idx];
-            mem_t = std::max(node_mem_ops[idx]/(node_mem_Gb_s[idx]*1e9), mem_t);
-            total_mem_ops+= node_mem_ops[idx]; 
+            total_ops+= node_ops[idx]; 
         }
         for (int idx1 = 0; idx1 < CHL_WORKERS; idx1++){
             if (idx == idx1) continue;
@@ -461,7 +442,7 @@ double Grid_amalgamation::get_problem_perf_estimation(){
         comm_t = std::max(std::max(comm_temp, comp_temp_rev), comm_t);
     }
 
-    double total_t = std::max(std::max(exec_t, mem_t), comm_t);
+    double total_t = std::max(exec_t, comm_t);
 #ifdef PDEBUG
     fprintf(stderr,"\nGrid_amalgamation::get_problem_perf_estimation(): Node num = %d, total_t = %lf ms (%lf Top/s), \n-> exec_t = %lf ms (%lf Top/s)\n"
     "-> mem_t = %lf ms (%lf Gmem_op/s)\n-> comm_t = %lf ms (%lf Gb/s (~Grid total bytes))\n",

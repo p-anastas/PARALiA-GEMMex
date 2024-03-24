@@ -62,9 +62,9 @@ int main(const int argc, const char *argv[]) {
 		test_grid->print_problem_edge_bws();
 		test_grid->load_nodes();
 		test_grid->print_nodes();
-		long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
-		gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_id_scores);
-		test_grid->set_node_load("MM_FP64", node_ops, node_mem_ops);
+		long long node_ops[CHL_WORKERS];
+		gemm_translate_problem_ops(node_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_id_scores);
+		test_grid->set_node_load("MM_FP64", node_ops);
 		test_grid->print_node_load();
 		temp_t = test_grid->get_problem_perf_estimation();
 		fprintf(stderr, "Performance estimation total_t = %lf ms (%.2lf Tops/s)\n", 1000*temp_t, Gval_per_s(gemm_ops(M, N, K), temp_t));
@@ -90,9 +90,9 @@ int main(const int argc, const char *argv[]) {
 			system_gamalg[ctr]->set_edge_load(edge_load);
 			system_gamalg[ctr]->update_problem_edges();
 			system_gamalg[ctr]->load_nodes();
-			long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
-			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_id_scores);
-			system_gamalg[ctr]->set_node_load("MM_FP64", node_ops, node_mem_ops);
+			long long node_ops[CHL_WORKERS];
+			gemm_translate_problem_ops(node_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_id_scores);
+			system_gamalg[ctr]->set_node_load("MM_FP64", node_ops);
 			temp_t= system_gamalg[ctr]->get_problem_perf_estimation();
 			if(temp_t < best_t){
 				best_t = temp_t; 
