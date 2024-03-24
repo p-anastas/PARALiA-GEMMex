@@ -113,6 +113,7 @@ typedef class ATC{
 	double optimize_tile(); ///  Predicts the best tile T for a multi-unit problem
 	void get_T_slowdowns(double* slowdowns, int candidate_T);
 	void set_T_slowdowns(double* slowdowns);
+	void set_prediction_values(double pred_t_in);
 /******************************************************************************/
 /********************** Memory-related autotuning *****************************/
 	void assert_memory_requirements();

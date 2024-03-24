@@ -261,12 +261,94 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 		}
 	}
 	if (autotune_eval_devices){
-		warning("ATC::autotune_problem: Not implemented (yet) for autotune_eval_devices, running with all devices\n");
-	}
-	//else
-	{
-		int initial_T = T;
 		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
+		int initial_T = T;
+		ATC_p temp_controller = new ATC();
+		temp_controller->mimic_ATC(this);
+		if(!system_gamalg || !system_gamalg_ctr) system_gamalg_init_from_DB();
+		for (int ctr = 0; ctr < system_gamalg_ctr; ctr++){
+			temp_controller->inter_grid = system_gamalg[ctr];
+			translate_binary_to_unit_list (temp_controller->inter_grid->active_nodes_id, 
+				&temp_controller->active_unit_num, temp_controller->active_unit_id_list);
+#ifdef SDEBUG
+			fprintf(stderr, "==============================================\n");
+			fprintf(stderr, "Autotune devices (iter %d): Tuning for active_unit_id_list = %s\n", ctr,
+				printlist<int>(temp_controller->active_unit_id_list, temp_controller->active_unit_num));
+#endif
+			for (int idx = 0; idx < temp_controller->active_unit_num; idx++) 
+				temp_controller->active_unit_score[idx] = 1.0/temp_controller->active_unit_num;
+			if(initial_T <= 0) tile_selection_t += temp_controller->optimize_tile();
+			long long edge_load[64][64];
+			gemm_translate_problem_comm(edge_load, A_loc, B_loc, C_loc, D_loc, M, N, K, elemSize, 
+				temp_controller->active_unit_num, temp_controller->active_unit_id_list, temp_controller->active_unit_score);
+			temp_controller->inter_grid->set_edge_load(edge_load);
+			temp_controller->inter_grid->update_problem_edges();
+			temp_controller->inter_grid->load_nodes();
+			long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
+			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, 
+				temp_controller->active_unit_num, temp_controller->active_unit_id_list, temp_controller->active_unit_score);
+			temp_controller->inter_grid->set_node_load(node_ops, node_mem_ops);
+			temp_controller->set_prediction_values(temp_controller->inter_grid->get_problem_perf_estimation());
+#ifndef ENABLE_POWA
+			if (normal_less(temp_controller->pred_t +
+				temp_controller->pred_t*((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_t)) mimic_ATC(temp_controller);
+#ifdef SDEBUG
+			fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, pred_t = %lf, best_pred_t = %lf\n", 
+				temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->pred_t,  pred_t);
+#endif
+#else
+			if (!strcmp(PREDICT_OPTIMIZE_TARGET,"PERF")){
+				if (normal_less(temp_controller->pred_t + temp_controller->pred_t*
+					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_t))
+						mimic_ATC(temp_controller);
+#ifdef SDEBUG
+				fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, pred_t = %lf, best_pred_t = %lf\n", 
+					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->pred_t, pred_t);
+#endif
+			}
+			else if(!strcmp(PREDICT_OPTIMIZE_TARGET,"ENERGY")){
+				if (normal_less(temp_controller->pred_J - temp_controller->pred_J*
+					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_J))
+						mimic_ATC(temp_controller);
+#ifdef SDEBUG
+				fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, pred_J = %lf, best_pred_J = %lf\n", 
+					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->pred_J, pred_J);
+#endif
+			}
+			else if(!strcmp(PREDICT_OPTIMIZE_TARGET,"POWER-DELAY")){
+				if (normal_larger(temp_controller->power_delay - temp_controller->power_delay*
+					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), power_delay))
+						mimic_ATC(temp_controller);
+#ifdef SDEBUG
+				fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, power_delay = %e, best_power_delay = %e\n", 
+					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->power_delay, power_delay);
+#endif
+			}
+			else if(!strcmp(PREDICT_OPTIMIZE_TARGET,"ENERGY-DELAY")){
+				if (normal_larger(temp_controller->energy_delay - temp_controller->energy_delay*
+					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), energy_delay))
+						mimic_ATC(temp_controller);
+#ifdef SDEBUG
+				fprintf(stderr, "-> T = %d, T_aggregate_sl = %lf, energy_delay = %e, best_energy_delay = %e\n", 
+					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->energy_delay, energy_delay);
+#endif
+			}
+			else error("PREDICT_OPTIMIZE_TARGET = %s not implemented\n", PREDICT_OPTIMIZE_TARGET);
+#endif
+#ifdef SDEBUG
+			fprintf(stderr, "-> active_unit_id_list = %s with active_unit_score = %s\n",
+				printlist<int>(temp_controller->active_unit_id_list, temp_controller->active_unit_num),
+				printlist<double>(temp_controller->active_unit_score, temp_controller->active_unit_num));
+			fprintf(stderr, "==============================================\n");
+#endif
+
+		}
+	}
+	else
+	{
+		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
+		int initial_T = T;
+		if(initial_T <= 0) tile_selection_t += optimize_tile();
 		Gamalg_p test_grid;
 		int active_case_id = translate_unit_list_to_binary(active_unit_id_list, active_unit_num);
 		int queue_configuration_list[64][2], queue_configuration_num = 0; 
@@ -287,6 +369,9 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_score);
 			test_grid->set_node_load(node_ops, node_mem_ops);
 			double temp_t = test_grid->get_problem_perf_estimation();
+#ifdef APPLY_TILE_SL_TO_WORKLOAD_SPLIT
+			temp_t += T_aggregate_sl;
+#endif
 			if(temp_t <= best_t){
 				inter_grid = test_grid;
 				best_t = temp_t; 
@@ -296,8 +381,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			}
 		}
 		if (best_t == DBL_MAX) error("ATC::autotune_problem: No device configuration found matching devices %s\n",
-		printlist(active_unit_id_list,active_unit_num));
-		if(initial_T <= 0) tile_selection_t += optimize_tile();
+			printlist(active_unit_id_list,active_unit_num));
 		else{
 			double* c_T_sl = (double*) calloc(6,sizeof(double));
 			get_T_slowdowns(c_T_sl, initial_T);
@@ -305,6 +389,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			free(c_T_sl);
 		}		// TODO: Must decide if workload ratio should be tuned when there is a predefined number of devices... Currently == off for paper
 		split_homogeneously = 1;
+		set_prediction_values(best_t);
 	}
 	
 	for(int i = 0; i< CHL_MEMLOCS; i++)	for(int j = 0; j< CHL_MEMLOCS; j++){
@@ -418,6 +503,19 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 	"T_sknum_sl= %lf, T_big_sl = %lf\n", M, N, K, candidate_T, slowdown[0], slowdown[1], slowdown[2], slowdown[3], slowdown[4], slowdown[5]);
 #endif
 	return;
+}
+
+
+void ATC::set_prediction_values(double pred_t_in){
+	pred_t = pred_t_in;
+#ifdef ENABLE_POWA
+	pred_J = pred_t_in*inter_grid->worker_Watts*active_unit_num,
+	long int temp_flops = gemm_ops(M, N, K);
+	double temp_PDP = (temp_flops/pred_t_in)/(inter_grid->worker_Watts*active_unit_num);
+	double temp_EDP = (temp_flops/pred_t_in)*(temp_flops/pred_t_in)/(inter_grid->worker_Watts*active_unit_num);
+	power_delay = 1/temp_PDP;
+	energy_delay = 1/temp_EDP;
+#endif
 }
 
 double ATC::optimize_tile(){
