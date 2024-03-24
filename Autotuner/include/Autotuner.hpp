@@ -94,10 +94,10 @@ typedef class ATC{
 		double T_aggregate_sl, T_imbalance_sl, T_remainder_sl, T_small_sl, T_sknum_sl, T_big_sl;
 		double pred_t; /// The predicted seconds the whole operation will require using the above parameters.
 		double pred_J; /// The predicted Joules the whole operation will require using the above parameters.
-		double power_delay, energy_delay; /// The predicted power and energy delay products using the above parameters.
+		double PDP_i, EDP_i; /// The predicted power and energy delay products using the above parameters.
 		double pred_t_pesimistic; /// The predicted seconds the whole operation will require if all overlap fails.
 		double pred_J_pesimistic; /// The predicted Joules the whole operation will require if all overlap fails.
-		double power_delay_pesimistic, energy_delay_pesimistic; /// The predicted power and energy delay products if all overlap fails.
+		double PDP_i_pesimistic, EDP_i_pesimistic; /// The predicted power and energy delay products if all overlap fails.
 
 /********************** Initialization/Modification ***************************/
 	ATC();	/// Constructor
