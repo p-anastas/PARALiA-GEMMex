@@ -108,7 +108,7 @@ typedef class ATC{
 
 /******************************************************************************/
 /********************** Tile & device autotuning ******************************/
-	double autotune_problem(int A_loc, int B_loc, int C_loc, int D_loc, 
+	double autotune_problem(char* problem_name_in, int A_loc, int B_loc, int C_loc, int D_loc, 
     int M, int N, int K, int elemSize); /// Fire the autotuner for a given problem.
 	double optimize_tile(); ///  Predicts the best tile T for a multi-unit problem
 	void get_T_slowdowns(double* slowdowns, int candidate_T);

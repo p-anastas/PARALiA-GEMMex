@@ -212,7 +212,7 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 
 /********************** Tile & device autotuning ******************************/
 
-double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
+double ATC::autotune_problem(char* problem_name_in, int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
     int M_in, int N_in, int K_in, int elemSize_in){
 	short lvl = 3;
 	double cpu_timer = csecond();
@@ -287,13 +287,13 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
 			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, 
 				temp_controller->active_unit_num, temp_controller->active_unit_id_list, temp_controller->active_unit_score);
-			temp_controller->inter_grid->set_node_load(node_ops, node_mem_ops);
+			temp_controller->inter_grid->set_node_load(problem_name_in, node_ops, node_mem_ops);
 			temp_controller->set_prediction_values(temp_controller->inter_grid->get_problem_perf_estimation());
 #ifndef ENABLE_POWA
 			if (normal_less(temp_controller->pred_t +
 				temp_controller->pred_t*((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_t)) mimic_ATC(temp_controller);
 #ifdef SDEBUG
-			fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, pred_t = %lf, best_pred_t = %lf\n", 
+			fprintf(stderr, "] -> T = %ld, T_aggregate_sl = %lf, pred_t = %lf, best_pred_t = %lf\n", 
 				temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->pred_t,  pred_t);
 #endif
 #else
@@ -302,7 +302,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_t))
 						mimic_ATC(temp_controller);
 #ifdef SDEBUG
-				fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, pred_t = %lf, best_pred_t = %lf\n", 
+				fprintf(stderr, "] -> T = %ld, T_aggregate_sl = %lf, pred_t = %lf, best_pred_t = %lf\n", 
 					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->pred_t, pred_t);
 #endif
 			}
@@ -311,7 +311,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), pred_J))
 						mimic_ATC(temp_controller);
 #ifdef SDEBUG
-				fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, pred_J = %lf, best_pred_J = %lf\n", 
+				fprintf(stderr, "] -> T = %ld, T_aggregate_sl = %lf, pred_J = %lf, best_pred_J = %lf\n", 
 					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->pred_J, pred_J);
 #endif
 			}
@@ -320,7 +320,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), power_delay))
 						mimic_ATC(temp_controller);
 #ifdef SDEBUG
-				fprintf(stderr, "] -> T = %d, T_aggregate_sl = %lf, power_delay = %e, best_power_delay = %e\n", 
+				fprintf(stderr, "] -> T = %ld, T_aggregate_sl = %lf, power_delay = %e, best_power_delay = %e\n", 
 					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->power_delay, power_delay);
 #endif
 			}
@@ -329,7 +329,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 					((temp_controller->active_unit_num-active_unit_num)*MINIMUM_UNIT_CONTRIBUTION), energy_delay))
 						mimic_ATC(temp_controller);
 #ifdef SDEBUG
-				fprintf(stderr, "-> T = %d, T_aggregate_sl = %lf, energy_delay = %e, best_energy_delay = %e\n", 
+				fprintf(stderr, "-> T = %ld, T_aggregate_sl = %lf, energy_delay = %e, best_energy_delay = %e\n", 
 					temp_controller->T, temp_controller->T_aggregate_sl, temp_controller->energy_delay, energy_delay);
 #endif
 			}
@@ -367,7 +367,7 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 			test_grid->load_nodes();
 			long long node_ops[CHL_WORKERS], node_mem_ops[CHL_WORKERS];
 			gemm_translate_problem_ops(node_ops, node_mem_ops, M, N, K, active_unit_num, active_unit_id_list, active_unit_score);
-			test_grid->set_node_load(node_ops, node_mem_ops);
+			test_grid->set_node_load(problem_name_in, node_ops, node_mem_ops);
 			double temp_t = test_grid->get_problem_perf_estimation();
 #ifdef APPLY_TILE_SL_TO_WORKLOAD_SPLIT
 			temp_t += T_aggregate_sl;
@@ -509,10 +509,13 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 void ATC::set_prediction_values(double pred_t_in){
 	pred_t = pred_t_in;
 #ifdef ENABLE_POWA
-	pred_J = pred_t_in*inter_grid->worker_Watts*active_unit_num,
+	double total_node_watts = 0;
+	for (int idx = 0; idx < active_unit_num; idx++)
+		total_node_watts+= inter_grid->node_watts[idx];
+	pred_J = pred_t_in*total_node_watts;
 	long int temp_flops = gemm_ops(M, N, K);
-	double temp_PDP = (temp_flops/pred_t_in)/(inter_grid->worker_Watts*active_unit_num);
-	double temp_EDP = (temp_flops/pred_t_in)*(temp_flops/pred_t_in)/(inter_grid->worker_Watts*active_unit_num);
+	double temp_PDP = (temp_flops/pred_t_in)/total_node_watts;
+	double temp_EDP = (temp_flops/pred_t_in)*(temp_flops/pred_t_in)/total_node_watts;
 	power_delay = 1/temp_PDP;
 	energy_delay = 1/temp_EDP;
 #endif

@@ -78,7 +78,7 @@ int main(const int argc, const char *argv[]) {
 	if (predef_control_values && autotune_controller_gemm->diff_intialized_params_ATC(predef_control_values))
 		 autotune_controller_gemm->mimic_ATC(predef_control_values);
 
-	double autotune_timer = autotune_controller_gemm->autotune_problem(A_loc, B_loc, C_loc, C_out_loc, M, N, K, sizeof(double));
+	double autotune_timer = autotune_controller_gemm->autotune_problem("MM_FP64", A_loc, B_loc, C_loc, C_out_loc, M, N, K, sizeof(double));
 
 	lprintf(0, "dgemm_predictor: t_autotune = %lf ms\n", autotune_timer*1000);
 	autotune_controller_gemm->print();

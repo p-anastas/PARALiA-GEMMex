@@ -74,7 +74,7 @@ void CreateTasksDgemm(PMD_p local_PMD){
 			Tile2D_p C_tile = local_PMD->decom[2]->getTile(mi,ni);
 			C_tile->W_op_num = local_PMD->decom[0]->GridSz2;
 			C_tile->reduce_mult = initial_dgemm->beta; 
-			C_tile->W_op_name = "Dgemm";
+			C_tile->W_op_name = "MM_FP64";
 			C_tile->W_op_params = (void**) malloc(C_tile->W_op_num*sizeof(void*));
 			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
 			C_tile->W_op_dev_id = local_PMD->autotuner->comp_task_unit_list[comp_task_idx];
@@ -192,7 +192,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	gemm_backend_in<double>* initial_dgemm = NULL;
 
 	for(int cache_entries = 0; cache_entries < PMD_cache_entries; cache_entries++)
-	if(PMD_cache[cache_entries] && !strcmp(PMD_cache[cache_entries]->problem_name, "Dgemm")){
+	if(PMD_cache[cache_entries] && !strcmp(PMD_cache[cache_entries]->problem_name, "MM_FP64")){
 			initial_dgemm = (gemm_backend_in<double>*) PMD_cache[cache_entries]->problem_wrap;
 #ifdef DEBUG
 			PMD_cache[cache_entries]->print();
@@ -264,7 +264,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	int remaining_tasks = 0;
 
 	if(!reuse_problem_flag){
-		local_PMD->problem_name = "Dgemm";
+		local_PMD->problem_name = "MM_FP64";
 		local_PMD->decom_num = 3;
 		local_PMD->decom[0] = new Decom2D( (void*) A, M, K, ldA, TransA, DOUBLE);
 		local_PMD->decom[1] = new Decom2D( (void*) B, K, N, ldB, TransB, DOUBLE);
@@ -278,7 +278,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->autotuner = new ATC();
 		if (predef_controller_dgemm && local_PMD->autotuner->diff_intialized_params_ATC(predef_controller_dgemm))
 			local_PMD->autotuner->mimic_ATC(predef_controller_dgemm);
-		autotune_timer = local_PMD->autotuner->autotune_problem(CHLGetPtrLoc(A), 
+		autotune_timer = local_PMD->autotuner->autotune_problem(local_PMD->problem_name, CHLGetPtrLoc(A), 
 		CHLGetPtrLoc(B), CHLGetPtrLoc(C), 
 		CHLGetPtrLoc(C), M, N, K, sizeof(double));
 

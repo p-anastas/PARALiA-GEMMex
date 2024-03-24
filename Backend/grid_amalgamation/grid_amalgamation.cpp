@@ -76,7 +76,8 @@ Grid_amalgamation::Grid_amalgamation(int active_nodes_id_in){
         simu_edge_bw[d1][d2] = -1;
         problem_edge_bw[d1][d2] = -1;
     }
-    for (int d1 = 0; d1 < 32; d1++) node_ops[d1] = node_mem_ops[d1] = 0; 
+    for (int d1 = 0; d1 < 32; d1++) node_ops[d1] = node_mem_ops[d1] = 0;
+    problem_dtype_idx = -1;
 }
 
 Grid_amalgamation::~Grid_amalgamation(){
@@ -216,45 +217,39 @@ void log_results_bid(char* filename, int numDev, int* case_id_list, int* rev_cas
 }*/
 
 int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
-    char *filename = (char *) malloc(1024 * sizeof(char));
-#ifdef CLDEBUG
+#ifdef PDEBUG
     fprintf(stderr, "Grid_amalgamation::load_edges(%d,%d)\n", case_id, rev_case_id);
 #endif
     int active_unit_num, active_unit_id_list[CHL_WORKERS];
-    int rev_active_unit_num, rev_active_unit_id_list[CHL_WORKERS];
-    if ((!case_id || !rev_case_id) || !is_subset(rev_case_id, case_id)) return 0; 
+    translate_binary_to_unit_list(active_nodes_id, &active_unit_num, active_unit_id_list);
 
+    if (case_id < 1 || rev_case_id < 1 || !is_subset(case_id, active_nodes_id) || !is_subset(rev_case_id, active_nodes_id)) 
+        error("Grid_amalgamation::load_edges(%d, %d): Incorrect input arguments for active_nodes_id = %d\n", case_id, rev_case_id, active_nodes_id); 
+    char *filename = (char *) malloc(1024 * sizeof(char));
     sprintf(filename, "%s/Database/chl_bw_grid_%d_%d.log", DEPLOYDB, case_id, rev_case_id);
     FILE* fp = fopen(filename, "r");
-    if(!fp){
-        warning("Grid_amalgamation::load_edges(%d,%d): File %s not found\n", case_id, rev_case_id, filename);
-        return 0;
-    }
-    int tmp_worker, temp_memloc;
-    
-    fscanf(fp, "CHL_WORKERS = %d\nCHL_MEMLOCS = %d\nOne-directional:\n", &tmp_worker, &temp_memloc);
-    if (tmp_worker != CHL_WORKERS){
-        warning("Grid_amalgamation::load_edges: Loaded different CHL_WORKERS"
-            " = %d (instead of %d) from %s...probably wrong system logs used\n", tmp_worker, CHL_WORKERS, filename);
-        return 0;
-    }
-    if (temp_memloc != CHL_MEMLOCS){
-        warning("Grid_amalgamation::load_edges: Loaded different CHL_MEMLOCS"
-            " = %d (instead of %d) from %s...probably wrong system logs used\n", temp_memloc, CHL_MEMLOCS, filename);
-        return 0;
-    }
+    if(!fp) error("Grid_amalgamation::load_edges(%d, %d): File %s not found\n", case_id, rev_case_id, filename);
+    for (int it = 0; it < 100; it++) fscanf(fp, "=");
+    int tmp_memlocs;
+
+    massert(fscanf(fp, "\nCHL_MEMLOCS = %d\n\nOne-directional:\n", &tmp_memlocs), "Grid_amalgamation::load_edges(%d, %d): "
+        "%s -> Wrong bw grid file layout at CHL_MEMLOCS\n", case_id, rev_case_id, filename);
+    massert(tmp_memlocs == CHL_MEMLOCS, "Grid_amalgamation::load_edges(%d, %d): Loaded different CHL_WORKERS"
+            " = %d (instead of %d) from %s\n", case_id, rev_case_id, tmp_memlocs, CHL_WORKERS, filename);
 
     for(int idx = 0; idx < CHL_MEMLOCS; idx++){
         for(int idx1 = 0; idx1 < CHL_MEMLOCS; idx1++){
-            fscanf(fp, "%lf", &(edge_bw[idx][idx1]));
+            massert(fscanf(fp, "%lf", &(edge_bw[idx][idx1])), "Grid_amalgamation::load_edges(%d, %d): "
+                "%s -> Wrong bw grid file layout at edge_bw[%d][%d]\n", case_id, rev_case_id, filename, idx, idx1);
         }
         fscanf(fp, "\n");
     }
-    fscanf(fp, "Bidirectional:\n");
+    fscanf(fp, "\nBidirectional:\n");
     int last_idx_hostsrc = -42, last_idx_hostdest = -42;
     for(int idx = 0; idx < CHL_MEMLOCS; idx++){
         for(int idx1 = 0; idx1 < CHL_MEMLOCS; idx1++){
-            fscanf(fp, "%lf", &(simu_edge_bw[idx][idx1]));
+            massert(fscanf(fp, "%lf", &(simu_edge_bw[idx][idx1])), "Grid_amalgamation::load_edges(%d, %d): "
+                "%s -> Wrong bw grid file layout at simu_edge_bw[%d][%d]\n", case_id, rev_case_id, filename, idx, idx1);
             if (simu_edge_bw[idx][idx1] != -1.0){
                 edge_active[idx][idx1] = 1;
                 if (idx >= CHL_WORKERS && idx1 < CHL_WORKERS) last_idx_hostdest = idx1;
@@ -262,24 +257,25 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
             }
             else if(idx != idx1){
                 if(idx >= CHL_WORKERS){
-                    if (idx1 < CHL_WORKERS){
+                    if (idx1 < CHL_WORKERS && is_in_list(idx1, active_unit_id_list, active_unit_num)){
                         edge_replaced[idx][idx1][0] = idx;
                         edge_replaced[idx][idx1][1] = last_idx_hostdest;
                     }
                 }
                 else if (idx1 >= CHL_WORKERS){
-                    if (idx < CHL_WORKERS){
+                    if (idx < CHL_WORKERS && is_in_list(idx, active_unit_id_list, active_unit_num)){
                         edge_replaced[idx][idx1][0] = last_idx_hostsrc;
                         edge_replaced[idx][idx1][1] = idx1;
                     }
                 }
-                else error("Grid_amalgamation::load_edges() simu_edge_bw[%d][%d] was -1...incompatible with backend\n", 
-                    idx, idx1, simu_edge_bw[idx][idx1]);
+                else if(!(is_in_list(idx, active_unit_id_list, active_unit_num) && 
+                        is_in_list(idx1, active_unit_id_list, active_unit_num))) ; // Do nothing, this is supported
+                else error("Grid_amalgamation::load_edges() simu_edge_bw[%d][%d] was -1...incompatible with backend\n", idx, idx1);
             } 
         }
         fscanf(fp, "\n");
     }
-    
+    //for (int it = 0; it < 100; it++) fscanf(fp, "=");
     fclose(fp);
     free(filename);
     return 1;
@@ -288,12 +284,10 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
 /// Load the characteristics of the worker 'nodes' (e.g. devices) 
 /// Also check file layout in case microbenchmarks messed or some file has been edited by hand incorrectly
 void Grid_amalgamation::load_nodes(){
+    char *filename = (char *) malloc(1024 * sizeof(char));
     sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, CHL_WORKERS);
     FILE* fp = fopen(filename, "r");
-    if(!fp){
-        error("Grid_amalgamation::load_nodes(): File %s not found\n", filename);
-        return 0;
-    }
+    if(!fp) error("Grid_amalgamation::load_nodes(): File %s not found\n", filename);
     for (int it = 0; it < 100; it++) fscanf(fp, "=");
     int tmp_worker, tmp_dtype_lines;
 
@@ -308,46 +302,50 @@ void Grid_amalgamation::load_nodes(){
             " = %d (instead of %d) from %s\n", tmp_dtype_lines, DTYPE_NUM, filename);
 
     for (int dtidx = 0; dtidx < DTYPE_NUM; dtidx++){
-        dtype_name[dtidx] = malloc (256*sizeof(char));
-        massert(fscanf(fp, "%s:", &(dtype_name[dtidx])), "Grid_amalgamation::load_nodes(): "
+        dtype_name[dtidx] = (char *) malloc (256*sizeof(char));
+        massert(fscanf(fp, "%s :", dtype_name[dtidx]), "Grid_amalgamation::load_nodes(): "
         "%s -> Wrong worker grid file layout at dtype naming - dtidx = %d\n", filename, dtidx);
         for (int widx = 0; widx < CHL_WORKERS; widx++)
-            massert(fscanf(fp, " %d", &(node_Gops_s[dtidx][widx])), "Grid_amalgamation::load_nodes(): "
+            massert(fscanf(fp, " %lf", &(node_Gops_s[dtidx][widx])), "Grid_amalgamation::load_nodes(): "
             "%s -> Wrong worker grid file layout at node_Gops_s[%d][%d]\n", filename, dtidx, widx);
         fscanf(fp, "\n");
     }
 
-    fscanf(fp, "\nWORKER_MEMOPS:\nGB_s:");
+    fscanf(fp, "\nWORKER_MEMOPS:\nGB_S:");
     for (int widx = 0; widx < CHL_WORKERS; widx++){
-            massert(fscanf(fp, " %d", &(node_mem_Gb_s[widx])), "Grid_amalgamation::load_nodes(): "
+            massert(fscanf(fp, " %lf", &(node_mem_Gb_s[widx])), "Grid_amalgamation::load_nodes(): "
             "%s -> Wrong worker grid file layout at node_mem_Gb_s[%d]\n", filename, widx);
     }
 
     fscanf(fp, "\n\nWORKER_POWER:\nWATTS:");
     for (int widx = 0; widx < CHL_WORKERS; widx++){
-            massert(fscanf(fp, " %d", &(node_watts[widx])), "Grid_amalgamation::load_nodes(): "
+            massert(fscanf(fp, " %lf", &(node_watts[widx])), "Grid_amalgamation::load_nodes(): "
             "%s -> Wrong worker grid file layout at node_watts[%d]\n", filename, widx);
     }
 
     //for (int it = 0; it < 100; it++) fscanf(fp, "=");
+    fclose(fp);
+    free(filename);
 }
 
 void Grid_amalgamation::print_nodes(){
-    fprintf(stderr,"\n Grid_amalgamation::print_nodes():\n\n               |");
+    fprintf(stderr,"\n Grid_amalgamation::print_nodes():\n\n                |");
     for (int d2 = 0; d2 < CHL_WORKERS; d2++)
         fprintf(stderr, "  %s   |", mem_name(d2));
-    fprintf(stderr, "\n               |");
+    fprintf(stderr, "\n                |");
     for (int d2 = 0; d2 < CHL_WORKERS; d2++)
         fprintf(stderr, "-----------");
-    fprintf(stderr, "\n node_Gops_s   | ");
-    for (int d2 = 0; d2 < CHL_WORKERS; d2++){
-        fprintf(stderr, "%7.0lf  | ", node_Gops_s[d2]);
+    for (int d1 = 0; d1 < DTYPE_NUM; d1++){
+        fprintf(stderr, "\n Gops_s:%s | ", dtype_name[d1]);
+        for (int d2 = 0; d2 < CHL_WORKERS; d2++){
+            fprintf(stderr, "%7.0lf  | ", node_Gops_s[d1][d2]);
+        }
     }
-    fprintf(stderr, "\n node_mem_Gb_s | ");
+    fprintf(stderr, "\n node_mem_Gb_s  | ");
     for (int d2 = 0; d2 < CHL_WORKERS; d2++){
         fprintf(stderr, "%7.0lf  | ", node_mem_Gb_s[d2]);
     }
-    fprintf(stderr, "\n node_watts    | ");
+    fprintf(stderr, "\n node_watts     | ");
     for (int d2 = 0; d2 < CHL_WORKERS; d2++){
         fprintf(stderr, "%7.0lf  | ", node_watts[d2]);
     }
@@ -375,7 +373,12 @@ void Grid_amalgamation::update_problem_edges(){
     }
 }
 
-void Grid_amalgamation::set_node_load(long long node_ops_in[32], long long node_mem_ops_in[32]){
+void Grid_amalgamation::set_node_load(char* op_dtype, long long node_ops_in[32], long long node_mem_ops_in[32]){
+    for (int dtidx = 0; dtidx < DTYPE_NUM; dtidx++) if(!strcmp(dtype_name[dtidx], op_dtype)){
+        problem_dtype_idx = dtidx;
+        break;
+    }
+    massert(problem_dtype_idx != -1, "Grid_amalgamation::set_node_load: could not find loaded dtype_name = %s\n", op_dtype);
     for (int idx = 0; idx < CHL_WORKERS; idx++){
         node_ops[idx] = node_ops_in[idx];
         node_mem_ops[idx] = node_mem_ops_in[idx];
@@ -407,7 +410,7 @@ double Grid_amalgamation::get_problem_perf_estimation(){
     translate_binary_to_unit_list(active_nodes_id, &active_unit_num, active_unit_id_list);
     for (int idx = 0; idx < CHL_WORKERS; idx++){
         if(is_in_list(idx, active_unit_id_list, active_unit_num)){
-            exec_t = std::max(node_ops[idx]/(node_Gops_s[idx]*1e9), exec_t);
+            exec_t = std::max(node_ops[idx]/(node_Gops_s[problem_dtype_idx][idx]*1e9), exec_t);
             total_ops+= node_ops[idx];
             mem_t = std::max(node_mem_ops[idx]/(node_mem_Gb_s[idx]*1e9), mem_t);
             total_mem_ops+= node_mem_ops[idx]; 
