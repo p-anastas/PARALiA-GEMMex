@@ -30,14 +30,14 @@ void system_gamalg_init_from_DB(){
             int load_success = temp_gamalgs[system_gamalg_ctr]->load_edges(queue_configuration_list[config_idx][0], 
 				queue_configuration_list[config_idx][1]);
             if (load_success){
-//#ifdef CLDEBUG
+//#ifdef PDEBUG
                 fprintf(stderr,"system_gamalg_init_from_DB(): Loaded Grid_amalgamation (in_queue_id = %d, out_queue_id = %d) from DB in system_gamalg_ctr = %d\n",
                     queue_configuration_list[config_idx][0], queue_configuration_list[config_idx][1], system_gamalg_ctr);
 //#endif
                 system_gamalg_ctr++;
             }
             else{ 
-//#ifdef CLDEBUG
+//#ifdef PDEBUG
                 fprintf(stderr,"system_gamalg_init_from_DB(): Combination (in_queue_id = %d, out_queue_id = %d) not found in DB\n", 
                     queue_configuration_list[config_idx][0], queue_configuration_list[config_idx][1]);
 //#endif
@@ -77,6 +77,7 @@ Grid_amalgamation::Grid_amalgamation(int active_nodes_id_in){
         problem_edge_bw[d1][d2] = -1;
     }
     for (int d1 = 0; d1 < 32; d1++) node_ops[d1] = node_mem_ops[d1] = 0;
+    for (int d0 = 0; d0 < DTYPE_NUM; d0++) dtype_name[d0] = NULL;
     problem_dtype_idx = -1;
 }
 
@@ -188,9 +189,33 @@ void Grid_amalgamation::print_problem_edge_bws(){
 }
 
 void Grid_amalgamation::copy(class Grid_amalgamation* gamalg){
-
+    active_nodes_id = gamalg->active_nodes_id;
+    for (int d1 = 0; d1 < 64; d1++)
+    for (int d2 = 0; d2 < 64; d2++){
+        edge_active[d1][d2] = gamalg->edge_active[d1][d2];
+        edge_replaced[d1][d2][0] = gamalg->edge_replaced[d1][d2][0];
+        edge_replaced[d1][d2][1] = gamalg->edge_replaced[d1][d2][1];
+        edge_bw[d1][d2] = gamalg->edge_bw[d1][d2];
+        simu_edge_bw[d1][d2] = gamalg->simu_edge_bw[d1][d2];
+        edge_load[d1][d2] = gamalg->edge_load[d1][d2];
+        problem_edge_bw[d1][d2] = gamalg->problem_edge_bw[d1][d2];
+    }
+    for (int d0 = 0; d0 < DTYPE_NUM; d0++){
+        if(gamalg->dtype_name[d0]){
+            dtype_name[d0] = (char *) malloc (256*sizeof(char));
+            strcpy(dtype_name[d0], gamalg->dtype_name[d0]);
+        }
+        for (int d1 = 0; d1 < 32; d1++)
+            node_Gops_s[d0][d1] = gamalg->node_Gops_s[d0][d1];
+    }
+    for (int d1 = 0; d1 < 32; d1++){
+        node_mem_Gb_s[d1] = gamalg->node_mem_Gb_s[d1];
+        node_watts[d1] = gamalg->node_watts[d1];
+        node_ops[d1] = gamalg->node_ops[d1];
+        node_mem_ops[d1] = gamalg->node_mem_ops[d1];
+    }
+    problem_dtype_idx = gamalg->problem_dtype_idx;
 }
-
 void Grid_amalgamation::reset_problem_edge_bws(){
       for (int d1 = 0; d1 < CHL_MEMLOCS; d1++) 
         for (int d2 = 0; d2 < CHL_MEMLOCS; d2++) 
@@ -437,9 +462,9 @@ double Grid_amalgamation::get_problem_perf_estimation(){
     }
 
     double total_t = std::max(std::max(exec_t, mem_t), comm_t);
-#ifdef CLDEBUG
+#ifdef PDEBUG
     fprintf(stderr,"\nGrid_amalgamation::get_problem_perf_estimation(): Node num = %d, total_t = %lf ms (%lf Top/s), \n-> exec_t = %lf ms (%lf Top/s)\n"
-    "-> mem_t = %lf ms (%lf Gmem_op/s)\n-> comm_t = %lf ms (%lf Gb/s)\n",
+    "-> mem_t = %lf ms (%lf Gmem_op/s)\n-> comm_t = %lf ms (%lf Gb/s (~Grid total bytes))\n",
         active_unit_num, total_t*1000, Gval_per_s(total_ops, total_t)/1024, exec_t*1000, Gval_per_s(total_ops, exec_t), mem_t*1000, Gval_per_s(total_mem_ops, mem_t), 
         comm_t*1000, Gval_per_s(total_comm_bytes, comm_t));
 #endif

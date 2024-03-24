@@ -62,7 +62,7 @@ double linear_regression(double* y, double* x, int samples, double* ans_b, doubl
 	long long byte_lbw_bp = 0, byte_75pbw_bp = 0, byte_95pbw_bp = 0;
 	for(int i=0; i<samples; i++){
 		double pred_y =  t_lat + x[i]*t_b; 
-#ifdef CLDEBUG
+#ifdef PDEBUG
 		fprintf(stderr, "Point (x = %d):\t y=%lf ms (%lf Gb/s), pred_y = %lf ms (%lf Gb/s) PE = %.1lf\n", 
 		int(x[i]), y[i] * 1000, Gval_per_s(int(x[i]), y[i]), pred_y * 1000, Gval_per_s(int(x[i]), pred_y), (pred_y - y[i])/y[i]*100);
 #endif

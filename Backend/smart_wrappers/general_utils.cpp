@@ -261,6 +261,10 @@ long long gemm_mem_ops(long int M, long int N, long int K){
 	return M * K + K * N + 2*(M * N);
 }
 
+long long gemm_mem_sz(long int M, long int N, long int K, int elemSize){
+	return (M * K + K * N + M * N)*elemSize;
+}
+
 /*
 long long gemv_flops(long int M, long int N){
 	return (long long) M * (2 * N + 1);

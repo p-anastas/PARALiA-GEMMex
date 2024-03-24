@@ -206,14 +206,14 @@ void CommandQueue::run_operation(void* backend_data, const char* opname, int tar
 	//TODO: This seemed to be needed here for the GPU calls...
 	CHLSelectDevice(target_dev_id_in);
 	if(target_dev_id_in == -1 || target_dev_id_in >= CHL_WORKERS){
-		if (!strcmp(opname, "Dgemm")) add_host_func( (cudaHostFn_t*) &cblas_wrap_dgemm, backend_data);
+		if (!strcmp(opname, "MM_FP64")) add_host_func( (cudaHostFn_t*) &cblas_wrap_dgemm, backend_data);
 		else if (!strcmp(opname, "Daxpy")) add_host_func( (cudaHostFn_t*) &cblas_wrap_daxpy, backend_data);
 		else if (!strcmp(opname, "Daxpby")) add_host_func( (cudaHostFn_t*) &cblas_wrap_daxpby, backend_data);
 		//else if (!strcmp(opname, "Dslaxpby")) add_host_func( (cudaHostFn_t*) &custom_cpu_wrap_dslaxpby, backend_data);
 		else error("CommandQueue(%d)::run_operation(): unsupported opname = %s\n", id, opname);
 	}
 	else{
-		if (!strcmp(opname, "Dgemm")) cublas_wrap_dgemm(backend_data, this);
+		if (!strcmp(opname, "MM_FP64")) cublas_wrap_dgemm(backend_data, this);
 		else if (!strcmp(opname, "Daxpy")) cublas_wrap_daxpy(backend_data, this);
 		else if (!strcmp(opname, "Daxpby")) cublas_wrap_daxpby(backend_data, this);
 		else if (!strcmp(opname, "Dslaxpby")) custom_gpu_wrap_dslaxpby(backend_data, this);

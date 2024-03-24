@@ -167,7 +167,7 @@ int main(const int argc, const char *argv[]) {
 			perform_microbenchmark_2D(host_buffs, dev_buffs, mem_loc, (((long long) maxDim*maxDim)*elemSize*active_unit_num), lddev, ldhost, 
 				dim, active_unit_id_list, active_unit_num, bw_per_devnum_devwise[wk_idx][case_idx], -1, NULL, 0, NULL, &temp_bw, &temp_dummy, &temp_dummy);
 			bw_per_devnum_total[wk_idx][case_idx] = temp_bw;
-#ifdef CLDEBUG
+#ifdef PDEBUG
 			fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 #endif
 	}
@@ -221,7 +221,7 @@ int main(const int argc, const char *argv[]) {
 			if(del_flag){
 				blocked_case_id_list[blocked_case_id_num++] = case_id;
 				if(buff_idx) remove_case_id(case_id, rev_id_per_devnum[rev_active_unit_num-1], rev_bw_per_devnum[rev_active_unit_num-1], explored_cases);
-//#ifdef CLDEBUG
+//#ifdef PDEBUG
 				fprintf(stderr, "Blocking (rev_active_unit_id_list[%d] = %s since D2H bw for buff_idx = %d (%lf Gb/s) too low\n",
 				rev_active_unit_num, printlist<int>(rev_active_unit_id_list, rev_active_unit_num), buff_idx, temp_bw);
 //#endif
@@ -232,7 +232,7 @@ int main(const int argc, const char *argv[]) {
 				rev_bw_per_devnum[rev_active_unit_num-1][rev_case_id_ctr[rev_active_unit_num-1]][buff_idx] = temp_bw;
 				rev_id_per_devnum[rev_active_unit_num-1][rev_case_id_ctr[rev_active_unit_num-1]++] = case_id;
 			}
-#ifdef CLDEBUG
+#ifdef PDEBUG
 			fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 #endif
 		}
@@ -303,7 +303,7 @@ int main(const int argc, const char *argv[]) {
 				bid_rev_bw_per_devnum[active_unit_num-1][bid_case_id_ctr[active_unit_num-1]][buff_idx] = rev_bw;
 				bid_id_per_devnum[active_unit_num-1][bid_case_id_ctr[active_unit_num-1]] = case_id;
 				bid_rev_id_per_devnum[active_unit_num-1][bid_case_id_ctr[active_unit_num-1]++] = rev_case_id;
-	#ifdef CLDEBUG
+	#ifdef PDEBUG
 				fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 	#endif	
 			}

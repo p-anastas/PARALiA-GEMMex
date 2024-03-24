@@ -286,7 +286,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 				prev = x;
 			}
 			temp_t = max_t + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
-			//fprintf(stderr, "%llf\n", temp_t);
+			//fprintf(stderr, "%Lf\n", temp_t);
 			//fprintf(stderr,"Checking location list[%s]: temp_t = %lf\n", printlist(templist,hop_num), temp_t);
 			prev = hop_uid_list[0];
 			long double temp_ETA = 0, queue_ETA; 
@@ -305,7 +305,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 				for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
 				tie_list_num = 1;
 #ifdef DPDEBUG
-				fprintf(stderr,"New min_ETA(%llf) for route = %s\n", 
+				fprintf(stderr,"New min_ETA(%Lf) for route = %s\n", 
 					min_ETA, printlist(best_list[tie_list_num-1],hop_num));
 #endif
 			}
@@ -314,8 +314,8 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 			for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
 			tie_list_num++;
 	#ifdef DPDEBUG
-			fprintf(stderr,"same min_ETA(%llf) for candidate(%d) route = %s\n", 
-				tie_list_num, printlist(best_list[tie_list_num-1],hop_num));
+			fprintf(stderr,"same min_ETA(%Lf) for candidate(%d) route = %s\n", 
+				min_ETA, tie_list_num, printlist(best_list[tie_list_num-1],hop_num));
 	#endif
 			}
 			flag = std::next_permutation(loc_list.begin(), loc_list.end());
@@ -328,7 +328,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 		}
 		hop_num++;
 #ifdef PDEBUG
-		fprintf(stderr,"Selected route = %s from %d candidates with ETA = %llf\n", 
+		fprintf(stderr,"Selected route = %s from %d candidates with ETA = %Lf\n", 
 				printlist(hop_uid_list, hop_num), tie_list_num, min_ETA);
 #endif
 	}

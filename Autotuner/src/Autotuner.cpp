@@ -51,7 +51,8 @@ ATC::ATC(){
 	comp_task_unit_list = NULL;
 	comp_task_per_unit_list = NULL;
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
-	pred_t = pred_J = power_delay = energy_delay = -1.0;
+	pred_t = pred_J = DBL_MAX;
+	power_delay = energy_delay = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
 	D1_parts = D2_parts = -1;
 	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
@@ -81,7 +82,8 @@ ATC::~ATC(){
 		delete task_list[idx]; 
 	}
 	free(task_list);
-	delete inter_grid; 
+	delete inter_grid;
+	inter_grid = NULL;
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif
@@ -105,6 +107,7 @@ void ATC::reset(){
 	free(task_list);
 	task_list = NULL;
 	delete inter_grid;
+	inter_grid = NULL;
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
 	pred_t = -1.0;
 	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
@@ -161,8 +164,14 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 #ifdef DEBUG
 	fprintf(stderr,  "|-----> ATC::mimic_ATC(other_ATC = %p)\n", other_ATC);
 #endif
-	// TODO: Is this needed?
-	//reset();
+	M = other_ATC->M;
+	N = other_ATC->N;
+	K = other_ATC->K;
+	A_loc = other_ATC->A_loc;
+	B_loc = other_ATC->B_loc;
+	C_loc = other_ATC->C_loc;
+	D_loc = other_ATC->D_loc;
+
 	T = other_ATC->T;
 	T_aggregate_sl = other_ATC->T_aggregate_sl;
 	T_imbalance_sl = other_ATC->T_imbalance_sl;
@@ -187,8 +196,9 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	perfect_balance = other_ATC->perfect_balance;
 	Block_sz = other_ATC->Block_sz;
 	for (int idx = 0; idx < CHL_MEMLOCS; idx++) Block_num[idx] = other_ATC->Block_num[idx];
-	// The following is not implemented
-	//inter_grid->copy(other_ATC->inter_grid);
+	if(!inter_grid && other_ATC->inter_grid)
+		inter_grid = new Grid_amalgamation(other_ATC->inter_grid->active_nodes_id);
+	if(other_ATC->inter_grid) inter_grid->copy(other_ATC->inter_grid);
 	use_2d_decom = other_ATC->use_2d_decom; 
 	if (other_ATC->task_num != -1){
 		task_num = other_ATC->task_num;
@@ -264,7 +274,7 @@ double ATC::autotune_problem(char* problem_name_in, int A_loc_in, int B_loc_in, 
 		double tile_selection_t = 0, split_selection_t = 0, best_t = DBL_MAX;
 		int initial_T = T;
 		ATC_p temp_controller = new ATC();
-		temp_controller->mimic_ATC(this);
+		temp_controller->mimic_ATC(this);		
 		if(!system_gamalg || !system_gamalg_ctr) system_gamalg_init_from_DB();
 		for (int ctr = 0; ctr < system_gamalg_ctr; ctr++){
 			temp_controller->inter_grid = system_gamalg[ctr];

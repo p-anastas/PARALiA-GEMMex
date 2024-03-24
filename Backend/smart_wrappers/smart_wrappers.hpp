@@ -85,6 +85,7 @@ double Gval_per_s(long long value, double time);
 
 long long gemm_ops(long int M, long int N, long int K);
 long long gemm_mem_ops(long int M, long int N, long int K);
+long long gemm_mem_sz(long int M, long int N, long int K, int elemSize);
 
 long int count_lines(FILE* fp); // TODO: Where is this used?
 int check_benchmark(char *filename);

@@ -7,7 +7,7 @@
 
 void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_loc, int C_loc, int D_loc, 
     int M, int N, int K, int elemSize, int active_unit_num, int* active_unit_id_list, double* active_unit_score){
-#ifdef CLDEBUG
+#ifdef PDEBUG
     fprintf(stderr, "gemm_translate_problem_comm():\n-> M = %d, N = %d, K = %d, elemSize =%d\n"
         "-> A_loc = %d, B_loc = %d, C_loc = %d, D_loc = %d\n-> active_unit_id_list = %s, active_unit_score = %s\n",
         M, N, K, elemSize, A_loc, B_loc, C_loc, D_loc, 
@@ -75,7 +75,7 @@ void gemm_translate_problem_comm(long long edge_load[64][64], int A_loc, int B_l
 
 void gemm_translate_problem_ops(long long node_ops[32], long long node_mem_ops[32], 
 	int M, int N, int K, int active_unit_num, int* active_unit_id_list, double* active_unit_score){
-#ifdef CLDEBUG
+#ifdef PDEBUG
     fprintf(stderr, "gemm_translate_problem_comm():\n-> M = %d, N = %d, K = %d\n"
         "-> active_unit_id_list = %s, active_unit_score = %s\n",
         M, N, K, printlist<int>(active_unit_id_list, active_unit_num), 

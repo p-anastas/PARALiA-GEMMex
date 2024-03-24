@@ -56,7 +56,7 @@ double latbw_linear_regression(double* y, double* x, int samples, double* ans_b,
 	long long byte_lbw_bp = 0, byte_75pbw_bp = 0, byte_95pbw_bp = 0;
 	for(int i=0; i<samples; i++){
 		double pred_y =  t_lat + x[i]*t_b; 
-#ifdef CLDEBUG
+#ifdef PDEBUG
 		fprintf(stderr, "Point (x = %d):\t y=%lf ms (%lf Gb/s), pred_y = %lf ms (%lf Gb/s) PE = %.1lf\n", 
 		int(x[i]), y[i] * 1000, Gval_per_s(int(x[i]), y[i]), pred_y * 1000, Gval_per_s(int(x[i]), pred_y), (pred_y - y[i])/y[i]*100);
 #endif
@@ -91,8 +91,8 @@ int confidence_interval_5_percent(long int sample_sz, double cpu_timer, double* 
 	boost::math::students_t dist(sample_sz - 1);
 	double Td = boost::math::quantile(boost::math::complement(dist, alphaCI / 2));
 	(*error_margin_ptr) = Td*std_dev/sqrt(sample_sz);
-#ifdef CLDEBUG
-	fprintf(stderr, "\tItter %d:\t mean=%lf, std_dev = %lf, Error margin =%lf\n", sample_sz, (*transfer_t_mean_ptr) , std_dev, (*error_margin_ptr));
+#ifdef PDEBUG
+	fprintf(stderr, "\tItter %ld:\t mean=%lf, std_dev = %lf, Error margin =%lf\n", sample_sz, (*transfer_t_mean_ptr) , std_dev, (*error_margin_ptr));
 #endif
 	if ((*error_margin_ptr)/(*transfer_t_mean_ptr)  * 100 <= 0.5) return 1;
 	else return 0;
@@ -231,7 +231,7 @@ double perform_microbenchmark_2D(void** loc_buffs, void** worker_buffs, int loc,
 		device_timer[idx] = new Event_timer(idx);
 		rev_device_timer[idx] = new Event_timer(idx);
 	}
-#ifdef CLDEBUG
+#ifdef PDEBUG
 	fprintf(stderr,"------------------------------------------------------------------------------------------------------------------------------------------------------\n");
 	fprintf(stderr, "perform_microbenchmark_2D: loc = %d, total_bytes_per_side = %lld MB, lddev = %d, ldhost =%d -> ", loc, (long long) (total_bytes_per_side/1e6), lddev, ldhost);
 #endif
@@ -244,7 +244,7 @@ double perform_microbenchmark_2D(void** loc_buffs, void** worker_buffs, int loc,
 	for (sample_sz = 1; sample_sz < MICRO_MAX_ITER + 1; sample_sz++){
 		for(int active_unit_idx = 0; active_unit_idx < unit_num; active_unit_idx++){
 			int loc_dest = unit_ids[active_unit_idx];
-#ifdef CLDEBUG
+#ifdef PDEBUG
 			//fprintf(stderr, "perform_microbenchmark_2D: Running microbench itter %d\n", sample_sz-1);
 			int memloc = CHLGetPtrLoc(loc_buffs[2*loc_dest]);
 			if(memloc != loc) warning("perform_microbenchmark_2D: Suspicious input buffer %p for loc = %d (%s), pointed to %d (%s) instead\n", 
@@ -314,7 +314,7 @@ double perform_microbenchmark_2D(void** loc_buffs, void** worker_buffs, int loc,
 	if (unit_num && rev_unit_num) (*bid_bw) = Gval_per_s(((long long)dim*dim*elemSize*unit_num) + ((long long)rev_dim*rev_dim*elemSize*rev_unit_num), fmax((*h2d_bw), (*d2h_bw)));
 	if (unit_num) (*h2d_bw) = Gval_per_s(dim*dim*elemSize*unit_num, (*h2d_bw));
 	if (rev_unit_num) (*d2h_bw) = Gval_per_s(rev_dim*rev_dim*elemSize*rev_unit_num, (*d2h_bw));
-#ifdef CLDEBUG
+#ifdef PDEBUG
 	fprintf(stderr, "Ran %d itterations for convergence.\n"
 		"-> dim = %d, unit_ids = %s :\t\t h2d_bw(total) = %.2lf Gb/s\n"
 		"-> rev_dim = %d, rev_unit_ids = %s :\t\t d2h_bw(total) = %.2lf Gb/s\n-> bidirectional_bw(total) = %.2lf Gb/s\n",
