@@ -317,7 +317,7 @@ void Grid_amalgamation::load_nodes(){
         fscanf(fp, "\n");
     }
 
-    fscanf(fp, "\nWORKER_MEMOPS:GB_s:\n");
+    fscanf(fp, "\nWORKER_MEMOPS:\nGB_s:");
     for (int widx = 0; widx < CHL_WORKERS; widx++){
             massert(fscanf(fp, " %d", &(node_mem_Gb_s[widx])), "Grid_amalgamation::load_nodes(): "
             "%s -> Wrong worker grid file layout at node_mem_Gb_s[%d]\n", filename, widx);
