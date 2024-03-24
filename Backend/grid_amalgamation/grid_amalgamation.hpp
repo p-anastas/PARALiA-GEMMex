@@ -89,7 +89,8 @@ typedef class Grid_amalgamation{
 		void print_edge_bws();
 		void print_simu_edge_bws();
 
-		double node_Gops_s[32], node_mem_Gb_s[32], node_watts[32];
+		const char* dtype_name[DTYPE_NUM];
+		double node_Gops_s[DTYPE_NUM][32], node_mem_Gb_s[32], node_watts[32];
 		void load_nodes();
 
 		void print_nodes();
@@ -109,6 +110,7 @@ typedef class Grid_amalgamation{
 		void print_edge_load();
 		void print_problem_edge_bws();
 
+		const char* problem_dtype_name;
 		long long node_ops[32], node_mem_ops[32];
 		void set_node_load(long long node_ops_in[32], long long node_mem_ops_in[32]);
 

@@ -341,8 +341,8 @@ double ATC::autotune_problem(int A_loc_in, int B_loc_in, int C_loc_in, int D_loc
 				printlist<double>(temp_controller->active_unit_score, temp_controller->active_unit_num));
 			fprintf(stderr, "==============================================\n");
 #endif
-
 		}
+		split_homogeneously = 1;
 	}
 	else
 	{

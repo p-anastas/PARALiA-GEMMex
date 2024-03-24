@@ -271,6 +271,9 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #------------------------------------Other options----------------------------------------#
 ###########################################################################################
 
+## The number of current production-ready supported datatypes.
+add_definitions(-DDTYPE_NUM=3)
+
 ## The workspace size that should be assigned to each cublas handle
 ## If set to -1, the default ws will be used instead 
 ## NOTE-FIXME!!! : Currently WS effects the PCIe BW when a cublas kernel is launched. 

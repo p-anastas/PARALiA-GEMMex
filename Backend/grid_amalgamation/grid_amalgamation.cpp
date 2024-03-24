@@ -285,19 +285,51 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
     return 1;
 }
 
-void Grid_amalgamation::load_nodes(){	
-    double worker_Gflops = 19500;
-    double worker_mem_Gbs = 1600;
-    double worker_Watts = 400;
-    int active_unit_num, active_unit_id_list[CHL_WORKERS];
-    for (int idx = 0; idx < CHL_WORKERS; idx++) 
-        node_Gops_s[idx] = node_mem_Gb_s[idx] = node_watts[idx] = 0;
-    translate_binary_to_unit_list(active_nodes_id, &active_unit_num, active_unit_id_list);
-    for (int idx = 0; idx < active_unit_num; idx++){
-        	node_Gops_s[(active_unit_id_list[idx])] = worker_Gflops;
-            node_mem_Gb_s[(active_unit_id_list[idx])] = worker_mem_Gbs;
-            node_watts[(active_unit_id_list[idx])] = worker_Watts;
+/// Load the characteristics of the worker 'nodes' (e.g. devices) 
+/// Also check file layout in case microbenchmarks messed or some file has been edited by hand incorrectly
+void Grid_amalgamation::load_nodes(){
+    sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, CHL_WORKERS);
+    FILE* fp = fopen(filename, "r");
+    if(!fp){
+        error("Grid_amalgamation::load_nodes(): File %s not found\n", filename);
+        return 0;
     }
+    for (int it = 0; it < 100; it++) fscanf(fp, "=");
+    int tmp_worker, tmp_dtype_lines;
+
+    massert(fscanf(fp, "\nCHL_WORKERS = %d\n\n", &tmp_worker), "Grid_amalgamation::load_nodes(): "
+        "%s -> Wrong worker grid file layout at CHL_WORKERS\n", filename);
+    massert(tmp_worker == CHL_WORKERS, "Grid_amalgamation::load_nodes: Loaded different CHL_WORKERS"
+            " = %d (instead of %d) from %s\n", tmp_worker, CHL_WORKERS, filename);
+
+    massert(fscanf(fp, "WORKER_GOPS: %d\n", &tmp_dtype_lines), "Grid_amalgamation::load_nodes(): "
+        "%s -> Wrong worker grid file layout at WORKER_GOPS\n", filename);
+    massert(tmp_dtype_lines == DTYPE_NUM, "Grid_amalgamation::load_nodes: Loaded different DTYPE_NUM"
+            " = %d (instead of %d) from %s\n", tmp_dtype_lines, DTYPE_NUM, filename);
+
+    for (int dtidx = 0; dtidx < DTYPE_NUM; dtidx++){
+        dtype_name[dtidx] = malloc (256*sizeof(char));
+        massert(fscanf(fp, "%s:", &(dtype_name[dtidx])), "Grid_amalgamation::load_nodes(): "
+        "%s -> Wrong worker grid file layout at dtype naming - dtidx = %d\n", filename, dtidx);
+        for (int widx = 0; widx < CHL_WORKERS; widx++)
+            massert(fscanf(fp, " %d", &(node_Gops_s[dtidx][widx])), "Grid_amalgamation::load_nodes(): "
+            "%s -> Wrong worker grid file layout at node_Gops_s[%d][%d]\n", filename, dtidx, widx);
+        fscanf(fp, "\n");
+    }
+
+    fscanf(fp, "\nWORKER_MEMOPS:GB_s:\n");
+    for (int widx = 0; widx < CHL_WORKERS; widx++){
+            massert(fscanf(fp, " %d", &(node_mem_Gb_s[widx])), "Grid_amalgamation::load_nodes(): "
+            "%s -> Wrong worker grid file layout at node_mem_Gb_s[%d]\n", filename, widx);
+    }
+
+    fscanf(fp, "\n\nWORKER_POWER:\nWATTS:");
+    for (int widx = 0; widx < CHL_WORKERS; widx++){
+            massert(fscanf(fp, " %d", &(node_watts[widx])), "Grid_amalgamation::load_nodes(): "
+            "%s -> Wrong worker grid file layout at node_watts[%d]\n", filename, widx);
+    }
+
+    //for (int it = 0; it < 100; it++) fscanf(fp, "=");
 }
 
 void Grid_amalgamation::print_nodes(){
