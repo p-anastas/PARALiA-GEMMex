@@ -48,13 +48,14 @@ int main(const int argc, const char *argv[]) {
 	int active_unit_num = 0, active_unit_id_list[CHL_WORKERS];
 	translate_binary_to_unit_list(case_id, &active_unit_num, active_unit_id_list);
 	int maxDim = std::min(MAX_DIM_TRANS, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, MIN_DIM_TRANS, loc));
-	CHLEnableLinks(loc, active_unit_num);
+	CHLEnableLinks(loc, CHL_WORKERS);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
-		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(1, elemSize, MIN_DIM_TRANS, (dev_id_idx)));
+		int loc_dest = active_unit_id_list[dev_id_idx]; 
+		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(1, elemSize, MIN_DIM_TRANS, loc_dest));
 	}
 	long long ldim = maxDim;
-	fprintf(stderr,"\nbw_bench_broadcast_2D: \nSystem = %s\nmaxDim = %d, ldim = %lld\n", 
-		TESTBED, maxDim, ldim);
+	fprintf(stderr,"\nbw_bench_broadcast_2D: \nSystem = %s\nmaxDim = %d, ldim = %lld src loc = %d, dest = %s\n", 
+		TESTBED, maxDim, ldim, loc, printlist(active_unit_id_list, active_unit_num));
 	fprintf(stderr,"-------------------------------------------------------------------------------"
 		"-----------------------------------------------------------------------\n");
 	double timer = csecond();
@@ -97,18 +98,29 @@ int main(const int argc, const char *argv[]) {
 		int sample_sz;
 		double dev_t[active_unit_num], transfer_t_vals[active_unit_num][MICRO_MAX_ITER] = {0}, 
 			transfer_t_sum[active_unit_num] = {0}, transfer_t_mean[active_unit_num] = {0}, 
-			error_margin[active_unit_num] = {0}, bench_t = csecond();
+			error_margin[active_unit_num] = {0}, bench_t = 0;
 		for (sample_sz = 1; sample_sz < MICRO_MAX_ITER + 1; sample_sz++){
-			for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++)
-			if(loc != active_unit_id_list[dev_id_idx]){
-				int loc_dest = active_unit_id_list[dev_id_idx]; 
-				int queue_id = (loc >= CHL_WORKERS || loc < 0)? loc_dest : loc;
-				CHLSelectDevice(queue_id);
-				device_timer[dev_id_idx]->start_point(queue_list[dev_id_idx]);
-				queue_list[dev_id_idx]->memcpy2DAsync(worker_buffs[dev_id_idx], ldim,
-					loc_buffs[dev_id_idx], ldim, dim, dim, elemSize, loc_dest, loc, 1);
-				device_timer[dev_id_idx]->stop_point(queue_list[dev_id_idx]);
+			timer = csecond();
+			int runctr = 0, case_ran[active_unit_num] = {0};
+			while (runctr < active_unit_num){
+				int dev_id_idx = ((int) rand()) % active_unit_num;
+				if (case_ran[dev_id_idx]) continue;
+				else{
+					if(loc != active_unit_id_list[dev_id_idx]){
+						int loc_dest = active_unit_id_list[dev_id_idx]; 
+						int queue_id = (loc >= CHL_WORKERS || loc < 0)? loc_dest : loc;
+						CHLSelectDevice(queue_id);
+						device_timer[dev_id_idx]->start_point(queue_list[dev_id_idx]);
+						queue_list[dev_id_idx]->memcpy2DAsync(worker_buffs[dev_id_idx], ldim,
+							loc_buffs[dev_id_idx], ldim, dim, dim, elemSize, loc_dest, loc, 1);
+						device_timer[dev_id_idx]->stop_point(queue_list[dev_id_idx]);
+					}
+					case_ran[dev_id_idx] = 1;
+					runctr++;
+				}
 			}
+			for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++)
+			
 			for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++) 
 			if(loc != active_unit_id_list[dev_id_idx])
 				queue_list[dev_id_idx]->sync_barrier();
@@ -127,15 +139,22 @@ int main(const int argc, const char *argv[]) {
 					&transfer_t_mean[dev_id_idx], &error_margin[dev_id_idx])) complete_flag = 0;
 			}
 			if (sample_sz > MICRO_MIN_ITER && complete_flag) break;
+			timer = csecond() - timer;
+			bench_t += timer;
+			if(bench_t > 60){
+				fprintf(stderr, "Microbench itter ran %lf sec ( > 1 min): Stopping sampling at %d/%d\n", 
+				bench_t, sample_sz, MICRO_MAX_ITER);
+				break;
+			}		
 		}
 		double broadcast_bw[active_unit_num] = {0}, sum_bw = 0;
 		for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++) 
 			if(loc != active_unit_id_list[dev_id_idx]) sum_bw += broadcast_bw[dev_id_idx] = Gval_per_s(dim*dim*elemSize, transfer_t_mean[dev_id_idx]);
 			else broadcast_bw[dev_id_idx] = -1; 
 //#ifdef PDEBUG
-		fprintf(stderr, "Ran %d itterations for convergence.\n"
+		fprintf(stderr, "Ran %d itterations for convergence (bench_t = %.3lf s)\n"
 			"-> dim = %d, active_unit_id_list = %s :\n\t BW(link) = %s Gb/s\n\t BW(sum) = %.2lf Gb/s\n",
-			sample_sz, dim, printlist(active_unit_id_list, active_unit_num), printlist(broadcast_bw, active_unit_num), sum_bw);
+			sample_sz, bench_t, dim, printlist(active_unit_id_list, active_unit_num), printlist(broadcast_bw, active_unit_num), sum_bw);
 		fprintf(stderr,"-------------------------------------------------------------------------------"
 			"-----------------------------------------------------------------------\n");
 //#endif

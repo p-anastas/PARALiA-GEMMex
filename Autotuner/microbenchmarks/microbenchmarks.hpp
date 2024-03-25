@@ -12,7 +12,7 @@
 #include <boost/math/distributions/students_t.hpp>
 #define alphaCI 0.05
 #define MICRO_MIN_ITER 10
-#define MICRO_MAX_ITER 100000
+#define MICRO_MAX_ITER 10000
 #else
 #ifndef ITER
 #error

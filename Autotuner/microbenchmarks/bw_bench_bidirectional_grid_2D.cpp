@@ -68,6 +68,8 @@ int main(const int argc, const char *argv[]) {
 	int active_d2h_queues = 0, active_d2h_queue_ids[CHL_WORKERS];
 	translate_binary_to_unit_list(h_rev_case_id, &active_d2h_queues, active_d2h_queue_ids);
 
+	int load_mult_h2d = active_unit_num/active_h2d_queues, load_mult_d2h = active_unit_num/active_d2h_queues;
+
 	int maxDim = std::min(MAX_DIM_TRANS, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, MIN_DIM_TRANS, host_loc));
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++) 
 		CHLEnableLinks(active_unit_id_list[dev_id_idx], active_unit_num);
@@ -134,12 +136,11 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, " complete.\n-------------------------------------------------------------------------------"
 		"-----------------------------------------------------------------------\n");
 	CHLSyncCheckErr();
-	
 	for (int dim = MIN_DIM_TRANS; dim <= maxDim; dim*=2){
 		int sample_sz;
 		double dev_t[active_memloc_num][active_memloc_num], transfer_t_vals[active_memloc_num][active_memloc_num][MICRO_MAX_ITER], 
 			transfer_t_sum[active_memloc_num][active_memloc_num], transfer_t_mean[active_memloc_num][active_memloc_num], 
-			error_margin[active_memloc_num][active_memloc_num], bench_t = csecond();
+			error_margin[active_memloc_num][active_memloc_num], bench_t = 0;
 		for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
 				for(int dev_id_idy = 0 ; dev_id_idy < active_memloc_num; dev_id_idy++){
 					dev_t[dev_id_idx][dev_id_idy] = transfer_t_sum[dev_id_idx][dev_id_idy] = 
@@ -147,18 +148,30 @@ int main(const int argc, const char *argv[]) {
 					for(int idx = 0 ; idx < MICRO_MAX_ITER; idx++) transfer_t_vals[dev_id_idx][dev_id_idy][idx] = 0;
 				}
 		for (sample_sz = 1; sample_sz < MICRO_MAX_ITER + 1; sample_sz++){
-			for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++){
-				for(int dev_id_idy = 0 ; dev_id_idy < active_memloc_num; dev_id_idy++){
+			timer = csecond();
+			int runctr = 0, case_ran[active_memloc_num][active_memloc_num];
+			for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
+				for(int dev_id_idy = 0 ; dev_id_idy < active_memloc_num; dev_id_idy++) case_ran[dev_id_idx][dev_id_idy] = 0;
+			while (runctr < active_memloc_num*active_memloc_num){
+				int dev_id_idx = ((int) rand()) % active_memloc_num;
+				int dev_id_idy = ((int) rand()) % active_memloc_num;
+				if (case_ran[dev_id_idx][dev_id_idy]) continue;
+				else{
 					if(loc_buffs[dev_id_idx][dev_id_idy][0]){
 						int loc_src = active_memloc_id_list[dev_id_idy];
 						int loc_dest = active_memloc_id_list[dev_id_idx]; 
 						int queue_id = (loc_src >= CHL_WORKERS || loc_src < 0)? loc_dest : loc_src;
 						CHLSelectDevice(queue_id);
+						int load_itter = 1; 
+						//if(loc_src == host_loc) load_itter = load_mult_h2d;
+						//else if (loc_dest == host_loc) load_itter = load_mult_d2h;
 						device_timer[dev_id_idx][dev_id_idy]->start_point(queue_list[dev_id_idx][dev_id_idy]);
-						queue_list[dev_id_idx][dev_id_idy]->memcpy2DAsync(loc_buffs[dev_id_idx][dev_id_idy][0], ldim,
+						for(int ld = 0; ld < load_itter; ld++) queue_list[dev_id_idx][dev_id_idy]->memcpy2DAsync(loc_buffs[dev_id_idx][dev_id_idy][0], ldim,
 							loc_buffs[dev_id_idx][dev_id_idy][1], ldim, dim, dim, elemSize, loc_dest, loc_src, 1);
 						device_timer[dev_id_idx][dev_id_idy]->stop_point(queue_list[dev_id_idx][dev_id_idy]);
 					}
+					case_ran[dev_id_idx][dev_id_idy] = 1;
+					runctr++;
 				}
 			}
 			for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
@@ -182,16 +195,31 @@ int main(const int argc, const char *argv[]) {
 						if(!confidence_interval_5_percent(sample_sz, dev_t[dev_id_idx][dev_id_idy], transfer_t_vals[dev_id_idx][dev_id_idy], &transfer_t_sum[dev_id_idx][dev_id_idy], 
 							&transfer_t_mean[dev_id_idx][dev_id_idy], &error_margin[dev_id_idx][dev_id_idy])) complete_flag = 0;
 			if (sample_sz > MICRO_MIN_ITER && complete_flag) break;
+			timer = csecond() - timer;
+			bench_t += timer;
+			if(bench_t > 60){
+				fprintf(stderr, "Microbench itter ran %lf sec ( > 1 min): Stopping sampling at %d/%d\n", 
+				bench_t, sample_sz, MICRO_MAX_ITER);
+				break;
+			}	
 		}
 		double grid_bw[active_memloc_num][active_memloc_num], sum_bw = 0;
 		for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
 			for(int dev_id_idy = 0 ; dev_id_idy < active_memloc_num; dev_id_idy++)
-				if(loc_buffs[dev_id_idx][dev_id_idy][0]) sum_bw += grid_bw[dev_id_idx][dev_id_idy] = Gval_per_s(dim*dim*elemSize, transfer_t_mean[dev_id_idx][dev_id_idy]);
-			else grid_bw[dev_id_idx][dev_id_idy] = -1; 
+				if(loc_buffs[dev_id_idx][dev_id_idy][0]){
+					int loc_src = active_memloc_id_list[dev_id_idy];
+					int loc_dest = active_memloc_id_list[dev_id_idx]; 
+					int load_itter = 1; 
+					//if(loc_src == host_loc) load_itter = load_mult_h2d;
+					//else if (loc_dest == host_loc) load_itter = load_mult_d2h;
+					sum_bw += grid_bw[dev_id_idx][dev_id_idy] = Gval_per_s(load_itter*dim*dim*elemSize, transfer_t_mean[dev_id_idx][dev_id_idy]);
+
+				}
+				else grid_bw[dev_id_idx][dev_id_idy] = -1; 
 //#ifdef PDEBUG
-		fprintf(stderr, "Ran %d itterations for convergence.\n"
+		fprintf(stderr, "Ran %d itterations for convergence (bench_t = %.3lf s)\n"
 			"-> dim = %d, active_memloc_id_list = %s, active_h2d_queue_ids = %s, active_d2h_queue_ids = %s:"
-			"\n\tBW(sum) = %.2lf Gb/s\n",sample_sz, dim, printlist(active_memloc_id_list, active_memloc_num),
+			"\n\tBW(sum) = %.2lf Gb/s\n", sample_sz, bench_t, dim, printlist(active_memloc_id_list, active_memloc_num),
 			printlist(active_h2d_queue_ids, active_h2d_queues), printlist(active_d2h_queue_ids, active_d2h_queues), sum_bw);
 		for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
 			fprintf(stderr, "\tdest(%d) : %s\n",  active_memloc_id_list[dev_id_idx], printlist(grid_bw[dev_id_idx], active_memloc_num));
