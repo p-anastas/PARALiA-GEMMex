@@ -37,10 +37,10 @@ void system_gamalg_init_from_DB(){
                 system_gamalg_ctr++;
             }
             else{ 
-//#ifdef PDEBUG
+#ifdef PDEBUG
                 fprintf(stderr,"system_gamalg_init_from_DB(): Combination (in_queue_id = %d, out_queue_id = %d) not found in DB\n", 
                     queue_configuration_list[config_idx][0], queue_configuration_list[config_idx][1]);
-//#endif
+#endif
                 delete temp_gamalgs[system_gamalg_ctr];
             }
         }
@@ -251,7 +251,12 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
     char *filename = (char *) malloc(1024 * sizeof(char));
     sprintf(filename, "%s/Database/chl_bw_grid_%d_%d.log", DEPLOYDB, case_id, rev_case_id);
     FILE* fp = fopen(filename, "r");
-    if(!fp) error("Grid_amalgamation::load_edges(%d, %d): File %s not found\n", case_id, rev_case_id, filename);
+    if(!fp){
+#ifndef PRODUCTION
+        warning("Grid_amalgamation::load_edges(%d, %d): File %s not found\n", case_id, rev_case_id, filename);
+#endif
+        return 0;
+    }
     for (int it = 0; it < 100; it++) fscanf(fp, "=");
     int tmp_memlocs;
 
