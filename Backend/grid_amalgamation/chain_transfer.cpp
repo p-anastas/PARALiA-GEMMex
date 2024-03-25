@@ -4,8 +4,8 @@
 /// \brief Some CUDA function calls with added error-checking
 ///
 
-#include "smart_wrappers.hpp"
-#include "grid_amalgamation.hpp"
+#include "chl_smart_wrappers.hpp"
+#include "chl_grid_amalgamation.hpp"
 
 #ifdef TTEST /// C programmers hate him
 int fast_trans_ctr = 0;

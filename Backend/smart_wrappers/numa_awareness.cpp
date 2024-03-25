@@ -4,7 +4,7 @@
 /// \brief Some convenient C/C++ utilities for CHL.
 ///
 
-#include "smart_wrappers.hpp"
+#include "chl_smart_wrappers.hpp"
 
 #include <cstdlib>
 #include <cmath>

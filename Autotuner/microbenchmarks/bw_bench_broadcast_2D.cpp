@@ -9,27 +9,41 @@
 
 #include <numa.h>
 
-#include "smart_wrappers.hpp"
-#include "grid_amalgamation.hpp"
+#include "chl_smart_wrappers.hpp"
+#include "chl_grid_amalgamation.hpp"
 #include "microbenchmarks.hpp"
 
 int main(const int argc, const char *argv[]) {
 
-	int ctr = 1, loc = CHL_MEMLOCS -1, elem_size = 8, case_id = CHL_WORKERS;
+	int ctr = 1, loc = CHL_MEMLOCS -1, elem_size = 8, case_id = CHL_WORKERS, log_results = 0;
 
 	switch (argc) {
-	case (3):
+	case (4):
 		loc = atoi(argv[ctr++]);
 		case_id = atoi(argv[ctr++]);
+		log_results = atoi(argv[ctr++]);
 		break;
 	default:
-		error("Incorrect input arguments. Usage: ./correct_run loc case_id:\n"
+		error("Incorrect input arguments. Usage: ./correct_run loc case_id log_results:\n"
 		"loc: the src memory location for the broadcast\n"
-		"case_id: the broadcast destinations\n");
+		"case_id: the broadcast destinations\n"
+		"log_results: If !=0 log results to file \n");
   	}
 
 	if(loc < 0 || loc >= CHL_MEMLOCS) error("bw_bench_broadcast_2D: Unsupported src loc = %d\n", loc);
-
+	char *filename;
+	FILE* fp;
+	if(log_results){
+		filename = (char *) malloc(1024 * sizeof(char));
+    	sprintf(filename, "%s/Database/microbenchmarks/bw_bench_broadcast_2D_%d_%d.log", DEPLOYDB, loc, case_id);
+		fp = fopen(filename, "r");
+    	if(fp){
+			warning("bw_bench_broadcast_2D: filename %s exists, quiting\n", filename);
+			return 1;
+		}
+		fp = fopen(filename, "w+");
+    	if(!fp) error("bw_bench_broadcast_2D: File path %s is wrong or write permission missing\n", filename);
+	}
 	int active_unit_num = 0, active_unit_id_list[CHL_WORKERS];
 	translate_binary_to_unit_list(case_id, &active_unit_num, active_unit_id_list);
 	int maxDim = std::min(MAX_DIM_TRANS, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elem_size, STEP_TRANS, loc));
@@ -115,7 +129,6 @@ int main(const int argc, const char *argv[]) {
 		}
 		double broadcast_bw[active_unit_num] = {0}, sum_bw = 0;
 		for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++) 
-			
 			if(loc != active_unit_id_list[dev_id_idx]) sum_bw += broadcast_bw[dev_id_idx] = Gval_per_s(dim*dim*elemSize, transfer_t_mean[dev_id_idx]);
 			else broadcast_bw[dev_id_idx] = -1; 
 //#ifdef PDEBUG
@@ -125,6 +138,8 @@ int main(const int argc, const char *argv[]) {
 		fprintf(stderr,"-------------------------------------------------------------------------------"
 			"-----------------------------------------------------------------------\n");
 //#endif
+		if(log_results) for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++)
+			fprintf(fp, "%d,%d,%d,%d,%lf\n", active_unit_id_list[dev_id_idx], dim, dim, elemSize, broadcast_bw[dev_id_idx]);
 	}
 	timer = csecond();
 	for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++){
@@ -136,5 +151,6 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, "Free buffers = (%lld x %lld) x %d complete:\t alloc_timer=%lf ms\n", ldim, ldim, elemSize, timer  * 1000);
 	fprintf(stderr,"-------------------------------------------------------------------------------"
 		"-----------------------------------------------------------------------\n");
+	if(log_results) fclose(fp);
   	return 0;
 }

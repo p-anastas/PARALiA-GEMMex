@@ -9,8 +9,8 @@
 
 #include <numa.h>
 
-#include "smart_wrappers.hpp"
-#include "grid_amalgamation.hpp"
+#include "chl_smart_wrappers.hpp"
+#include "chl_grid_amalgamation.hpp"
 #include "microbenchmarks.hpp"
 
 int main(const int argc, const char *argv[]) {

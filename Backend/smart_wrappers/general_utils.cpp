@@ -11,7 +11,7 @@
 #include <omp.h>
 #include <math.h>
 
-#include "smart_wrappers.hpp"
+#include "chl_smart_wrappers.hpp"
 
 double csecond(void) {
   struct timespec tms;

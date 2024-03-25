@@ -28,49 +28,8 @@ add_library(chl_grid_amalgamation SHARED
 
 target_link_libraries(chl_grid_amalgamation ${INTERNAL_LINK_LIB} chl_smart_wrappers)
 
-configure_file(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/smart_wrappers.hpp ${PARALIA_INSTALL_INC}/chl_smart_wrappers.hpp COPYONLY)
-configure_file(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation/grid_amalgamation.hpp ${PARALIA_INSTALL_INC}/chl_grid_amalgamation.hpp COPYONLY)
+configure_file(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/chl_smart_wrappers.hpp ${PARALIA_INSTALL_INC}/chl_smart_wrappers.hpp COPYONLY)
+configure_file(${PARALIA_BACKEND_SOURCE_DIR}/grid_amalgamation/chl_grid_amalgamation.hpp ${PARALIA_INSTALL_INC}/chl_grid_amalgamation.hpp COPYONLY)
 configure_file(${PARALIA_BACKEND_SOURCE_DIR}/smart_wrappers/${BACKEND}/backend_wrappers.hpp ${PARALIA_INSTALL_INC}/backend_wrappers.hpp COPYONLY)
 
-###########################################################################################
-#------------------------------------microbenchmarks--------------------------------------#
-###########################################################################################
-
-## TODO: Choose between ->
-## i) Automatic micro-benchmarking (Population checked within 95% CI) using boost (recommended if boost available).
-message("PARALIA - Backend - Database Builder - Using Boost for microbenchmark statistics")
-add_definitions(-DAUTO_BENCH_USE_BOOST)
-set(BOOSTO_PREFIX $ENV{PARALIA_BOOST_PREFIX})
-set (BOOSTO_INCLUDE_DIRS ${BOOSTO_PREFIX}/include)
-include_directories(${BOOSTO_INCLUDE_DIRS})
-message("PARALIA - Backend - Database Builder - Included (Boost) DIR: " ${BOOSTO_INCLUDE_DIRS})
-## OR
-## ii) Benchmark with a predifined itteration number for each problem size.
-#add_definitions(-DITER=100)
-#message("Database Builder - Performing predefined microbenchmark itterations")
-
-include_directories(${PARALIA_INSTALL_INC})
-message( "PARALIA - Backend - Database Builder - Included DIR: " ${PARALIA_INSTALL_INC} )
-
-include_directories(${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks)
-message( "PARALIA - Backend - Included microbenchmarks DIR: " ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks)
-
-set(NVEMAPI_PREFIX "${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure")
-set (NVEMAPI_INCLUDE_DIRS ${NVEMAPI_PREFIX}/include) # -L${CUDA_LD}
-include_directories(${NVEMAPI_INCLUDE_DIRS} )
-message( "PARALIA - Backend - NVEMAPI_INCLUDE_DIRS: " ${NVEMAPI_INCLUDE_DIRS} )
 message( "------------------------------------------------------------------------------------------------")
-ADD_SUBDIRECTORY (${PARALIA_BACKEND_SOURCE_DIR}/nvidia-energy-measure)
-
-## Microbenchmarks for DB
-add_executable (bw_bench_broadcast_2D ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/bw_bench_broadcast_2D.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-
-target_link_libraries(bw_bench_broadcast_2D ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
-
-## Testers 
-add_executable (CHLTestGamalgGEMM ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_test_gamalg_gemm.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (CHLTestMemlocs ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/chl_test_memloc_numbering.cpp ${PARALIA_BACKEND_SOURCE_DIR}/microbenchmarks/helpers.cpp)
-
-target_link_libraries(CHLTestGamalgGEMM ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
-target_link_libraries(CHLTestMemlocs ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
-

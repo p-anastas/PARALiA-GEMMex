@@ -4,7 +4,7 @@
 /// \brief Some CUDA function calls with added error-checking
 ///
 
-#include "smart_wrappers.hpp"
+#include "chl_smart_wrappers.hpp"
 #include <omp.h>
 
 template<typename VALUETYPE>

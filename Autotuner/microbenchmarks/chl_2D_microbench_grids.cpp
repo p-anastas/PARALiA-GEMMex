@@ -9,8 +9,8 @@
 
 #include <numa.h>
 
-#include "smart_wrappers.hpp"
-#include "grid_amalgamation.hpp"
+#include "chl_smart_wrappers.hpp"
+#include "chl_grid_amalgamation.hpp"
 #include "microbenchmarks.hpp"
 
 void log_results(char* filename, int numDev, int* case_id_list, double case_id_bw_list[][3], int &case_id_lists_len){

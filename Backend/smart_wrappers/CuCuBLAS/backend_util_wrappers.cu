@@ -10,7 +10,7 @@
 #include <curand.h>
 #include <cuda.h>
 
-#include "smart_wrappers.hpp"
+#include "chl_smart_wrappers.hpp"
 #include "backend_wrappers.hpp"
 
 int CHLGetDevice(){

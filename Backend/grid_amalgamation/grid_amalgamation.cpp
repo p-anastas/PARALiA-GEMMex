@@ -1,7 +1,7 @@
 #include <cmath>
 
-#include "smart_wrappers.hpp"
-#include "grid_amalgamation.hpp"
+#include "chl_smart_wrappers.hpp"
+#include "chl_grid_amalgamation.hpp"
 
 Gamalg_p* system_gamalg = NULL;
 int system_gamalg_ctr = 0; 

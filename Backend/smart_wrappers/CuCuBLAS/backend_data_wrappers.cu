@@ -14,7 +14,7 @@
 #include <numa.h>
 #include <numaif.h>
 
-#include "smart_wrappers.hpp"
+#include "chl_smart_wrappers.hpp"
 
 int CHL_MEMLOCS = CHL_WORKERS + 2; 
 //long PAGE_sz = sysconf (_SC_PAGESIZE);

@@ -7,7 +7,7 @@
 #include <cuda.h>
 #include <cublas_v2.h>
 
-#include "smart_wrappers.hpp"
+#include "chl_smart_wrappers.hpp"
 #include "backend_wrappers.hpp"
 
 long int Event_num_loc = 0;
