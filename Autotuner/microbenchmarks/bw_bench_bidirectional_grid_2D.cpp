@@ -198,8 +198,9 @@ int main(const int argc, const char *argv[]) {
 		fprintf(stderr,"-------------------------------------------------------------------------------"
 			"-----------------------------------------------------------------------\n");
 //#endif
-		//if(log_results) for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++)
-		//	fprintf(fp, "%d,%d,%d,%d,%lf\n", active_unit_id_list[dev_id_idx], dim, dim, elemSize, broadcast_bw[dev_id_idx]);
+		if(log_results) for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
+			for(int dev_id_idy = 0 ; dev_id_idy < active_memloc_num; dev_id_idy++)
+			fprintf(fp, "%d,%d, %d,%d,%d,%lf\n", active_memloc_id_list[dev_id_idx], active_memloc_id_list[dev_id_idy],  dim, dim, elemSize, grid_bw[dev_id_idx][dev_id_idy]);
 	}
 	timer = csecond();
 	for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
