@@ -24,7 +24,7 @@ int main(const int argc, const char *argv[]) {
 		use_square_tile = atoi(argv[ctr++]);
 		break;
 	default:
-		error("Incorrect input arguments. Usage: ./correct_run N loc use_square_tile:\n"
+		error("Incorrect input arguments. Usage: ./correct_run N use_square_tile:\n"
 		"N : A test buff dimension\n"
 		"use_square_tile: if 0, allocate 1D vector of size N, else a NxN 2D matrix\n");
   	}

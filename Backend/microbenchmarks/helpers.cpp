@@ -91,7 +91,7 @@ int confidence_interval_5_percent(long int sample_sz, double cpu_timer, double* 
 	boost::math::students_t dist(sample_sz - 1);
 	double Td = boost::math::quantile(boost::math::complement(dist, alphaCI / 2));
 	(*error_margin_ptr) = Td*std_dev/sqrt(sample_sz);
-#ifdef PDEBUG
+#ifdef DPDEBUG
 	fprintf(stderr, "\tItter %ld:\t mean=%lf, std_dev = %lf, Error margin =%lf\n", sample_sz, (*transfer_t_mean_ptr) , std_dev, (*error_margin_ptr));
 #endif
 	if ((*error_margin_ptr)/(*transfer_t_mean_ptr)  * 100 <= 0.5) return 1;
