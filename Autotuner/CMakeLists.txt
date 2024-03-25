@@ -52,8 +52,10 @@ ADD_SUBDIRECTORY (${NVEMAPI_PREFIX})
 
 ## Microbenchmarks for DB
 add_executable (bw_bench_broadcast_2D ${AUTOTUNE_DIR}/microbenchmarks/bw_bench_broadcast_2D.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (bw_bench_bidirectional_grid_2D ${AUTOTUNE_DIR}/microbenchmarks/bw_bench_bidirectional_grid_2D.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
 
 target_link_libraries(bw_bench_broadcast_2D ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
+target_link_libraries(bw_bench_bidirectional_grid_2D ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 
 ## Testers 
 add_executable (CHLTestGamalgGEMM ${AUTOTUNE_DIR}/microbenchmarks/chl_test_gamalg_gemm.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)

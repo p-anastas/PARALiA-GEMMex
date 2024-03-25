@@ -15,7 +15,7 @@
 
 int main(const int argc, const char *argv[]) {
 
-	int ctr = 1, loc = CHL_MEMLOCS -1, elem_size = 8, case_id = CHL_WORKERS, log_results = 0;
+	int ctr = 1, loc = CHL_MEMLOCS -1, elemSize = 8, case_id = CHL_WORKERS, log_results = 0;
 
 	switch (argc) {
 	case (4):
@@ -30,7 +30,8 @@ int main(const int argc, const char *argv[]) {
 		"log_results: If !=0 log results to file \n");
   	}
 
-	if(loc < 0 || loc >= CHL_MEMLOCS) error("bw_bench_broadcast_2D: Unsupported src loc = %d\n", loc);
+	if(loc < 0 || loc >= CHL_MEMLOCS) 
+		error("bw_bench_broadcast_2D: Unsupported src loc = %d\n", loc);
 	char *filename;
 	FILE* fp;
 	if(log_results){
@@ -46,10 +47,10 @@ int main(const int argc, const char *argv[]) {
 	}
 	int active_unit_num = 0, active_unit_id_list[CHL_WORKERS];
 	translate_binary_to_unit_list(case_id, &active_unit_num, active_unit_id_list);
-	int maxDim = std::min(MAX_DIM_TRANS, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elem_size, STEP_TRANS, loc));
+	int maxDim = std::min(MAX_DIM_TRANS, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, MIN_DIM_TRANS, loc));
 	CHLEnableLinks(loc, active_unit_num);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
-		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(1, elem_size, STEP_TRANS, (dev_id_idx)));
+		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(1, elemSize, MIN_DIM_TRANS, (dev_id_idx)));
 	}
 	long long ldim = maxDim;
 	fprintf(stderr,"\nbw_bench_broadcast_2D: \nSystem = %s\nmaxDim = %d, ldim = %lld\n", 
@@ -79,7 +80,7 @@ int main(const int argc, const char *argv[]) {
 
 	fprintf(stderr, "Warming up");
 	/// Warmup.
-	for (int it = 0; it < 3; it++){
+	for (int it = 0; it < 10; it++){
 		fprintf(stderr, ".");
 		for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
 			int loc_dest = active_unit_id_list[dev_id_idx]; 
@@ -92,7 +93,7 @@ int main(const int argc, const char *argv[]) {
 		"-----------------------------------------------------------------------\n");
 	CHLSyncCheckErr();
 	
-	for (int dim = 256; dim <= maxDim; dim*=2){
+	for (int dim = MIN_DIM_TRANS; dim <= maxDim; dim*=2){
 		int sample_sz;
 		double dev_t[active_unit_num], transfer_t_vals[active_unit_num][MICRO_MAX_ITER] = {0}, 
 			transfer_t_sum[active_unit_num] = {0}, transfer_t_mean[active_unit_num] = {0}, 
