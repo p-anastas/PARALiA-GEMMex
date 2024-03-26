@@ -149,9 +149,9 @@ int main(const int argc, const char *argv[]) {
 			if (sample_sz > MICRO_MIN_ITER && complete_flag) break;
 			timer = csecond() - timer;
 			bench_t += timer;
-			if(bench_t > 60){
-				fprintf(stderr, "Microbench itter ran %lf sec ( > 1 min): Stopping sampling at %d/%d\n", 
-				bench_t, sample_sz, MICRO_MAX_ITER);
+			if(bench_t > MAX_MICROBENCH_SEC){
+				fprintf(stderr, "Microbench itter ran %lf sec ( > %d sec): Stopping sampling at %d/%d\n", 
+				bench_t, MAX_MICROBENCH_SEC, sample_sz, MICRO_MAX_ITER);
 				break;
 			}		
 		}
@@ -159,7 +159,17 @@ int main(const int argc, const char *argv[]) {
 		for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++) 
 			if(loc_src != active_unit_id_list[dev_id_idx]) sum_bw += scatter_bw[dev_id_idx] = Gval_per_s(dim*dim*elemSize, transfer_t_mean[dev_id_idx]);
 			else scatter_bw[dev_id_idx] = -1;
-		
+#ifdef NORMALIZE_MALLOC_HOST_THROUGHPUT
+		if(loc_src == CHL_WORKERS){
+			double avg_bw_host = 0;
+			for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++)
+				avg_bw_host += scatter_bw[dev_id_idx];
+			avg_bw_host/=active_unit_num;
+			for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++)
+				scatter_bw[dev_id_idx] = avg_bw_host;
+		}
+#endif
+
 //#ifdef PDEBUG
 		fprintf(stderr, "Ran %d itterations for convergence (bench_t = %.3lf s)\n"
 			"-> dim = %d (chunk_dim_num = %d), active_unit_id_list = %s :\n\t BW(link) = %s Gb/s\n\t BW(sum) = %.2lf Gb/s\n",

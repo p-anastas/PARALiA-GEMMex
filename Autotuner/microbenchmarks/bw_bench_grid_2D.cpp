@@ -204,11 +204,11 @@ int main(const int argc, const char *argv[]) {
 			if (sample_sz > MICRO_MIN_ITER && complete_flag) break;
 			timer = csecond() - timer;
 			bench_t += timer;
-			if(bench_t > 60){
-				fprintf(stderr, "Microbench itter ran %lf sec ( > 1 min): Stopping sampling at %d/%d\n", 
-				bench_t, sample_sz, MICRO_MAX_ITER);
+			if(bench_t > MAX_MICROBENCH_SEC){
+				fprintf(stderr, "Microbench itter ran %lf sec ( > %d sec): Stopping sampling at %d/%d\n", 
+				bench_t, MAX_MICROBENCH_SEC, sample_sz, MICRO_MAX_ITER);
 				break;
-			}	
+			}
 		}
 		double grid_bw[active_memloc_num][active_memloc_num], sum_bw = 0;
 		for(int dev_id_idx = 0; dev_id_idx < active_memloc_num; dev_id_idx++)
