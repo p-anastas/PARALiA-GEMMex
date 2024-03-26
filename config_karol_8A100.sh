@@ -2,7 +2,13 @@
 
 ## This is the configuration template file for CHANGELINK compilation and deployment in a new system.
 ## The intended use is to create one such config for each different deplyed system (e.g. config_sys1.sh, config_sys2.sh etc) in order to allow easy deployment.
-
+#------------------------------------------------------Required Modules/bindings----------------------------------------------------#
+module load Boost/1.81.0-GCC-12.2.0
+module load OpenBLAS/0.3.21-GCC-12.2.0
+module load Python/3.10.8-GCCcore-12.2.0
+module load CMake/3.24.3-GCCcore-12.2.0
+source ~/.bashrc
+export OMP_PROC_BIND=spread
 #--------------------------------------------------------------Basic----------------------------------------------------------------#
 
 # CHECKME: A desired name for the testbed to be used for your build-dirs and logfiles.

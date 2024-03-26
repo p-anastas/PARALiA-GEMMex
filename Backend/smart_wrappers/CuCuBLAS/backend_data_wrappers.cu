@@ -295,7 +295,7 @@ void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc)
 template void CHLVecInit<double>(double *vec, long long length, int seed, int loc);
 template void CHLVecInit<float>(float *vec, long long length, int seed, int loc);
 
-long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc){
+long int CHLGetMaxDimSqAsset2D(int Asset2DNum, int dsize, long int step, int loc){
 	long long int free_mem, max_mem;
 	if (loc >= 0 && loc < CHL_WORKERS){
 		int prev_dev = CHLGetDevice();
@@ -309,7 +309,7 @@ long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int
 	return maxDim;
 }
 
-long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, int loc){
+long int CHLGetMaxDimAsset1D(int Asset1DNum, int dsize, long int step, int loc){
 	long long int free_mem, max_mem;
 	if (loc >= 0 && loc < CHL_WORKERS){
 		int prev_dev = CHLGetDevice();

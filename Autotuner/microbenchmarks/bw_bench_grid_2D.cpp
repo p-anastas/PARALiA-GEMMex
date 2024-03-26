@@ -68,11 +68,10 @@ int main(const int argc, const char *argv[]) {
 	int active_d2h_queues = 0, active_d2h_queue_ids[CHL_WORKERS];
 	translate_binary_to_unit_list(h_rev_case_id, &active_d2h_queues, active_d2h_queue_ids);
 
-	int load_mult_h2d = active_unit_num/active_h2d_queues, load_mult_d2h = active_unit_num/active_d2h_queues;
-
+	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS; dev_id_idx++) 
+		CHLEnableLinks(dev_id_idx, CHL_WORKERS);
+	
 	int maxDim = CHLGetMaxDimSqAsset2D(2*active_unit_num, elemSize, TILE_MAX, host_loc);
-	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++) 
-		CHLEnableLinks(active_unit_id_list[dev_id_idx], active_unit_num);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
 		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(2*active_unit_num, elemSize, TILE_MAX, active_unit_id_list[dev_id_idx]));
 	}
@@ -165,9 +164,6 @@ int main(const int argc, const char *argv[]) {
 						int loc_dest = active_memloc_id_list[dev_id_idx]; 
 						int queue_id = (loc_src >= CHL_WORKERS || loc_src < 0)? loc_dest : loc_src;
 						CHLSelectDevice(queue_id);
-						int load_itter = 1; 
-						//if(loc_src == host_loc) load_itter = load_mult_h2d;
-						//else if (loc_dest == host_loc) load_itter = load_mult_d2h;
 						device_timer[dev_id_idx][dev_id_idy]->start_point(queue_list[dev_id_idx][dev_id_idy]);
 						for(long d1 = 0; d1< chunk_dim_num; d1++)
 							for(long d2 = 0; d2< chunk_dim_num; d2++){
@@ -216,10 +212,7 @@ int main(const int argc, const char *argv[]) {
 				if(loc_buffs[dev_id_idx][dev_id_idy][0]){
 					int loc_src = active_memloc_id_list[dev_id_idy];
 					int loc_dest = active_memloc_id_list[dev_id_idx]; 
-					int load_itter = 1; 
-					//if(loc_src == host_loc) load_itter = load_mult_h2d;
-					//else if (loc_dest == host_loc) load_itter = load_mult_d2h;
-					sum_bw += grid_bw[dev_id_idx][dev_id_idy] = Gval_per_s(load_itter*dim*dim*elemSize, transfer_t_mean[dev_id_idx][dev_id_idy]);
+					sum_bw += grid_bw[dev_id_idx][dev_id_idy] = Gval_per_s(dim*dim*elemSize, transfer_t_mean[dev_id_idx][dev_id_idy]);
 
 				}
 				else grid_bw[dev_id_idx][dev_id_idy] = -1; 

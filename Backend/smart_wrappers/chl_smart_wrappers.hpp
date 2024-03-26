@@ -281,10 +281,10 @@ template<typename VALUETYPE>
 extern void CHLTouche(VALUETYPE *vec, long long vec_length, int vec_elemSize);
 
 // Return the max dim size (which is a multiple of 'step') for 'Asset2DNum' square assets on 'loc'
-long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc);
+long int CHLGetMaxDimSqAsset2D(int Asset2DNum, int dsize, long int step, int loc);
 
 // Return the max dim size (which is a multiple of 'step') for 'Asset1DNum' assets on 'loc'
-long int CHLGetMaxDimAsset1D(short Asset1DNum, short dsize, long int step, int loc);
+long int CHLGetMaxDimAsset1D(int Asset1DNum, int dsize, long int step, int loc);
 
 /*****************************************************/
 /// Timers for benchmarks

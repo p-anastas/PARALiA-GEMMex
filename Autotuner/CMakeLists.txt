@@ -34,10 +34,12 @@ message("Autotuner - microbenchmarks - Included (Boost) DIR: " ${BOOSTO_INCLUDE_
 include_directories(${PARALIA_INSTALL_INC})
 message( "Autotuner - microbenchmarks - Included DIR: " ${PARALIA_INSTALL_INC} )
 
-include_directories(${AUTOTUNE_DIR}/microbenchmarks)
-message( "Autotuner - microbenchmarks - Included microbenchmarks DIR: " ${AUTOTUNE_DIR}/microbenchmarks)
+set (PARALIA_MICROBENCH ${AUTOTUNE_DIR}/microbenchmarks)
+set (PARALIA_MICROBENCH ${PARALIA_MICROBENCH} PARENT_SCOPE)
+include_directories(${PARALIA_MICROBENCH})
+message( "Autotuner - microbenchmarks - Included microbenchmarks DIR: " ${PARALIA_MICROBENCH})
 
-set(NVEMAPI_PREFIX "${AUTOTUNE_DIR}/microbenchmarks/nvidia-energy-measure")
+set(NVEMAPI_PREFIX ${PARALIA_MICROBENCH}/nvidia-energy-measure)
 set (NVEMAPI_INCLUDE_DIRS ${NVEMAPI_PREFIX}/include) # -L${CUDA_LD}
 include_directories(${NVEMAPI_INCLUDE_DIRS} )
 message( "Autotuner - microbenchmarks - NVEMAPI_INCLUDE_DIRS: " ${NVEMAPI_INCLUDE_DIRS} )
@@ -45,17 +47,17 @@ message( "----------------------------------------------------------------------
 ADD_SUBDIRECTORY (${NVEMAPI_PREFIX})
 
 ## Microbenchmarks for DB
-add_executable (bw_bench_scatter_2D ${AUTOTUNE_DIR}/microbenchmarks/bw_bench_scatter_2D.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (bw_bench_gather_2D ${AUTOTUNE_DIR}/microbenchmarks/bw_bench_gather_2D.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (bw_bench_grid_2D ${AUTOTUNE_DIR}/microbenchmarks/bw_bench_grid_2D.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (bw_bench_scatter_2D ${PARALIA_MICROBENCH}/bw_bench_scatter_2D.cpp ${PARALIA_MICROBENCH}/helpers.cpp)
+add_executable (bw_bench_gather_2D ${PARALIA_MICROBENCH}/bw_bench_gather_2D.cpp ${PARALIA_MICROBENCH}/helpers.cpp)
+add_executable (bw_bench_grid_2D ${PARALIA_MICROBENCH}/bw_bench_grid_2D.cpp ${PARALIA_MICROBENCH}/helpers.cpp)
 
 target_link_libraries(bw_bench_scatter_2D ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 target_link_libraries(bw_bench_gather_2D ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 target_link_libraries(bw_bench_grid_2D ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 
 ## Testers 
-add_executable (CHLTestGamalgGEMM ${AUTOTUNE_DIR}/microbenchmarks/chl_test_gamalg_gemm.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
-add_executable (CHLTestMemlocs ${AUTOTUNE_DIR}/microbenchmarks/chl_test_memloc_numbering.cpp ${AUTOTUNE_DIR}/microbenchmarks/helpers.cpp)
+add_executable (CHLTestGamalgGEMM ${PARALIA_MICROBENCH}/chl_test_gamalg_gemm.cpp ${PARALIA_MICROBENCH}/helpers.cpp)
+add_executable (CHLTestMemlocs ${PARALIA_MICROBENCH}/chl_test_memloc_numbering.cpp ${PARALIA_MICROBENCH}/helpers.cpp)
 
 target_link_libraries(CHLTestGamalgGEMM ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)
 target_link_libraries(CHLTestMemlocs ${INTERNAL_LINK_LIB} chl_grid_amalgamation nvidia_powa)

@@ -47,14 +47,17 @@ int main(const int argc, const char *argv[]) {
 	}
 	int active_unit_num = 0, active_unit_id_list[CHL_WORKERS];
 	translate_binary_to_unit_list(src_locs_binary, &active_unit_num, active_unit_id_list);
+
+	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS; dev_id_idx++) 
+		CHLEnableLinks(dev_id_idx, CHL_WORKERS);
+
 	int maxDim = CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, TILE_MAX, loc_dest);
-	CHLEnableLinks(loc_dest, CHL_WORKERS);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
 		int loc_src = active_unit_id_list[dev_id_idx]; 
 		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(4, elemSize, TILE_MAX, loc_src));
 	}
 	long long ldim = maxDim;
-	fprintf(stderr,"\nbw_bench_gather_2D: \nSystem = %s\nmaxDim = %d, ldim = %lld loc_dest = %d, dest = %s\n", 
+	fprintf(stderr,"\nbw_bench_gather_2D: \nSystem = %s\nmaxDim = %d, ldim = %lld loc_dest = %d, src = %s\n", 
 		TESTBED, maxDim, ldim, loc_dest, printlist(active_unit_id_list, active_unit_num));
 	fprintf(stderr,"-------------------------------------------------------------------------------"
 		"-----------------------------------------------------------------------\n");
@@ -65,7 +68,7 @@ int main(const int argc, const char *argv[]) {
 		if(loc_src != loc_dest){
 			loc_buffs[dev_id_idx] = CHLMalloc(ldim*ldim*elemSize, loc_dest, 1);
 			if (loc_dest == CHL_WORKERS) CHLTouche((double*) loc_buffs[dev_id_idx], ldim*ldim, elemSize);
-			worker_buffs[dev_id_idx] = CHLMalloc(ldim*ldim*elemSize, loc_dest, 1);
+			worker_buffs[dev_id_idx] = CHLMalloc(ldim*ldim*elemSize, loc_src, 1);
 		}
 		else loc_buffs[dev_id_idx] = worker_buffs[dev_id_idx] = NULL;
 	}
@@ -78,7 +81,7 @@ int main(const int argc, const char *argv[]) {
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
 		//printf("dev_id = %d, dev_id_idx = %d, dev_id_idy = %d, CHL_WORKERS = %d\n", dev_id, dev_id_idx, dev_id_idy, CHL_WORKERS);
 		int loc_src = active_unit_id_list[dev_id_idx]; 
-		int queue_id = (loc_dest >= CHL_WORKERS || loc_dest < 0)? loc_dest : loc_dest;
+		int queue_id = (loc_dest >= CHL_WORKERS || loc_dest < 0)? loc_src : loc_dest;
 		queue_list[dev_id_idx] = new CommandQueue(queue_id, COMMUNICATION);
 		device_timer[dev_id_idx] = new Event_timer(queue_id);
 	}
@@ -89,8 +92,8 @@ int main(const int argc, const char *argv[]) {
 		fprintf(stderr, ".");
 		for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
 			int loc_src = active_unit_id_list[dev_id_idx]; 
-			if(loc_src != loc_dest) queue_list[dev_id_idx]->memcpy2DAsync(worker_buffs[dev_id_idx], ldim,
-				loc_buffs[dev_id_idx], ldim, TILE_MAX, TILE_MAX, elemSize, loc_dest, loc_src, 1);
+			if(loc_src != loc_dest) queue_list[dev_id_idx]->memcpy2DAsync(loc_buffs[dev_id_idx], ldim,
+				worker_buffs[dev_id_idx], ldim, TILE_MAX, TILE_MAX, elemSize, loc_dest, loc_src, 1);
 			queue_list[dev_id_idx]->sync_barrier();
 		}
 	}
@@ -112,14 +115,14 @@ int main(const int argc, const char *argv[]) {
 				else{
 					if(loc_dest != active_unit_id_list[dev_id_idx]){
 						int loc_src = active_unit_id_list[dev_id_idx]; 
-						int queue_id = (loc_dest >= CHL_WORKERS || loc_dest < 0)? loc_dest : loc_dest;
+		int queue_id = (loc_src >= CHL_WORKERS || loc_src < 0)? loc_dest : loc_src;
 						CHLSelectDevice(queue_id);
 						device_timer[dev_id_idx]->start_point(queue_list[dev_id_idx]);
 						for(long d1 = 0; d1< chunk_dim_num; d1++)
 							for(long d2 = 0; d2< chunk_dim_num; d2++){
 								long addroffset = d1*dim + d2*dim*ldim;
-								queue_list[dev_id_idx]->memcpy2DAsync(worker_buffs[dev_id_idx] + addroffset, ldim,
-								loc_buffs[dev_id_idx] + addroffset, ldim, dim, dim, elemSize, loc_dest, loc_src, 1);
+								queue_list[dev_id_idx]->memcpy2DAsync(loc_buffs[dev_id_idx] + addroffset, ldim,
+								worker_buffs[dev_id_idx] + addroffset, ldim, dim, dim, elemSize, loc_dest, loc_src, 1);
 							}
 						device_timer[dev_id_idx]->stop_point(queue_list[dev_id_idx]);
 					}
@@ -135,7 +138,7 @@ int main(const int argc, const char *argv[]) {
 			for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++) 
 			if(loc_dest != active_unit_id_list[dev_id_idx]){
 				int loc_src = active_unit_id_list[dev_id_idx]; 
-				int queue_id = (loc_dest >= CHL_WORKERS || loc_dest < 0)? loc_dest : loc_dest;
+		int queue_id = (loc_src >= CHL_WORKERS || loc_src < 0)? loc_dest : loc_src;
 				CHLSelectDevice(queue_id);
 				dev_t[dev_id_idx] = device_timer[dev_id_idx]->sync_get_time()/1000/(chunk_dim_num*chunk_dim_num);
 			}
@@ -184,7 +187,7 @@ int main(const int argc, const char *argv[]) {
 	for(int dev_id_idx = 0; dev_id_idx < active_unit_num; dev_id_idx++){
 			int loc_src = active_unit_id_list[dev_id_idx];
   			CHLFree(loc_buffs[dev_id_idx], ldim*ldim*elemSize, loc_dest);
-  			CHLFree(worker_buffs[dev_id_idx], ldim*ldim*elemSize, loc_dest);
+  			CHLFree(worker_buffs[dev_id_idx], ldim*ldim*elemSize, loc_src);
 	}
 	timer = csecond() - timer;
 	fprintf(stderr, "Free buffers = (%lld x %lld) x %d complete:\t alloc_timer=%lf ms\n", ldim, ldim, elemSize, timer  * 1000);

@@ -391,5 +391,6 @@ ADD_SUBDIRECTORY (Autotuner)
 ADD_SUBDIRECTORY (Library)
 ADD_SUBDIRECTORY (Benchmarking)
 
+configure_file(${PARALIA_MICROBENCH}/Run_microbenchmarks.in ${PARALIA_INSTALL}/Run_microbenchmarks.sh @ONLY)
 configure_file(${BENCH_DIR_BASE}/Targeted_performance_evaluation.in ${PARALIA_INSTALL}/Targeted_performance_evaluation.sh @ONLY)
 

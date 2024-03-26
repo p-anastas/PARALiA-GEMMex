@@ -47,8 +47,11 @@ int main(const int argc, const char *argv[]) {
 	}
 	int active_unit_num = 0, active_unit_id_list[CHL_WORKERS];
 	translate_binary_to_unit_list(dest_locs_binary, &active_unit_num, active_unit_id_list);
+
+	for(int dev_id_idx = 0 ; dev_id_idx < CHL_WORKERS; dev_id_idx++) 
+		CHLEnableLinks(dev_id_idx, CHL_WORKERS);
+
 	int maxDim = CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, TILE_MAX, loc_src);
-	CHLEnableLinks(loc_src, CHL_WORKERS);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
 		int loc_dest = active_unit_id_list[dev_id_idx]; 
 		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(4, elemSize, TILE_MAX, loc_dest));
