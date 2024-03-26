@@ -204,7 +204,7 @@ class Event
 /*****************************************************/
 /// Generalised data management functions
 
-//extern long PAGE_sz;
+extern long PAGE_sz;
 
 char* mem_name(int idx);
 
@@ -275,6 +275,10 @@ extern void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc);
 // Helper for Parallel OpenMP vector initialization
 template<typename VALUETYPE>
 extern void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed);
+
+// Touches vec with openmp to allocate pages accordingly
+template<typename VALUETYPE>
+extern void CHLTouche(VALUETYPE *vec, long long vec_length, int vec_elemSize);
 
 // Return the max dim size (which is a multiple of 'step') for 'Asset2DNum' square assets on 'loc'
 long int CHLGetMaxDimSqAsset2D(short Asset2DNum, short dsize, long int step, int loc);

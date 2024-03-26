@@ -70,11 +70,11 @@ int main(const int argc, const char *argv[]) {
 
 	int load_mult_h2d = active_unit_num/active_h2d_queues, load_mult_d2h = active_unit_num/active_d2h_queues;
 
-	int maxDim = std::min(MAX_DIM_TRANS, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, MIN_DIM_TRANS, host_loc));
+	int maxDim = CHLGetMaxDimSqAsset2D(2*active_unit_num, elemSize, TILE_MAX, host_loc);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++) 
 		CHLEnableLinks(active_unit_id_list[dev_id_idx], active_unit_num);
 	for(int dev_id_idx = 0 ; dev_id_idx < active_unit_num; dev_id_idx++){
-		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(active_unit_num, elemSize, MIN_DIM_TRANS, (dev_id_idx)));
+		maxDim = std::min(maxDim, (int) CHLGetMaxDimSqAsset2D(2*active_unit_num, elemSize, TILE_MAX, active_unit_id_list[dev_id_idx]));
 	}
 	long long ldim = maxDim;
 	fprintf(stderr,"\nbw_bench_bidirectional_grid_2D: \nSystem = %s\nmaxDim = %d, ldim = %lld\n", 
@@ -96,7 +96,9 @@ int main(const int argc, const char *argv[]) {
 				(loc_dest == host_loc && is_in_list(loc_src, active_d2h_queue_ids, active_d2h_queues)) ||
 				(loc_src < CHL_WORKERS && loc_dest < CHL_WORKERS)){
 				loc_buffs[dev_id_idx][dev_id_idy][0] = CHLMalloc(ldim*ldim*elemSize, loc_dest, 1);
+				if (loc_dest == CHL_WORKERS) CHLTouche((double*) loc_buffs[dev_id_idx][dev_id_idy][0], ldim*ldim, elemSize);
 				loc_buffs[dev_id_idx][dev_id_idy][1] = CHLMalloc(ldim*ldim*elemSize, loc_src, 1);
+				if (loc_src == CHL_WORKERS) CHLTouche((double*) loc_buffs[dev_id_idx][dev_id_idy][1], ldim*ldim, elemSize);
 			}
 			else loc_buffs[dev_id_idx][dev_id_idy][0] = loc_buffs[dev_id_idx][dev_id_idy][1] = NULL;
 		}
@@ -128,7 +130,7 @@ int main(const int argc, const char *argv[]) {
 				int loc_dest = active_memloc_id_list[dev_id_idx]; 
 				if(loc_buffs[dev_id_idx][dev_id_idy][0]) queue_list[dev_id_idx][dev_id_idy]->memcpy2DAsync(
 					loc_buffs[dev_id_idx][dev_id_idy][0], ldim, loc_buffs[dev_id_idx][dev_id_idy][1], 
-					ldim, maxDim, maxDim, elemSize, loc_dest, loc_src, 1);
+					ldim, TILE_MAX, TILE_MAX, elemSize, loc_dest, loc_src, 1);
 				queue_list[dev_id_idx][dev_id_idy]->sync_barrier();
 			}
 		}
@@ -136,7 +138,8 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, " complete.\n-------------------------------------------------------------------------------"
 		"-----------------------------------------------------------------------\n");
 	CHLSyncCheckErr();
-	for (int dim = MIN_DIM_TRANS; dim <= maxDim; dim*=2){
+	int chunk_dim_num = maxDim/TILE_MAX;
+	for (int dim = TILE_MAX; dim <= TILE_MAX; dim*=2){
 		int sample_sz;
 		double dev_t[active_memloc_num][active_memloc_num], transfer_t_vals[active_memloc_num][active_memloc_num][MICRO_MAX_ITER], 
 			transfer_t_sum[active_memloc_num][active_memloc_num], transfer_t_mean[active_memloc_num][active_memloc_num], 
@@ -166,8 +169,12 @@ int main(const int argc, const char *argv[]) {
 						//if(loc_src == host_loc) load_itter = load_mult_h2d;
 						//else if (loc_dest == host_loc) load_itter = load_mult_d2h;
 						device_timer[dev_id_idx][dev_id_idy]->start_point(queue_list[dev_id_idx][dev_id_idy]);
-						for(int ld = 0; ld < load_itter; ld++) queue_list[dev_id_idx][dev_id_idy]->memcpy2DAsync(loc_buffs[dev_id_idx][dev_id_idy][0], ldim,
-							loc_buffs[dev_id_idx][dev_id_idy][1], ldim, dim, dim, elemSize, loc_dest, loc_src, 1);
+						for(long d1 = 0; d1< chunk_dim_num; d1++)
+							for(long d2 = 0; d2< chunk_dim_num; d2++){
+								long addroffset = d1*dim + d2*dim*ldim;
+								queue_list[dev_id_idx][dev_id_idy]->memcpy2DAsync(loc_buffs[dev_id_idx][dev_id_idy][0] + addroffset, ldim,
+								loc_buffs[dev_id_idx][dev_id_idy][1] + addroffset, ldim, dim, dim, elemSize, loc_dest, loc_src, 1);
+							}
 						device_timer[dev_id_idx][dev_id_idy]->stop_point(queue_list[dev_id_idx][dev_id_idy]);
 					}
 					case_ran[dev_id_idx][dev_id_idy] = 1;
@@ -183,7 +190,7 @@ int main(const int argc, const char *argv[]) {
 						int loc_src = active_memloc_id_list[dev_id_idy];
 						int loc_dest = active_memloc_id_list[dev_id_idx]; 
 						int queue_id = (loc_src >= CHL_WORKERS || loc_src < 0)? loc_dest : loc_src;
-						dev_t[dev_id_idx][dev_id_idy] = device_timer[dev_id_idx][dev_id_idy]->sync_get_time()/1000;
+						dev_t[dev_id_idx][dev_id_idy] = device_timer[dev_id_idx][dev_id_idy]->sync_get_time()/1000/(chunk_dim_num*chunk_dim_num);
 					}
 				}
 			}
