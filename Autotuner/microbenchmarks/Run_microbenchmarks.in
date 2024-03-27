@@ -25,40 +25,110 @@ do
 	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 255 1 > $perf_log
 	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 255 1 &> $perf_log"
 	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 255 1 > $perf_log
+
 	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 85 1 &> $perf_log"
 	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 85 1 > $perf_log
 	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 85 1 &> $perf_log"
 	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 85 1 > $perf_log
+
 	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 5 1 &> $perf_log"
 	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 5 1 > $perf_log
 	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 5 1 &> $perf_log"
 	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 5 1 > $perf_log
+
     echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 1 1 &> $perf_log"
     ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 1 1 > $perf_log
     echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 1 1 &> $perf_log"
     ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 1 1 > $perf_log
+
+: '
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 170 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 170 1 > $perf_log
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 170 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 170 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 80 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 80 1 > $perf_log
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 80 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 80 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 10 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 10 1 > $perf_log
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 10 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 10 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 160 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 160 1 > $perf_log
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 160 1 &> $perf_log"
+	${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 160 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 2 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 2 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 2 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 2 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 4 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 4 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 4 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 4 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 8 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 8 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 8 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 8 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 16 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 16 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 16 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 16 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 32 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 32 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 32 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 32 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 64 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 64 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 64 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 64 1 > $perf_log
+
+	echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 128 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_scatter_2D $i 128 1 > $perf_log
+    echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 128 1 &> $perf_log"
+    ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 128 1 > $perf_log
+'
 done
 # Run bidirectional/grid 2D transfer benchmarkss
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 255 255 255 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 255 255 255 1 > $perf_log
+echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 255 255 255 1 &> $perf_log"
+${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 255 255 255 1 > $perf_log
+
+echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 255 255 85 1 &> $perf_log"
+${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 255 255 85 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 255 255 85 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 255 255 85 1 > $perf_log
+
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 85 85 85 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 85 85 85 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 85 85 85 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 85 85 85 1 > $perf_log
+
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 85 85 17 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 85 85 17 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 85 85 17 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 85 85 17 1 > $perf_log
+
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 5 5 5 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 5 5 5 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 5 5 5 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 5 5 5 1 > $perf_log
+
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 5 5 1 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 5 5 1 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 5 5 1 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 5 5 1 1 > $perf_log
+
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 1 1 1 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 1 1 1 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 1 1 1 1 &> $perf_log"
