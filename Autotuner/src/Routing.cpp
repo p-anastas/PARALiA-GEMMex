@@ -298,8 +298,9 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 				//fprintf(stderr,"Checking location list[%s]: queue_ETA = %lf\n", printlist(templist,hop_num), queue_ETA);
 			}
 			//fprintf(stderr,"Checking location list[%s]: temp_ETA = %lf\n", printlist(templist,hop_num), temp_ETA);
-			if(temp_ETA < min_ETA){// && BANDWIDTH_DIFFERENCE_CUTTOF_RATIO*tile_t >= temp_t){
-				//if(abs(temp_ETA - min_ETA)/temp_t > NORMALIZE_NEAR_SPLIT_LIMIT && temp_ETA < min_ETA){
+			//if(temp_ETA < min_ETA){// && BANDWIDTH_DIFFERENCE_CUTTOF_RATIO*tile_t >= temp_t){
+			//if(temp_ETA < min_ETA){
+			if(normal_less(temp_ETA, min_ETA)){
 				min_ETA = temp_ETA;
 				tile_t = temp_t;
 				for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
@@ -309,7 +310,8 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 					min_ETA, printlist(best_list[tie_list_num-1],hop_num));
 #endif
 			}
-			else if (temp_ETA == min_ETA){
+			//else if (temp_ETA == min_ETA){
+			else if (normal_equal(temp_ETA, min_ETA)){
 			//else if(abs(temp_ETA - min_ETA)/temp_t <= NORMALIZE_NEAR_SPLIT_LIMIT){
 			for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
 			tie_list_num++;
