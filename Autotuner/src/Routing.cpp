@@ -217,6 +217,7 @@ long double LinkRoute::optimize_chain_time(int* loc_map, long int size){
 typedef class P2P_queue_load{
 	long double queue_ETA[64][64];
 public:
+	long double start_time;
 	P2P_queue_load();
 	void ETA_add_task(int dest, int src, long double task_fire_t, long double task_duration);
 	void ETA_set(int dest, int src, long double new_ETA);
@@ -230,6 +231,7 @@ Queue_load_p queue_load_grid = NULL;
 
 P2P_queue_load::P2P_queue_load(){
 	for(int idx = 0; idx < 64; idx++) for(int idy = 0; idy < 64; idy++) queue_ETA[idx][idy] = 0.0;
+	start_time = csecond();
 }
 
 void P2P_queue_load::ETA_add_task(int dest, int src, long double task_fire_t, long double task_duration){
@@ -248,7 +250,7 @@ long double P2P_queue_load::ETA_get(int dest, int src){
 
 long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int update_flag){
 	if(!queue_load_grid) queue_load_grid = new P2P_queue_load();
-	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = 0;//csecond();
+	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = csecond() - queue_load_grid->start_time;
 	hop_num = 0;
 	std::list<int> loc_list;
 	int tmp_hop = -42; 
@@ -285,7 +287,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 				total_t += temp_t;
 				prev = x;
 			}
-			temp_t = max_t + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
+			temp_t = max_t;// + (total_t - max_t)/STREAMING_BUFFER_OVERLAP;
 			//fprintf(stderr, "%Lf\n", temp_t);
 			//fprintf(stderr,"Checking location list[%s]: temp_t = %lf\n", printlist(templist,hop_num), temp_t);
 			prev = hop_uid_list[0];
@@ -299,8 +301,8 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 			}
 			//fprintf(stderr,"Checking location list[%s]: temp_ETA = %lf\n", printlist(templist,hop_num), temp_ETA);
 			//if(temp_ETA < min_ETA){// && BANDWIDTH_DIFFERENCE_CUTTOF_RATIO*tile_t >= temp_t){
-			//if(temp_ETA < min_ETA){
-			if(normal_less(temp_ETA, min_ETA)){
+			if(temp_ETA < min_ETA){
+			//if(normal_less(temp_ETA, min_ETA)){
 				min_ETA = temp_ETA;
 				tile_t = temp_t;
 				for (int ctr = 0; ctr < hop_num; ctr++) best_list[0][ctr] = templist[ctr];
@@ -310,8 +312,8 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 					min_ETA, printlist(best_list[tie_list_num-1],hop_num));
 #endif
 			}
-			//else if (temp_ETA == min_ETA){
-			else if (normal_equal(temp_ETA, min_ETA)){
+			else if (temp_ETA == min_ETA){
+			//else if (normal_equal(temp_ETA, min_ETA)){
 			//else if(abs(temp_ETA - min_ETA)/temp_t <= NORMALIZE_NEAR_SPLIT_LIMIT){
 			for (int ctr = 0; ctr < hop_num; ctr++) best_list[tie_list_num][ctr] = templist[ctr];
 			tie_list_num++;
