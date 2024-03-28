@@ -313,7 +313,7 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
 /// Also check file layout in case microbenchmarks messed or some file has been edited by hand incorrectly
 void Grid_amalgamation::load_nodes(){
     char *filename = (char *) malloc(1024 * sizeof(char));
-    sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, CHL_WORKERS);
+    sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, active_nodes_id);
     FILE* fp = fopen(filename, "r");
     if(!fp) error("Grid_amalgamation::load_nodes(): File %s not found\n", filename);
     for (int it = 0; it < 100; it++) fscanf(fp, "=");
@@ -396,7 +396,8 @@ void Grid_amalgamation::set_node_load(char* op_dtype, long long node_ops_in[32])
         problem_dtype_idx = dtidx;
         break;
     }
-    massert(problem_dtype_idx != -1, "Grid_amalgamation::set_node_load: could not find loaded dtype_name = %s\n", op_dtype);
+    massert(problem_dtype_idx != -1, "Grid_amalgamation::set_node_load: "
+    "could not find loaded dtype_name = %s, first was %s\n", op_dtype, dtype_name[0]);
     for (int idx = 0; idx < CHL_WORKERS; idx++)
         node_ops[idx] = node_ops_in[idx];
     

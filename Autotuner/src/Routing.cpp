@@ -327,7 +327,7 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 				if (update_flag) queue_load_grid->ETA_set(hop_uid_list[ctr+1], hop_uid_list[ctr], min_ETA);
 		}
 		hop_num++;
-#ifdef PDEBUG
+#ifdef DPDEBUG
 		fprintf(stderr,"Selected route = %s from %d candidates with ETA = %Lf\n", 
 				printlist(hop_uid_list, hop_num), tie_list_num, min_ETA);
 #endif

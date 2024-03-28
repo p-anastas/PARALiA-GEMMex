@@ -98,7 +98,7 @@ do
     ${PROJECT_INSTALL_DIR}/bin/bw_bench_gather_2D $i 128 1 > $perf_log
 '
 done
-# Run bidirectional/grid 2D transfer benchmarkss
+# Run bidirectional/grid 2D transfer benchmarks
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 255 255 255 1 &> $perf_log"
 ${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $malloc_loc 255 255 255 1 > $perf_log
 echo "${PROJECT_INSTALL_DIR}/bin/bw_bench_grid_2D $numa_inter_loc 255 255 255 1 &> $perf_log"
