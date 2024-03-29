@@ -103,6 +103,7 @@ int main(const int argc, const char *argv[]) {
 	CHLFree(C_buf, M * N*sizeof(double), CHL_MEMLOCS-1);
 #endif
 
+	//CHLTouche(C, M*N,sizeof(double));
 	cpu_timer = csecond();
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
