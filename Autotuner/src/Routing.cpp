@@ -278,6 +278,25 @@ long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int updat
 		int best_list[factorial(hop_num)][hop_num]; 
 		int flag = 1, tie_list_num = 0;
 		while (flag){
+			/* Full model
+			double temp_ETA, curr_max_step_t = -1, curr_rem_step_t[hop_num], hop_ETA[hop_num];
+			int temp_ctr = 0, prev = hop_uid_list[0], templist[hop_num], curr_max_step_i; 
+			for (int x : loc_list){
+				templist[temp_ctr] = x; 
+				hop_ETA[temp_ctr] = std::max(queue_load_grid->ETA_get(x, prev), fire_t);
+				curr_rem_step_t[temp_ctr] = 1.0 * size/(1e9*get_edge_bw(x, prev))/STREAMING_BUFFER_OVERLAP;
+				if (hop_ETA[temp_ctr] + curr_rem_step_t[temp_ctr]*STREAMING_BUFFER_OVERLAP > curr_max_step_t){
+					curr_max_step_i = temp_ctr; 
+					curr_max_step_t = hop_ETA[temp_ctr] + curr_rem_step_t[temp_ctr]*STREAMING_BUFFER_OVERLAP;
+				}
+				hop_ETA[temp_ctr] = curr_max_step_t; 
+				for (int previ = 0; previ < temp_ctr + 1; previ++) 
+					if(curr_max_step_i!= previ) hop_ETA[temp_ctr] += curr_rem_step_t[previ];
+				if(temp_ctr++ == 1) prev = hop_uid_list[0];
+				else prev = x;
+			}
+			temp_ETA = hop_ETA[temp_ctr-1];
+			*/
 			long double max_t = -1, total_t = 0, temp_t;
 			int temp_ctr = 0, prev = hop_uid_list[0], templist[hop_num]; 
 			for (int x : loc_list){

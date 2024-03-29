@@ -313,7 +313,7 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
 /// Also check file layout in case microbenchmarks messed or some file has been edited by hand incorrectly
 void Grid_amalgamation::load_nodes(){
     char *filename = (char *) malloc(1024 * sizeof(char));
-    sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, active_nodes_id);
+    sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, (int) std::pow(2, CHL_WORKERS) - 1);
     FILE* fp = fopen(filename, "r");
     if(!fp) error("Grid_amalgamation::load_nodes(): File %s not found\n", filename);
     for (int it = 0; it < 100; it++) fscanf(fp, "=");
