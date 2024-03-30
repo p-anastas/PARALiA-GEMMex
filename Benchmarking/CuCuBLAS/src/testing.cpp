@@ -73,7 +73,6 @@ char* CoCoImplementationPrint(){
 	strcat(string_out, string_helper);
 
 	if (!strcmp(TASK_ORDER, "SERIAL")) sprintf(string_helper, "_TASK-ORDER-SERIAL");
-	else if (!strcmp(TASK_ORDER, "TACO_PARALIA")) sprintf(string_helper, "_TACO-PARALIA");
 	else if (!strcmp(TASK_ORDER, "FETCH_MINFETCH")) sprintf(string_helper, "_TASK-ORDER-MINFETCH");
 	else if (!strcmp(TASK_ORDER, "FETCH_MINFETCH_THEN_MINPENDING")) sprintf(string_helper, "_TASK-ORDER-MINFETCH-THEN-MINPENDING");
 	else if (!strcmp(TASK_ORDER, "FETCH_ETA")) sprintf(string_helper, "_TASK-ORDER-QETA");
@@ -96,7 +95,7 @@ char* CoCoImplementationPrint(){
 
 void ParseInputLvl3(const int argc, const char *argv[], ATC_p* predef_control_values,
 		char* TransA, char* TransB, double* alpha, double* beta, long int* D1, long int* D2, long int* D3,
-		short* loc1, short* loc2, short* loc3, short* outloc){
+		int* loc1, int* loc2, int* loc3, int* outloc){
 	if(argc != 16) error("Incorrect input arguments. Usage: ./correct_run\
 	\n\tactive_unit_num(auto if <0)\n\tdev_ids(form example: 0101 for devices 0,2 - ignore if active_unit_num < 0)\n\tT(auto if <=0)\
 	\n\tcache_max_size(auto if <0)\n\tTransA TransB alpha beta D1 D2 D3 loc1 loc2 loc3 outloc \n");
@@ -152,7 +151,7 @@ void ParseInputLvl3(const int argc, const char *argv[], ATC_p* predef_control_va
 	return;
 }
 
-void CheckLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char TransB, double alpha, double beta, long int D1, long int D2, long int D3, short loc1, short loc2, short loc3, short outloc){
+void CheckLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char TransB, double alpha, double beta, long int D1, long int D2, long int D3, int loc1, int loc2, int loc3, int outloc){
 	FILE* fp = fopen(filename,"r");
 	if (!fp) {
 		fp = fopen(filename,"w+");
@@ -174,7 +173,7 @@ void CheckLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char
 	return;
 }
 
-void StoreLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char TransB, double alpha, double beta, long int D1, long int D2, long int D3, short loc1, short loc2, short loc3, short outloc, double timer, double pred_t, double pred_J){
+void StoreLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char TransB, double alpha, double beta, long int D1, long int D2, long int D3, int loc1, int loc2, int loc3, int outloc, double timer, double pred_t, double pred_J){
 	FILE* fp = fopen(filename,"a");
 	if (!fp) error("report_results: LogFile failed to open");
 	const char* control_str = (predef_control_values) ? predef_control_values->print_csv() : "-1,-1,-1,-1";

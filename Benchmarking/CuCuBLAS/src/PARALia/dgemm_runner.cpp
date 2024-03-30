@@ -16,7 +16,7 @@ int main(const int argc, const char *argv[]) {
 	char TransA, TransB;
   	double alpha, beta;
 	long int M, N, K;
-	short A_loc, B_loc, C_loc, C_out_loc;
+	int A_loc, B_loc, C_loc, C_out_loc;
 	ATC_p predef_control_values = NULL, return_values = NULL;
 	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha, &beta, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
 
@@ -48,13 +48,16 @@ int main(const int argc, const char *argv[]) {
 	double cpu_timer = csecond();
 
 	fprintf(stderr, "\nAllocating memory...\n");
+	//for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
 
 	double *A, *B, *C;
 	// allocate in device if loc = 0, otherwise allocate in pinned memory for benchmarks
 	A = (double*) CHLMalloc(M * K*sizeof(double), A_loc, 0);
 	B = (double*) CHLMalloc(N * K*sizeof(double), B_loc, 0);
 	C = (double*) CHLMalloc(M * N*sizeof(double), C_loc, 1);
-
+	//if(A_loc >= CHL_WORKERS) CHLTouche(A, M*K, sizeof(double));
+ 	//if(B_loc >= CHL_WORKERS) CHLTouche(B, N*K, sizeof(double));
+ 	//if(C_loc >= CHL_WORKERS) CHLTouche(C, M*N, sizeof(double));
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 	fprintf(stderr, "Done: Alloc time:\t%lf ms\n\n",  cpu_timer  * 1000);
@@ -103,7 +106,6 @@ int main(const int argc, const char *argv[]) {
 	CHLFree(C_buf, M * N*sizeof(double), CHL_MEMLOCS-1);
 #endif
 
-	//CHLTouche(C, M*N,sizeof(double));
 	cpu_timer = csecond();
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
@@ -118,7 +120,7 @@ int main(const int argc, const char *argv[]) {
 
 	double first_over_t = cpu_timer;
 
-	short warmup_bench_it = 10;
+	int warmup_bench_it = 10;
 	if ( M >= 20000 && N >= 20000 && K >= 20000) warmup_bench_it = 2;
 	for(int it = 0; it < warmup_bench_it; it++){
 		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
@@ -128,7 +130,7 @@ int main(const int argc, const char *argv[]) {
 
 	double min_t = first_over_t, max_t = 0, avg_t = 0;
 	cpu_timer = csecond();
-	short bench_it = 100;
+	int bench_it = 100;
 	//TODO: bench if ( M >= 20000 && N >= 20000 && K >= 20000) bench_it = 20;
 	bench_it = 10;
 	for(int it = 0; it < bench_it; it++){

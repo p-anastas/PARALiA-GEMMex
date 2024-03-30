@@ -9,14 +9,14 @@
 #include "BackenedLibsWrapped.hpp"
 #include "Testing.hpp"
 
-#define CBLASXT_MAX_SAFE_TILE 10000
+#define CBLASXT_MAX_SAFE_TILE 8192
 
 int main(const int argc, const char *argv[]) {
 
 	char TransA, TransB;
   	double alpha, beta;
 	long int M, N, K;
-	short A_loc, B_loc, C_loc, C_out_loc;
+	int A_loc, B_loc, C_loc, C_out_loc;
 
 	ATC_p predef_control_values = NULL;
 	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha, &beta, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
@@ -32,9 +32,10 @@ int main(const int argc, const char *argv[]) {
 		sprintf(filename, "%s/cuBLASXtDgemmRunner_predefined_vals_%s.log",
 			TESTLIBDIR, VERSION);
 	}
-	else sprintf(filename, "%s/cuBLASXtDgemmRunner_%s.log",
-		TESTLIBDIR, VERSION);
-
+	else sprintf(filename, "%s/cuBLASXtDgemmRunner_%s.log", TESTLIBDIR, VERSION);
+#ifdef CHECKLOG
+	CheckLogLvl3(filename, predef_control_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc);
+#endif
 	long int cublasXt_tile;
 	if (predef_control_values!= NULL && predef_control_values->T > 0) cublasXt_tile = predef_control_values->T;
 	else cublasXt_tile = (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE);
@@ -75,6 +76,9 @@ int main(const int argc, const char *argv[]) {
 	A = (double*) CHLMalloc(M * K*sizeof(double), A_loc, 0);
 	B = (double*) CHLMalloc(N * K*sizeof(double), B_loc, 0);
 	C = (double*) CHLMalloc(M * N*sizeof(double), C_loc, 1);
+	//if(A_loc >= CHL_WORKERS) CHLTouche(A, M*K, sizeof(double));
+ 	//if(B_loc >= CHL_WORKERS) CHLTouche(B, N*K, sizeof(double));
+ 	//if(C_loc >= CHL_WORKERS) CHLTouche(C, M*N, sizeof(double));
 
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
@@ -90,7 +94,7 @@ int main(const int argc, const char *argv[]) {
 
 	// First call with T set to half the smaller problem dim (unless predefined or larger than CBLASXT_MAX_SAFE_TILE)
 	cpu_timer = csecond();
-	cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_tile, cache_limit, dev_num, dev_ids);
+	cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_tile, 0, dev_num, dev_ids);
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 	double best_standard_tile_t = cpu_timer;
@@ -99,7 +103,7 @@ int main(const int argc, const char *argv[]) {
 		// Second call with T set to smaller problem dim ( can be better for small problems with fat/thin matrices)
 		long int cublasXt_min_dim = (long int) fmin(fmin(fmin(M,N),K),CBLASXT_MAX_SAFE_TILE);
 		cpu_timer = csecond();
-		cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_min_dim, cache_limit, dev_num, dev_ids);
+		cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_min_dim, 0, dev_num, dev_ids);
 		CHLSyncCheckErr();
 		cpu_timer  = csecond() - cpu_timer;
 		if ( cpu_timer < best_standard_tile_t) {
@@ -115,7 +119,7 @@ int main(const int argc, const char *argv[]) {
 	if (predef_control_values!= NULL && predef_control_values->T > 0){
 		fprintf(stderr,"Running CUBLASXT DGEMM-> M = %zu, N = %zu, K = %zu, T = %zu\n", M, N, K, cublasXt_tile);
 		cpu_timer  = csecond();
-		cuBLASXtDgemmWrap(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_tile, cache_limit, dev_num, dev_ids);
+		cuBLASXtDgemmWrap(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_tile, 0, dev_num, dev_ids);
 		CHLSyncCheckErr();
 		cpu_timer  = csecond() - cpu_timer;
 		fprintf(stderr, "Total time:\t%lf ms\n", cpu_timer  * 1000);
@@ -125,7 +129,7 @@ int main(const int argc, const char *argv[]) {
 		for (long int T_trial = (((long int)fmax(fmin(fmin(M/8,N/8),K/8),1024))/1024)*1024; T_trial <= fmin(fmin(fmin(M,N),K),CBLASXT_MAX_SAFE_TILE); T_trial+=1024) if (M >= T_trial*1.5 || N >= T_trial*1.5 || K >= T_trial*1.5){
 			fprintf(stderr,"Running CUBLASXT DGEMM-> M = %zu, N = %zu, K = %zu, T = %zu\n", M, N, K, T_trial);
 			cpu_timer  = csecond();
-			cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  T_trial, cache_limit, dev_num, dev_ids);
+			cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  T_trial, 0, dev_num, dev_ids);
 			CHLSyncCheckErr();
 			cpu_timer  = csecond() - cpu_timer;
 			fprintf(stderr, "Total time:\t%lf ms\n", cpu_timer  * 1000);
@@ -143,11 +147,12 @@ int main(const int argc, const char *argv[]) {
 #endif
 	double min_t = cublasXt_t, max_t = 0, avg_t = 0;
 	cpu_timer = csecond();
-	short bench_it = 100;
-	if ( M >= 8192 || N >= 8192 || K >= 8192) bench_it = 10;
+	int bench_it = 100;
+	//TODO: bench if ( M >= 20000 && N >= 20000 && K >= 20000) bench_it = 20;
+	bench_it = 10;
 	for(int it = 0; it < bench_it; it++){
 		cpu_timer = csecond();
-		cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_tile, cache_limit, dev_num, dev_ids);
+		cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  cublasXt_tile, 0, dev_num, dev_ids);
 		CHLSyncCheckErr();
 		cpu_timer = csecond() - cpu_timer;
 		StoreLogLvl3(filename, predef_control_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc, cpu_timer, -1, -1);
@@ -163,8 +168,8 @@ int main(const int argc, const char *argv[]) {
 	max_t  * 1000, Gval_per_s(gemm_ops(M,N,K),max_t));
 
 	CHLSyncCheckErr();
-	CHLFree(A, A_loc, M * K* sizeof(double));
-	CHLFree(B, B_loc, N * K* sizeof(double));
-	CHLFree(C, C_loc, M * N* sizeof(double));
+	CHLFree(A, M * K* sizeof(double), A_loc);
+	CHLFree(B, N * K* sizeof(double), B_loc);
+	CHLFree(C, M * N* sizeof(double), C_loc);
 	return 0;
 }

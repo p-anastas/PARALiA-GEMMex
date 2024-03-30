@@ -13,12 +13,12 @@
 
 int main(const int argc, const char *argv[]) {
 
-	short run_cpu_mem, run_gpu_mem, run_large;
+	int run_cpu_mem, run_gpu_mem, run_large;
 
 	char TransA, TransB;
   	double alpha, beta;
 	long int M, N, K, T;
-	short A_loc, B_loc, C_loc, C_out_loc;
+	int A_loc, B_loc, C_loc, C_out_loc;
 	double cache_limit = 0;
 	long int ldA, ldB, ldC;
 
@@ -91,12 +91,12 @@ int main(const int argc, const char *argv[]) {
 			fprintf(stderr, "cuBLASXT: %.1lf\n", Gval_per_s(gemm_ops(dim,dim,dim),cpu_timer));
 			fprintf(stderr, "%s\n", ret_autotune_val->print_csv());
 			if (comp_flops < Gval_per_s(gemm_ops(dim,dim,dim),cpu_timer)) warning("Inferior Perf to cublasXt\n");
-			short succcess = Dtest_equality(C_comp, C, dim * dim); 
+			int succcess = Dtest_equality(C_comp, C, dim * dim); 
 			if (succcess) fprintf(stdout, " | First run: OK");
 			else fprintf(stdout, " | First run: RAN, WRONG C");
 			CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 			ret_autotune_val = PARALiADgemm(TransA, TransB, dim, dim, dim, alpha, A, ldA, B, ldB, beta, C , ldC);
-			short succcess2 = Dtest_equality(C_comp, C, dim * dim);
+			int succcess2 = Dtest_equality(C_comp, C, dim * dim);
 			if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 			else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 			if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -128,12 +128,12 @@ int main(const int argc, const char *argv[]) {
 			fprintf(stderr, "cuBLASXT: %.1lf\n", Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer));
 			fprintf(stderr, "%s\n", ret_autotune_val->print_csv());
 			if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
-			short succcess = Dtest_equality(C_comp, C, dim1 * dim2); 
+			int succcess = Dtest_equality(C_comp, C, dim1 * dim2); 
 			if (succcess) fprintf(stdout, " | First run: OK");
 			else fprintf(stdout, " | First run: RAN, WRONG C");
 			CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 			ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
-			short succcess2 = Dtest_equality(C_comp, C, dim1 * dim2);
+			int succcess2 = Dtest_equality(C_comp, C, dim1 * dim2);
 			if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 			else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 			if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -165,12 +165,12 @@ int main(const int argc, const char *argv[]) {
 			fprintf(stderr, "cuBLASXT: %.1lf\n", Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer));
 			fprintf(stderr, "%s\n", ret_autotune_val->print_csv());
 			if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
-			short succcess = Dtest_equality(C_comp, C, dim1 * dim2); 
+			int succcess = Dtest_equality(C_comp, C, dim1 * dim2); 
 			if (succcess) fprintf(stdout, " | First run: OK");
 			else fprintf(stdout, " | First run: RAN, WRONG C");
 			CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 			ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
-			short succcess2 = Dtest_equality(C_comp, C, dim1 * dim2);
+			int succcess2 = Dtest_equality(C_comp, C, dim1 * dim2);
 			if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 			else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 			if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -203,12 +203,12 @@ int main(const int argc, const char *argv[]) {
 			fprintf(stderr, "cuBLASXT: %.1lf\n", Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer));
 			fprintf(stderr, "%s\n", ret_autotune_val->print_csv());
 			if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
-			short succcess = Dtest_equality(C_comp, C, dim1 * dim2); 
+			int succcess = Dtest_equality(C_comp, C, dim1 * dim2); 
 			if (succcess) fprintf(stdout, " | First run: OK");
 			else fprintf(stdout, " | First run: RAN, WRONG C");
 			CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 			ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
-			short succcess2 = Dtest_equality(C_comp, C, dim1 * dim2);
+			int succcess2 = Dtest_equality(C_comp, C, dim1 * dim2);
 			if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 			else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 			if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -228,7 +228,7 @@ int main(const int argc, const char *argv[]) {
 		int ctr = 0; 
 		fprintf(stdout, "\n-----------------------------------------Testing for matrices on GPU-----------------------------------------\n");
 		for (int i = 0; i< CHL_WORKERS; i++){
-			short dev_id = dev_ids[i];
+			int dev_id = dev_ids[i];
 			fprintf(stderr, "dgemm_tester: Allocating GPU buffers...->100 MB...");
 			cpu_timer = csecond();
 			A_loc = B_loc = C_loc = dev_id;
@@ -280,13 +280,13 @@ int main(const int argc, const char *argv[]) {
 				if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
 				CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
 				CHLMemcpy(C_host_comp_buf, C_comp,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-				short succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
+				int succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
 				if (succcess) fprintf(stdout, " | First run: OK");
 				else fprintf(stdout, " | First run: RAN, WRONG C");
 				CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 				ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
 				CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-				short succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
+				int succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
 				if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 				else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 				if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -318,13 +318,13 @@ int main(const int argc, const char *argv[]) {
 				if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
 				CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
 				CHLMemcpy(C_host_comp_buf, C_comp,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-				short succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
+				int succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
 				if (succcess) fprintf(stdout, " | First run: OK");
 				else fprintf(stdout, " | First run: RAN, WRONG C");
 				CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 				ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
 				CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-				short succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
+				int succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
 				if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 				else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 				if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -404,13 +404,13 @@ int main(const int argc, const char *argv[]) {
 			if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
 			CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
 			CHLMemcpy(C_host_comp_buf, C_comp,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-			short succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
+			int succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
 			if (succcess) fprintf(stdout, " | First run: OK");
 			else fprintf(stdout, " | First run: RAN, WRONG C");
 			CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 			ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
 			CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-			short succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
+			int succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
 			if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 			else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 			if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");
@@ -482,13 +482,13 @@ int main(const int argc, const char *argv[]) {
 			if (comp_flops < Gval_per_s(gemm_ops(dim1,dim2,dim3),cpu_timer)) warning("Inferior Perf to cublasXt\n");
 			CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
 			CHLMemcpy(C_host_comp_buf, C_comp,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-			short succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
+			int succcess = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2); 
 			if (succcess) fprintf(stdout, " | First run: OK");
 			else fprintf(stdout, " | First run: RAN, WRONG C");
 			CHLMemcpy(C, C_buf, M * N *sizeof(double), C_loc, CHL_MEMLOCS - 1);
 			ret_autotune_val = PARALiADgemm(TransA, TransB, dim1, dim2, dim3, alpha, A, ldA, B, ldB, beta, C , ldC);
 			CHLMemcpy(C_host_buf, C,  dim1 * dim2 *sizeof(double), CHL_MEMLOCS - 1, C_loc);
-			short succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
+			int succcess2 = Dtest_equality(C_host_comp_buf, C_host_buf, dim1 * dim2);
 			if (succcess2) fprintf(stdout, " | Metadata-reuse run: OK");
 			else fprintf(stdout, "| Metadata-reuse run: RAN, WRONG C");
 			if(succcess && succcess2) fprintf(stdout, " | -> Test PASSED\n");

@@ -19,7 +19,7 @@ int main(const int argc, const char *argv[]) {
 	char TransA, TransB;
   	double alpha, beta;
 	long int M, N, K;
-	short A_loc, B_loc, C_loc, C_out_loc;
+	int A_loc, B_loc, C_loc, C_out_loc;
 	ATC_p predef_control_values = NULL, return_values = NULL;
 	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha, &beta, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
 

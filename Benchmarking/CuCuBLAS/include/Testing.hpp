@@ -13,10 +13,10 @@ char* CoCoImplementationPrint();
 char* CoCoDistributionPrint();
 
 void ParseInputLvl3(const int argc, const char *argv[], ATC_p* predef_control_values, char* TransA, char* TransB,
-	double* alpha, double* beta, long int* D1, long int* D2, long int* D3, short* loc1, short* loc2, short* loc3, short* outloc);
+	double* alpha, double* beta, long int* D1, long int* D2, long int* D3, int* loc1, int* loc2, int* loc3, int* outloc);
 void CheckLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char TransB,
-	double alpha, double beta, long int D1, long int D2, long int D3, short loc1, short loc2, short loc3, short outloc);
+	double alpha, double beta, long int D1, long int D2, long int D3, int loc1, int loc2, int loc3, int outloc);
 void StoreLogLvl3(char* filename, ATC_p predef_control_values, char TransA, char TransB, double alpha, double beta,
-	long int D1, long int D2, long int D3, short loc1, short loc2, short loc3, short outloc, double timer, double pred_t, double pred_J);
+	long int D1, long int D2, long int D3, int loc1, int loc2, int loc3, int outloc, double timer, double pred_t, double pred_J);
 
 #endif

@@ -177,7 +177,6 @@ set (WB_ROUTING P2P_TO_INIT)
 
 #--------------------------------Tested (production)--------------------------------------#
 #set(TASK_ORDER SERIAL)
-#set(TASK_ORDER TACO_PARALIA)
 #set(TASK_ORDER FETCH_MINFETCH)
 #set(TASK_ORDER FETCH_MINFETCH_THEN_MINPENDING)
 set(TASK_ORDER FETCH_ETA)
@@ -200,7 +199,7 @@ add_definitions(-DMINIMUM_UNIT_CONTRIBUTION=0.00)
 add_definitions(-DENABLE_POWA)
 
 ## Choose the Unit combination that maximizes total performance (minimum time).
-#set(PREDICT_OPTIMIZE_TARGET PERF)
+set(PREDICT_OPTIMIZE_TARGET PERF)
 
 ## Choose the Unit combination that minimizes consumed energy (J).
 ## Rarely chooses multi-unit execution, since its almost always less energy-efficient than single-unit.
@@ -210,7 +209,7 @@ add_definitions(-DENABLE_POWA)
 #set(PREDICT_OPTIMIZE_TARGET POWER-DELAY)
 
 ## Choose the Unit combination that maximizes the energy-delay product - closer to "PERF" but also slightly considering energy.
-set(PREDICT_OPTIMIZE_TARGET ENERGY-DELAY)
+#set(PREDICT_OPTIMIZE_TARGET ENERGY-DELAY)
 
 #--------------------------------------Experimental----------------------------------------#
 
