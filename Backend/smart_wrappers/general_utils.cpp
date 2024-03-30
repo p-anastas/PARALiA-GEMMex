@@ -332,6 +332,13 @@ int is_in_list(int elem, int* elem_list, int list_len){
 	return 0; 
 }
 
+int get_loc_in_list(int elem, int* elem_list, int list_len){ 
+	for (int idx = 0; idx < list_len; idx++)
+		if(elem_list[idx] == elem) return idx; 
+	return -1; 
+}
+
+
 void translate_binary_to_unit_list(int case_id, int* active_unit_num_p, int* active_unit_id_list){
 	int mask;
 	*active_unit_num_p = 0;

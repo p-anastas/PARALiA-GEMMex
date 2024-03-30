@@ -110,6 +110,7 @@ long factorial(const int n);
 void DECOM_2D(int val, int* valgrid_1_ptr, int* valgrid_2_ptr);
 
 int is_in_list(int elem, int* elem_list, int list_len);
+int get_loc_in_list(int elem, int* elem_list, int list_len);
 		
 void translate_binary_to_unit_list(int case_id, int* active_unit_num_p, int* active_unit_id_list);
 int translate_unit_list_to_binary(int* active_unit_id_list, int active_unit_num);

@@ -614,7 +614,8 @@ void ATC::initialize_tasks(){
 					A_tile_ETA[im][ik][loc] = 0;
 				}
 				else if (strstr(FETCH_ROUTING, "CHAIN") && is_in_list(loc, active_unit_id_list, active_unit_num)){
-					int D1_loc = loc/D2_parts, D2_loc = loc%D2_parts;
+					int loc_idx = get_loc_in_list(loc, active_unit_id_list, active_unit_num);
+					int D1_loc = loc_idx/D2_parts, D2_loc = loc_idx%D2_parts;
 					if(!D1_loc && C_Decom_grid[D1_loc][D2_loc][0] > im)
 						A_tile_loc_map[im][ik][loc] = 1;
 					else if(C_Decom_grid[D1_loc-1][D2_loc][0] <= im && C_Decom_grid[D1_loc][D2_loc][0] > im)
@@ -649,7 +650,8 @@ void ATC::initialize_tasks(){
 					B_tile_ETA[ik][in][loc] = 0; 
 				}
 				else if (strstr(FETCH_ROUTING, "CHAIN") && is_in_list(loc, active_unit_id_list, active_unit_num)){
-					int D1_loc = loc/D2_parts, D2_loc = loc%D2_parts;
+					int loc_idx = get_loc_in_list(loc, active_unit_id_list, active_unit_num);
+					int D1_loc = loc_idx/D2_parts, D2_loc = loc_idx%D2_parts;
 					if(!D2_loc && C_Decom_grid[D1_loc][D2_loc][1] > in)
 						B_tile_loc_map[ik][in][loc] = 1;
 					else if(C_Decom_grid[D1_loc][D2_loc-1][1] <= in && C_Decom_grid[D1_loc][D2_loc][1] > in)

@@ -194,7 +194,7 @@ add_definitions(-DNORMALIZE_NEAR_SPLIT_LIMIT=0.05)
 
 ## Define the minimum allowed percentile contribution in total time from each potential unit
 ## In case of energy, the maximum allowed percentile energy increase by each new unit.
-add_definitions(-DMINIMUM_UNIT_CONTRIBUTION=0.05)
+add_definitions(-DMINIMUM_UNIT_CONTRIBUTION=0.00)
 
 ## Enable power measuring for benchmarks, and energy-related prediction modes for the Autotuner
 add_definitions(-DENABLE_POWA)
