@@ -782,41 +782,6 @@ void ATC::optimize_tasks_serial(){
 	int comp_task_order[active_unit_num][comp_task_num] = {0};
 	task_num = 0; 
 	while (comp_task_ctr < comp_task_num){
-		for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++){
-			if(comp_task_perdev[dev_idx] == comp_task_per_unit_num[dev_idx]) continue;
-			long int selected_task_idx = comp_task_per_unit_list[dev_idx][comp_task_perdev[dev_idx]];
-			decompose_comp_task_fetch(selected_task_idx, dev_idx);
-#ifdef SUBKERNELS_FIRE_LAZY
-			;
-#else
-			decompose_comp_task_run(selected_task_idx, dev_idx);
-#ifdef ENABLE_SEND_RECV_OVERLAP
-			decompose_comp_task_wb(selected_task_idx, dev_idx);
-#endif
-#endif
-			comp_task_order[dev_idx][comp_task_perdev[dev_idx]] = selected_task_idx;
-			comp_task_perdev[dev_idx]++;
-			comp_task_ctr++;
-		}
-	}
-	for(int dev_idx = 0; dev_idx < active_unit_num; dev_idx++) 
-		for(int idx = 0; idx < comp_task_perdev[dev_idx]; idx++){
-#ifdef SUBKERNELS_FIRE_LAZY
-			decompose_comp_task_run(comp_task_order[dev_idx][idx], dev_idx);
-			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
-#else
-#ifndef ENABLE_SEND_RECV_OVERLAP
-			decompose_comp_task_wb(comp_task_order[dev_idx][idx], dev_idx);
-#endif
-#endif
-		}
-}
-
-void ATC::optimize_tasks_taco_PARALiA(){
-	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
-	int comp_task_order[active_unit_num][comp_task_num] = {0};
-	task_num = 0; 
-	while (comp_task_ctr < comp_task_num){
 		int dev_fired[active_unit_num] = {0}; 
 		for(int idx = 0; idx < active_unit_num; idx++){
 			int dev_idx = int(rand() % active_unit_num);
@@ -850,6 +815,7 @@ void ATC::optimize_tasks_taco_PARALiA(){
 #endif
 		}
 }
+
 void ATC::optimize_tasks_MinFetchNum(){
 	long int comp_task_ctr = 0, comp_task_perdev[active_unit_num] = {0};
 	int comp_task_fired[comp_task_num] = {0}, 
@@ -1001,7 +967,6 @@ void ATC::optimize_tasks_MinFetchNum_then_MinPendingOps(){
 
 void ATC::optimize_tasks(){
 	if(!strcmp(TASK_ORDER, "SERIAL")) optimize_tasks_serial();
-	else if(!strcmp(TASK_ORDER, "TACO_PARALIA")) optimize_tasks_taco_PARALiA();
 	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH")) optimize_tasks_MinFetchNum();
 	else if(!strcmp(TASK_ORDER, "FETCH_MINFETCH_THEN_MINPENDING")) optimize_tasks_MinFetchNum_then_MinPendingOps();
 	// These are defined in Routing, since they uses ETA heuristics and P2P_queue_load
