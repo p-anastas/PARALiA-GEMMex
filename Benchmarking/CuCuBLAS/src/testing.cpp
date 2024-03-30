@@ -33,6 +33,8 @@ char* CoCoImplementationPrint(){
 	sprintf(string_helper, "_ALGO-WR-LAZY");
 	else if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_WREDUCE"))
 	sprintf(string_helper, "_ALGO-WREDUCE-%d", REDUCE_WORKERS_PERDEV);
+	else if (!strcmp(OUTPUT_ALGO_MODE,"ALGO_AUTO"))
+	sprintf(string_helper, "_ALGO_AUTO");
 	strcat(string_out, string_helper);
 #ifndef ENABLE_SEND_RECV_OVERLAP
 	sprintf(string_helper, "_NO-SND-RCV-OVER");

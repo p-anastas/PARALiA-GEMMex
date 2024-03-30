@@ -87,8 +87,8 @@ do
 		do
 			echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-			echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-			$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+			#echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+			#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -113,8 +113,8 @@ do
 		do
 			echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 			$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-			echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-			$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+			#echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+			#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 		#	echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 		#	$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 			#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -143,8 +143,8 @@ do
 				thin=$(($fat/$ctr))
 				echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 				$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 				#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 				#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
@@ -172,8 +172,8 @@ do
 				fat=$(($thin*$ctr))
 				echo "$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 				$PARALiA_run -1 -1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
-				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
-				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 				#echo "$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
 				#$PARALiA_run 4 10101010 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
 				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"

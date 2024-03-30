@@ -200,7 +200,7 @@ add_definitions(-DMINIMUM_UNIT_CONTRIBUTION=0.00)
 add_definitions(-DENABLE_POWA)
 
 ## Choose the Unit combination that maximizes total performance (minimum time).
-set(PREDICT_OPTIMIZE_TARGET PERF)
+#set(PREDICT_OPTIMIZE_TARGET PERF)
 
 ## Choose the Unit combination that minimizes consumed energy (J).
 ## Rarely chooses multi-unit execution, since its almost always less energy-efficient than single-unit.
@@ -210,7 +210,7 @@ set(PREDICT_OPTIMIZE_TARGET PERF)
 #set(PREDICT_OPTIMIZE_TARGET POWER-DELAY)
 
 ## Choose the Unit combination that maximizes the energy-delay product - closer to "PERF" but also slightly considering energy.
-#set(PREDICT_OPTIMIZE_TARGET ENERGY-DELAY)
+set(PREDICT_OPTIMIZE_TARGET ENERGY-DELAY)
 
 #--------------------------------------Experimental----------------------------------------#
 
@@ -280,7 +280,7 @@ add_definitions(-DDTYPE_NUM=3)
 ## NOTE-FIXME!!! : Currently WS effects the PCIe BW when a cublas kernel is launched. 
 ## NOTE-FIXME!!! This has a serious overhead if SKs are launched during selection
 ## NOTE-FIXME!!! Use of SUBKERNELS_FIRE_WHEN_READY is advised for mitigating this
-add_definitions(-DWS_SZ=0)
+add_definitions(-DWS_SZ=-1)
 
 ###########################################################################################
 #-------------------------------Define library constants----------------------------------#
