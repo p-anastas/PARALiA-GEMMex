@@ -222,7 +222,7 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 
 /********************** Tile & device autotuning ******************************/
 
-double ATC::autotune_problem(char* problem_name_in, int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
+double ATC::autotune_problem(const  char* problem_name_in, int A_loc_in, int B_loc_in, int C_loc_in, int D_loc_in, 
     int M_in, int N_in, int K_in, int elemSize_in){
 	short lvl = 3;
 	double cpu_timer = csecond();

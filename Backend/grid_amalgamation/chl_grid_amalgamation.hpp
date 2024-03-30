@@ -108,7 +108,7 @@ typedef class Grid_amalgamation{
 
 		int problem_dtype_idx; 
 		long long node_ops[32];
-		void set_node_load(char* op_dtype, long long node_ops_in[32]);
+		void set_node_load(const char* op_dtype, long long node_ops_in[32]);
 
 		void print_node_load();
 

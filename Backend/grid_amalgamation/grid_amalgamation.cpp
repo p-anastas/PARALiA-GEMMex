@@ -391,7 +391,7 @@ void Grid_amalgamation::update_problem_edges(){
     }
 }
 
-void Grid_amalgamation::set_node_load(char* op_dtype, long long node_ops_in[32]){
+void Grid_amalgamation::set_node_load(const char* op_dtype, long long node_ops_in[32]){
     for (int dtidx = 0; dtidx < DTYPE_NUM; dtidx++) if(!strcmp(dtype_name[dtidx], op_dtype)){
         problem_dtype_idx = dtidx;
         break;

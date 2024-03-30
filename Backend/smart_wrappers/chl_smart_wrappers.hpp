@@ -25,14 +25,14 @@ extern int CHL_MEMLOCS;
 
 /// Compile-defined parameters stored as extern(s) in order to be tunable internally
 extern int MAX_BACKEND_L;
-extern char* OUTPUT_ALGO_MODE;
 extern int STREAMING_BUFFER_OVERLAP;
-extern char* DISTRIBUTION;
-extern char* ORDER_2DBC;
-extern char* TASK_ORDER;
-extern char* FETCH_ROUTING;
-extern char* WB_ROUTING;
-extern char* PREDICT_OPTIMIZE_TARGET;
+extern const char* OUTPUT_ALGO_MODE;
+extern const char* DISTRIBUTION;
+extern const char* ORDER_2DBC;
+extern const char* TASK_ORDER;
+extern const char* FETCH_ROUTING;
+extern const char* WB_ROUTING;
+extern const char* PREDICT_OPTIMIZE_TARGET;
 
 /// Signal handler for errors
 #include <execinfo.h>

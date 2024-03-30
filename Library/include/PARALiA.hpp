@@ -14,7 +14,7 @@
 typedef class ProblemMetadata{
 public:	
 	ATC_p autotuner;
-	char* problem_name;
+	const char* problem_name;
 	void* problem_wrap; 
 	int decom_num;
 	Decom2D_p decom[10];
