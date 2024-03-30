@@ -289,6 +289,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 			if (s != 0) error("PARALiADgemm: pthread_join failed with exit value %d", s);
 			//free(res);      /* Free memory allocated by thread */
 		}
+		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) local_PMD->autotuner->select_algo();
 #ifdef TEST
 		cpu_timer = csecond() - cpu_timer;
 		fprintf(stderr, "Preparing decomposers (parallel with pthreads) -> t_prep = %lf ms\n", cpu_timer*1000);
@@ -302,7 +303,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		WR_properties C_tile_prop; 
 		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR")) C_tile_prop = WR;
 		else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY")) C_tile_prop = WR_LAZY;
-		else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_prop = W_REDUCE;
+		//else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_prop = W_REDUCE;
+		else error("PARALiADgemm: Unsupported OUTPUT_ALGO_MODE = %s\n", OUTPUT_ALGO_MODE);
 		local_PMD->decom[2]->InitTileMap(T, T, local_PMD->SAB, C_tile_prop);
 #ifdef TEST
 		cpu_timer = csecond() - cpu_timer;

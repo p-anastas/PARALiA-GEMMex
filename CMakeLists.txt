@@ -79,7 +79,8 @@ set(STREAMING_BUFFER_OVERLAP 8)
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
 #set(OUTPUT_ALGO_MODE ALGO_WR)
-set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+#set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
+set(OUTPUT_ALGO_MODE ALGO_AUTO)
 
 # Enable overlapping Send & recv Communication
 add_definitions(-DENABLE_SEND_RECV_OVERLAP)
@@ -285,15 +286,15 @@ add_definitions(-DWS_SZ=0)
 #-------------------------------Define library constants----------------------------------#
 ###########################################################################################
 
-add_definitions(-DMAX_BACKEND_L=${MAX_BACKEND_L})
-add_definitions(-DOUTPUT_ALGO_MODE="${OUTPUT_ALGO_MODE}")
-add_definitions(-DSTREAMING_BUFFER_OVERLAP=${STREAMING_BUFFER_OVERLAP})
-add_definitions(-DDISTRIBUTION="${DISTRIBUTION}")
-add_definitions(-DORDER_2DBC="${ORDER_2DBC}")
-add_definitions(-DTASK_ORDER="${TASK_ORDER}")
-add_definitions(-DFETCH_ROUTING="${FETCH_ROUTING}")
-add_definitions(-DWB_ROUTING="${WB_ROUTING}")
-add_definitions(-DPREDICT_OPTIMIZE_TARGET="${PREDICT_OPTIMIZE_TARGET}")
+add_definitions(-DMAX_BACKEND_L_IN=${MAX_BACKEND_L})
+add_definitions(-DOUTPUT_ALGO_MODE_IN="${OUTPUT_ALGO_MODE}")
+add_definitions(-DSTREAMING_BUFFER_OVERLAP_IN=${STREAMING_BUFFER_OVERLAP})
+add_definitions(-DDISTRIBUTION_IN="${DISTRIBUTION}")
+add_definitions(-DORDER_2DBC_IN="${ORDER_2DBC}")
+add_definitions(-DTASK_ORDER_IN="${TASK_ORDER}")
+add_definitions(-DFETCH_ROUTING_IN="${FETCH_ROUTING}")
+add_definitions(-DWB_ROUTING_IN="${WB_ROUTING}")
+add_definitions(-DPREDICT_OPTIMIZE_TARGET_IN="${PREDICT_OPTIMIZE_TARGET}")
 
 ###########################################################################################
 #-----------------------------------CUDA definitions--------------------------------------#

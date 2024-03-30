@@ -114,10 +114,6 @@ typedef class ATC{
 	void get_T_slowdowns(double* slowdowns, int candidate_T);
 	void set_T_slowdowns(double* slowdowns);
 	void set_prediction_values(double pred_t_in);
-/******************************************************************************/
-/********************** Memory-related autotuning *****************************/
-	void assert_memory_requirements();
-/******************************************************************************/
 /********************** Route & distribution autotuning ***********************/
 	void update_comp_task_num(long int task_num_in); /// Updates the autotuner lists for a given number of tasks.
 	/// 2D block cyclic distribution is prefered
@@ -133,6 +129,14 @@ typedef class ATC{
 	void optimize_tasks_MinFetchNum_then_MinPendingOps();
 	void optimize_tasks_ETA();
 	void optimize_tasks_ETA_plus_MinPendingOps();
+/******************************************************************************/
+/********************** Memory-related autotuning *****************************/
+	void assert_memory_requirements();
+/******************************************************************************/
+/******************************************************************************/
+/**************************** Algorithmic tuning ******************************/
+	/// Selects which algorithm should be used depending on the problem
+	void select_algo();
 /******************************************************************************/
 /**************************** Helper Fuctions *********************************/
 	void print(); /// Print the characteristics of the autotune controller to stderr

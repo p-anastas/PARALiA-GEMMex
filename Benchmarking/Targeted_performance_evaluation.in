@@ -82,8 +82,6 @@ do
 				B_loc=6
 				C_loc=7
 		fi
-
-
 		# I) Mid-sized square problems
 		for Sq in {3072..16384..1024} # 14 problems
 		do

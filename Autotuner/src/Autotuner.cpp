@@ -1117,7 +1117,15 @@ void ATC::assert_memory_requirements(){
 	}
 }
 
-/******************************************************************************/
+/**************************** Algorithmic tuning ******************************/
+
+void ATC::select_algo(){
+	if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) 
+		error("ATC::select_algo: was called with OUTPUT_ALGO_MODE(%s) != ALGO_AUTO\n", OUTPUT_ALGO_MODE);
+	if (A_loc == C_loc || B_loc == C_loc) OUTPUT_ALGO_MODE = "ALGO_WR_LAZY";
+	else OUTPUT_ALGO_MODE = "ALGO_WR";
+}
+
 /**************************** Helper Fuctions *********************************/
 void ATC::print(){
 	//int dev_ids_token = 0;
