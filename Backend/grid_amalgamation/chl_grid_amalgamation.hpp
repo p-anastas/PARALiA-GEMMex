@@ -61,10 +61,6 @@ void HopMemcpyPrint();
 /*****************************************************/
 /// LinkMap stuff
 
-#define MAX_ALLOWED_HOPS 1
-#define MAX_HOP_ROUTES 1
-#define HOP_PENALTY 0.2
-
 typedef class Grid_amalgamation{
 	public:
 

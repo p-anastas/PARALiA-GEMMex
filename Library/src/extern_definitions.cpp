@@ -9,7 +9,7 @@ int conserve_memory_curr = 0;
 CQueue_p recv_queues[64][64];
 CQueue_p wb_queues[64][64];
 
-CQueue_p exec_queue[32][MAX_BACKEND_L];
+CQueue_p exec_queue[32][MAX_BACKEND_L_IN];
 int exec_queue_ctr[32]; 
 
 CQueue_p reduce_queue[64][REDUCE_WORKERS_PERDEV];

@@ -9,6 +9,7 @@
 #include<iostream>
 #include <string>
 
+//#include "chl_smart_wrappers.hpp"
 #include "DataTile.hpp"
 
 int RMConfigResources();
@@ -21,7 +22,7 @@ void RMSyncRecvQueues();
 extern CQueue_p recv_queues[64][64];
 extern CQueue_p wb_queues[64][64];
 
-extern CQueue_p exec_queue[32][MAX_BACKEND_L];
+extern CQueue_p exec_queue[32][MAX_BACKEND_L_IN];
 extern int exec_queue_ctr[32]; 
 
 extern CQueue_p reduce_queue[64][REDUCE_WORKERS_PERDEV];

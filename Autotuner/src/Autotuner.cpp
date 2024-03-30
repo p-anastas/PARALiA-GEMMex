@@ -235,6 +235,7 @@ double ATC::autotune_problem(char* problem_name_in, int A_loc_in, int B_loc_in, 
 	B_loc = B_loc_in;
 	C_loc = C_loc_in;
 	D_loc = D_loc_in;
+	if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) select_algo();
 	M = M_in;
 	N = N_in;
 	K = K_in;
@@ -578,14 +579,13 @@ void ATC::update_comp_task_num(long int comp_task_num_in){
 }
 
 void ATC::distribute_comp_tasks(){
-	if (!strcmp(DISTRIBUTION, "ROUND-ROBIN"))
-		DistributeCompTasksRoundRobin(this);
-	else if (!strcmp(DISTRIBUTION, "SPLIT-NAIVE"))
-		DistributeCompTasksNaive(this);
-	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN"))
+	//if (!strcmp(DISTRIBUTION, "ROUND-ROBIN"))
+	//	DistributeCompTasksRoundRobin(this);
+	//else 
+	if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN"))
 		DistributeCompTasksRoundRobinChunk(this, Grid_K);
-	else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN-REVERSE"))
-		DistributeCompTasksRoundRobinChunkReverse(this, Grid_K);
+	//else if (!strcmp(DISTRIBUTION, "SPLIT-CHUNKS-ROBIN-REVERSE"))
+	//	DistributeCompTasksRoundRobinChunkReverse(this, Grid_K);
 	else if (!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC"))
 		DistributeCompTasks2DBlockCyclic(this, Grid_M, Grid_N, Grid_K);
 	else error("ATC::distribute_comp_tasks: Unknown Subkernel Distribution %s\n", DISTRIBUTION);
@@ -1120,10 +1120,14 @@ void ATC::assert_memory_requirements(){
 /**************************** Algorithmic tuning ******************************/
 
 void ATC::select_algo(){
-	if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) 
+	if (strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) 
 		error("ATC::select_algo: was called with OUTPUT_ALGO_MODE(%s) != ALGO_AUTO\n", OUTPUT_ALGO_MODE);
 	if (A_loc == C_loc || B_loc == C_loc) OUTPUT_ALGO_MODE = "ALGO_WR_LAZY";
 	else OUTPUT_ALGO_MODE = "ALGO_WR";
+#ifndef PRODUCTION
+	fprintf(stderr, "Selected OUTPUT_ALGO_MODE = %s for problem with [A,B,C,D]_{loc} = [%d,%d,%d,%d]\n", 
+		OUTPUT_ALGO_MODE, A_loc, B_loc, C_loc, D_loc);
+#endif
 }
 
 /**************************** Helper Fuctions *********************************/

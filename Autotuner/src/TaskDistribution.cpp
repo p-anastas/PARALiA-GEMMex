@@ -8,74 +8,6 @@
 
 #include <cmath>
 
-void DistributeCompTasksRoundRobin(ATC_p autotune_controller){
-#ifdef DEBUG
-  	fprintf(stderr, "|-----> DistributeCompTasksRoundRobin(%p)\n", autotune_controller);
-#endif
-	error("PARALiA 3.0 does not support W-tile cimputation in multiple devices, use DistributeCompTasksRoundRobinChunk with Chunk = D3GridSz\n");
-	if (autotune_controller->comp_task_num < autotune_controller->active_unit_num){
-		int pred_active_unit_num = autotune_controller->active_unit_num;
-		autotune_controller->active_unit_num = autotune_controller->comp_task_num;
-		warning("DistributeCompTasksRoundRobin: Problem with predicted active_unit_num(%d) < comp_task_num(%ld) will be run with active_unit_num = %d\n",
-			pred_active_unit_num, autotune_controller->comp_task_num, autotune_controller->active_unit_num);
-		for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
-			autotune_controller->comp_task_per_unit_num[d] = 1;
-			autotune_controller->comp_task_unit_list[d] = autotune_controller->active_unit_id_list[d];
-		}
-  	}
-	else{
-		int rem_dev = autotune_controller->comp_task_num;
-		for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
-			autotune_controller->comp_task_per_unit_num[d] =
-				(int) (1.0* autotune_controller->active_unit_score[d]* autotune_controller->comp_task_num);
-			rem_dev-= autotune_controller->comp_task_per_unit_num[d];
-		}
-		while(rem_dev!= 0){
-			for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
-				if(rem_dev!= 0){
-					autotune_controller->comp_task_per_unit_num[d] += 1;
-					rem_dev--;
-				}
-				else break;
-			}
-		}
-	int total_sk_ctr = 0;
-	short dev_sk_ctr_list[autotune_controller->active_unit_num];
-	for(int devidx = 0; devidx < autotune_controller->active_unit_num; devidx++) dev_sk_ctr_list[devidx] = 0;
-	while(total_sk_ctr<autotune_controller->comp_task_num){
-		for(int devidx = 0; devidx < autotune_controller->active_unit_num; devidx++){
-			if(total_sk_ctr == autotune_controller->comp_task_num) break;
-			else if(dev_sk_ctr_list[devidx] == autotune_controller->comp_task_per_unit_num[devidx]) continue;
-			else{
-				autotune_controller->comp_task_unit_list[total_sk_ctr] = devidx;
-				dev_sk_ctr_list[devidx]++;
-				total_sk_ctr++;
-			}
-		}
-	}
-  }
-#ifdef PDEBUG
-	fprintf(stderr, "DistributeCompTasksRoundRobin:\nDistributing %ld Tasks to %d devices\n",
-		autotune_controller->comp_task_num, autotune_controller->active_unit_num);
-	fprintf(stderr, "Device Ids : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", 
-		autotune_controller->active_unit_id_list[i]);
-	fprintf(stderr, "]\n");
-	fprintf(stderr, "Subker Num : [ ");
-	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%ld ", 
-		autotune_controller->comp_task_per_unit_num[i]);
-	fprintf(stderr, "]\n");
-	fprintf(stderr, "Subker Id list: [ ");
-	for (long int i =0; i < autotune_controller->comp_task_num; i++)
- 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_list[i]);
-	fprintf(stderr, "]\n");
-#endif
-#ifdef DEBUG
-	fprintf(stderr, "<-----|\n");
-#endif
-}
-
-
 void DistributeCompTasksRoundRobinChunk(ATC_p autotune_controller,  int Chunk_size){
 #ifdef DEBUG
   	fprintf(stderr, "|-----> DistributeCompTasksRoundRobinChunk(%p, %d)\n", autotune_controller, Chunk_size);
@@ -279,6 +211,75 @@ void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, i
 
 }
 /* 
+
+
+void DistributeCompTasksRoundRobin(ATC_p autotune_controller){
+#ifdef DEBUG
+  	fprintf(stderr, "|-----> DistributeCompTasksRoundRobin(%p)\n", autotune_controller);
+#endif
+	error("PARALiA 3.0 does not support W-tile cimputation in multiple devices, use DistributeCompTasksRoundRobinChunk with Chunk = D3GridSz\n");
+	if (autotune_controller->comp_task_num < autotune_controller->active_unit_num){
+		int pred_active_unit_num = autotune_controller->active_unit_num;
+		autotune_controller->active_unit_num = autotune_controller->comp_task_num;
+		warning("DistributeCompTasksRoundRobin: Problem with predicted active_unit_num(%d) < comp_task_num(%ld) will be run with active_unit_num = %d\n",
+			pred_active_unit_num, autotune_controller->comp_task_num, autotune_controller->active_unit_num);
+		for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
+			autotune_controller->comp_task_per_unit_num[d] = 1;
+			autotune_controller->comp_task_unit_list[d] = autotune_controller->active_unit_id_list[d];
+		}
+  	}
+	else{
+		int rem_dev = autotune_controller->comp_task_num;
+		for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
+			autotune_controller->comp_task_per_unit_num[d] =
+				(int) (1.0* autotune_controller->active_unit_score[d]* autotune_controller->comp_task_num);
+			rem_dev-= autotune_controller->comp_task_per_unit_num[d];
+		}
+		while(rem_dev!= 0){
+			for (int d = 0 ; d < autotune_controller->active_unit_num; d++){
+				if(rem_dev!= 0){
+					autotune_controller->comp_task_per_unit_num[d] += 1;
+					rem_dev--;
+				}
+				else break;
+			}
+		}
+	int total_sk_ctr = 0;
+	short dev_sk_ctr_list[autotune_controller->active_unit_num];
+	for(int devidx = 0; devidx < autotune_controller->active_unit_num; devidx++) dev_sk_ctr_list[devidx] = 0;
+	while(total_sk_ctr<autotune_controller->comp_task_num){
+		for(int devidx = 0; devidx < autotune_controller->active_unit_num; devidx++){
+			if(total_sk_ctr == autotune_controller->comp_task_num) break;
+			else if(dev_sk_ctr_list[devidx] == autotune_controller->comp_task_per_unit_num[devidx]) continue;
+			else{
+				autotune_controller->comp_task_unit_list[total_sk_ctr] = devidx;
+				dev_sk_ctr_list[devidx]++;
+				total_sk_ctr++;
+			}
+		}
+	}
+  }
+#ifdef PDEBUG
+	fprintf(stderr, "DistributeCompTasksRoundRobin:\nDistributing %ld Tasks to %d devices\n",
+		autotune_controller->comp_task_num, autotune_controller->active_unit_num);
+	fprintf(stderr, "Device Ids : [ ");
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%d ", 
+		autotune_controller->active_unit_id_list[i]);
+	fprintf(stderr, "]\n");
+	fprintf(stderr, "Subker Num : [ ");
+	for (int i =0; i < autotune_controller->active_unit_num; i++) fprintf(stderr, "%ld ", 
+		autotune_controller->comp_task_per_unit_num[i]);
+	fprintf(stderr, "]\n");
+	fprintf(stderr, "Subker Id list: [ ");
+	for (long int i =0; i < autotune_controller->comp_task_num; i++)
+ 		fprintf(stderr, "%d ", autotune_controller->comp_task_unit_list[i]);
+	fprintf(stderr, "]\n");
+#endif
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+}
+
 /// Previous version, created for D1_parts >= D2_parts and row-wise split priority. Div/mods don't work well for reverse layout.
 void DistributeCompTasks2DBlockCyclic(ATC_p autotune_controller, int D1GridSz, int D2GridSz, int D3GridSz){
 #ifdef DEBUG
