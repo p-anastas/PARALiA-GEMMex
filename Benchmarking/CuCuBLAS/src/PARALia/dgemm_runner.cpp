@@ -55,9 +55,9 @@ int main(const int argc, const char *argv[]) {
 	A = (double*) CHLMalloc(M * K*sizeof(double), A_loc, 0);
 	B = (double*) CHLMalloc(N * K*sizeof(double), B_loc, 0);
 	C = (double*) CHLMalloc(M * N*sizeof(double), C_loc, 1);
-	//if(A_loc >= CHL_WORKERS) CHLTouche(A, M*K, sizeof(double));
- 	//if(B_loc >= CHL_WORKERS) CHLTouche(B, N*K, sizeof(double));
- 	//if(C_loc >= CHL_WORKERS) CHLTouche(C, M*N, sizeof(double));
+	if(A_loc == CHL_WORKERS) CHLTouche(A, M*K, sizeof(double));
+ 	if(B_loc == CHL_WORKERS) CHLTouche(B, N*K, sizeof(double));
+	if(C_loc == CHL_WORKERS) CHLTouche(C, M*N, sizeof(double));
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 	fprintf(stderr, "Done: Alloc time:\t%lf ms\n\n",  cpu_timer  * 1000);

@@ -55,9 +55,7 @@ double cuBLASXtDgemmWrap(char TransA, char TransB, long int M, long int N, long 
 		assert(CUBLAS_STATUS_SUCCESS == cublasXtSetBlockDim(handle0, T));
 		assert(CUBLAS_STATUS_SUCCESS == cublasXtSetCpuRoutine(handle0, CUBLASXT_GEMM, CUBLASXT_DOUBLE, (void*) &cblas_dgemm_wrap_for_cublasXt));
 		assert(CUBLAS_STATUS_SUCCESS == cublasXtSetCpuRatio(handle0, CUBLASXT_GEMM, CUBLASXT_DOUBLE, cpu_ratio));
-		assert(CUBLAS_STATUS_SUCCESS == cublasXtSetPinningMemMode(handle0, CUBLASXT_PINNING_ENABLED));
-		for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
-
+		//assert(CUBLAS_STATUS_SUCCESS == cublasXtSetPinningMemMode(handle0, CUBLASXT_PINNING_ENABLED));
 	}
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -65,7 +63,7 @@ double cuBLASXtDgemmWrap(char TransA, char TransB, long int M, long int N, long 
     	cpu_timer = csecond();
 #endif
 	assert(CUBLAS_STATUS_SUCCESS == cublasXtDgemm(handle0, gpu_op_A, gpu_op_B, M, N, K, &alpha, A, ldA, B, ldB, &beta, C, ldC));
-	CHLSyncCheckErr();
+	//CHLSyncCheckErr();
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	lprintf(lvl, "cuBLASXt execution time -> t_kernel = %lf ms\n", cpu_timer*1000);
