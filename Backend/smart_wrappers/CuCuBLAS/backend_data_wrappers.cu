@@ -105,7 +105,7 @@ void* CHLMalloc(long long bytes, int loc, short W_flag){
 #endif
 		ptr = pin_malloc(bytes, W_flag);		
 	}
-	else if (loc > CHL_WORKERS) {
+	else if (loc > CHL_WORKERS && loc < CHL_MEMLOCS) {
 //#ifdef CLDEBUG
 		warning("Allocating %lld bytes to NUM MEM %d [%s]...\n", bytes, loc, mem_name(loc));
 //#endif
