@@ -416,7 +416,7 @@ double ATC::autotune_problem(const  char* problem_name_in, int A_loc_in, int B_l
 		if (comp_task_num/active_unit_num > MAX_DESIRED_SK_DEV){
 			sl_too_many_tasks = (1.0*comp_task_num/active_unit_num/MAX_DESIRED_SK_DEV)*MAX_DESIRED_SK_DEV_SLOWDOWN;
 			warning("ATC::optimize_tile -> T = %ld: C4 (SK_DEV <= %d) was not satisfied, estimated sl = %lf\n", 
-				T, MIN_DESIRED_SK_DEV, sl_too_many_tasks);
+				T, MAX_DESIRED_SK_DEV, sl_too_many_tasks);
 		}
 		fprintf(stderr, "ATC::optimize_tile -> T = %ld: estimated sl from overlap = %lf\n", 
 			T, T_sknum_sl - sl_too_many_tasks);

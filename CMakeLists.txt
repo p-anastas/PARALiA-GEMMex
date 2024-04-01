@@ -114,12 +114,11 @@ add_definitions(-DAPPLY_TILE_SL_TO_WORKLOAD_SPLIT)
 ## 3: T-min: Tile should be >= than a preset value
 add_definitions(-DTILE_MIN=2048)
 add_definitions(-DTILE_MIN_SLOWDOWN=0.2)
-## 4: SK-num: subkernels per device must be >= MIN_DESIRED_SK_DEV
-add_definitions(-DMIN_DESIRED_SK_DEV=64)
-add_definitions(-DMAX_DESIRED_SK_DEV=512)
+## 4: SK-num: subkernels per device must be <= MAX_DESIRED_SK_DEV
+add_definitions(-DMAX_DESIRED_SK_DEV=256)
 add_definitions(-DMAX_DESIRED_SK_DEV_SLOWDOWN=0.1)
 ## 5: T-max: Tile should be <= than a preset value
-add_definitions(-DTILE_MAX=4096)
+add_definitions(-DTILE_MAX=8192)
 add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
 
 ###########################################################################################
