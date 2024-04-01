@@ -462,15 +462,15 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 	if(N%candidate_T) slowdown[2] += 1.0/(N/candidate_T);
 	if(K%candidate_T) slowdown[2] += 1.0/(K/candidate_T);
 	// Condition 3
-	if(candidate_T < TILE_MIN) slowdown[3]+= 1.0*TILE_MIN/candidate_T*TILE_MIN_SLOWDOWN;
+	if(candidate_T < TILE_MIN) slowdown[3]+= 1.0*(TILE_MIN/candidate_T)*TILE_MIN_SLOWDOWN;
 	// Condition 4.1
 	long int dev_sks = (1.0*sk_num)/active_unit_num; 
-	slowdown[4]+= 2.0/(dev_sks); // This slowdown like this removes the need for MIN_DESIRED_SK_DEV
+	slowdown[4] += 2.0/(dev_sks); // This slowdown like this removes the need for MIN_DESIRED_SK_DEV
 	//if(dev_sks < MIN_DESIRED_SK_DEV) slowdown+= 1/dev_sks;
 	// Condition 4.2
 	if(dev_sks > MAX_DESIRED_SK_DEV) slowdown[4]+= (1.0*dev_sks/MAX_DESIRED_SK_DEV)*MAX_DESIRED_SK_DEV_SLOWDOWN;
 	// Condition 5
-	if(candidate_T > TILE_MAX) slowdown[5]+=candidate_T/TILE_MAX*TILE_MAX_SLOWDOWN;
+	if(candidate_T > TILE_MAX) slowdown[5]+= 1.0*candidate_T/TILE_MAX*TILE_MAX_SLOWDOWN;
 	slowdown[0] = slowdown[1] + slowdown[2] + slowdown[3] + slowdown[4]  + slowdown[5];
 #ifdef DPDEBUG
 	fprintf(stderr,  "====================================\n");
@@ -479,7 +479,6 @@ void ATC::get_T_slowdowns(double* slowdown, int candidate_T){
 #endif
 	return;
 }
-
 
 void ATC::set_prediction_values(double pred_t_in){
 	pred_t = pred_t_in;
