@@ -250,7 +250,7 @@ void cublas_wrap_sgemm(void* backend_data, void* queue_wrap_p){
   //CHLSelectDevice(ptr_ker_translate->dev_id);
   cublasHandle_t temp_handle = *((cublasHandle_t*)((CQueue_p)queue_wrap_p)->backend_comp_md);
 #ifdef DEBUG
-  fprintf(stderr,"cublas_wrap_dgemm: cublasSgemm(temp_handle = %p, dev_id = %d, TransA = %c, TransB = %c,\
+  fprintf(stderr,"cublas_wrap_sgemm: cublasSgemm(temp_handle = %p, dev_id = %d, TransA = %c, TransB = %c,\
     M = %d, N = %d, K = %d, alpha = %f, A = %p, lda = %d, \n\
     B = %p, ldb = %d, beta = %f, C = %p, ldC = %d)\n",
     temp_handle, ptr_ker_translate->dev_id, ptr_ker_translate->TransA, ptr_ker_translate->TransB,
@@ -266,5 +266,5 @@ void cublas_wrap_sgemm(void* backend_data, void* queue_wrap_p){
     (float*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
     (float*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
     ((float*) ptr_ker_translate->beta), (float*) *ptr_ker_translate->C, ptr_ker_translate->ldC),
-    "cublas_wrap_dgemm: cublasSgemm failed\n");
+    "cublas_wrap_sgemm: cublasSgemm failed\n");
 }

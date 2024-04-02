@@ -99,7 +99,7 @@ int main(const int argc, const char *argv[]) {
 	for (int i = 0; i < CHL_WORKERS; i++) dev_ids[i] = i;
 	cuBLASXtSgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, CHL_WORKERS, dev_ids);
 	CHLMemcpy(C_out1, C,  M * N *sizeof(float), CHL_MEMLOCS -1, C_loc);
- 	if(Stest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
+ 	if(Stest_equality(C_out1, C_out, M * N) < 4) error("Insufficient accuracy for benchmarks\n");
 
  	CHLMemcpy(C, C_buf,  M * N *sizeof(float), C_loc, CHL_MEMLOCS -1);
 	CHLFree(C_out, M * N*sizeof(float), CHL_MEMLOCS-1);

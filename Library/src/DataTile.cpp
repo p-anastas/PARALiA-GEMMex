@@ -352,7 +352,10 @@ void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 	/// Wait for WR tile fetch to be complete
     exec_queue[W_op_dev_id][W_op_queue_ctr]->wait_for_event(temp_block->Available);
 	/// Perform  C = reduce_mult * C' + C (axpy) at the compute location for this tile (W_op_dev_id)
-    exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Daxpy", W_op_dev_id);
+    if (dtype == DOUBLE)
+		exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Daxpy", W_op_dev_id);
+	else if (dtype == FLOAT)
+		exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Saxpy", W_op_dev_id);
 	if(conserve_memory_curr){
 		CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
 		CBlock_unwraped->CBlock = backup_C;
@@ -394,8 +397,10 @@ void Tile2D::WReduce_combine(){
     WB_exec_queue->wait_for_event(W_wb_complete);
 
 	/// Perform  C = 1.0 * C' + reduce_mult * C (axpby) at the initial data location for this tile (W_init_loc)
-	WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", W_init_loc);
-
+    if (dtype == DOUBLE)
+		WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", W_init_loc);
+	else if (dtype == FLOAT)
+		WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Sslaxpby", W_init_loc);
 	W_ready->record_to_queue(WB_exec_queue);
 
 }

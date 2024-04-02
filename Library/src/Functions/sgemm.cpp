@@ -105,7 +105,8 @@ void CreateTasksSgemm(PMD_p local_PMD){
 				ptr_ker_translate->C = NULL;
 				ptr_ker_translate->alpha = initial_sgemm->alpha;
 				if (!ki){
-					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
+					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP)
+						set_val(C_tile->dtype, &ptr_ker_translate->beta, 0);
 					else ptr_ker_translate->beta = initial_sgemm->beta;
 				}
 				else set_val(C_tile->dtype, &ptr_ker_translate->beta, 1.0);
