@@ -212,7 +212,7 @@ long Decomposer::get_mem_size(){
 }
 
 long Decom2D::get_mem_size(){
-    return dim2*ldim*dtypesize();
+    return ((long)dim2)*ldim*dtypesize();
 }
 
 void Decomposer::set_chunk_size(long value){

@@ -48,8 +48,7 @@ typedef class Decomposer
 	void DrawTileMap();
 
 	// Backend Functions
-	void prepareAsync(pthread_t* thread_id,
-		pthread_attr_t attr);
+	void prepareAsync();
 	void resetProperties();
 }* Decomposer_p;
 

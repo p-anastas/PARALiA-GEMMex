@@ -12,7 +12,7 @@
 #include "Resource_manager.hpp"
 #include "DataCaching.hpp"
 
-#include <pthread.h>
+//#include <pthread.h>
 
 ATC_p predef_controller_dgemm = NULL;
 
@@ -255,10 +255,6 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	initial_dgemm->ldC = ldC;
 	initial_dgemm->dev_id = -1;
 
-	pthread_attr_t attr;
-	int s = pthread_attr_init(&attr);
-	if (s != 0) error("PARALiADgemm: pthread_attr_init failed s=%d\n", s);
-	void* res;
 	double autotune_timer = 0;
 	long int T; 
 	int remaining_tasks = 0;
@@ -270,10 +266,9 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->decom[1] = new Decom2D( (void*) B, K, N, ldB, TransB, DOUBLE);
 		local_PMD->decom[2] = new Decom2D( (void*) C, M, N, ldC, 'N', DOUBLE);
 
-		pthread_t asset_thread_id[3];
-		local_PMD->decom[0]->prepareAsync(&asset_thread_id[0], attr);
-		local_PMD->decom[1]->prepareAsync(&asset_thread_id[1], attr);
-		local_PMD->decom[2]->prepareAsync(&asset_thread_id[2], attr);
+		local_PMD->decom[0]->prepareAsync();
+		local_PMD->decom[1]->prepareAsync();
+		local_PMD->decom[2]->prepareAsync();
 
 		local_PMD->autotuner = new ATC();
 		if (predef_controller_dgemm && local_PMD->autotuner->diff_intialized_params_ATC(predef_controller_dgemm))
@@ -284,15 +279,10 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 
 		for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
 
-		for(int i=0; i<3;i++){
-			s = pthread_join(asset_thread_id[i], &res);
-			if (s != 0) error("PARALiADgemm: pthread_join failed with exit value %d", s);
-			//free(res);      /* Free memory allocated by thread */
-		}
 		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) local_PMD->autotuner->select_algo();
 #ifdef TEST
 		cpu_timer = csecond() - cpu_timer;
-		fprintf(stderr, "Preparing decomposers (parallel with pthreads) -> t_prep = %lf ms\n", cpu_timer*1000);
+		fprintf(stderr, "Preparing decomposers -> t_prep = %lf ms\n", cpu_timer*1000);
 		cpu_timer = csecond();
 #endif
 		for (int i = 0; i < CHL_MEMLOCS; i++) current_SAB[i] = NULL;
