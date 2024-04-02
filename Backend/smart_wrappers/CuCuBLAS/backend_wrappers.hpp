@@ -118,6 +118,7 @@ void cublas_wrap_dgemv(void* backend_data, void* queue_wrap_p);
 
 void cublas_wrap_dgemm(void* backend_data, void* queue_wrap_p);
 void cublas_wrap_sgemm(void* backend_data, void* queue_wrap_p);
+void cublas_wrap_hgemm(void* backend_data, void* queue_wrap_p);
 
 void cblas_wrap_ddot(void* backend_data);
 void cblas_wrap_daxpy(void* backend_data);
@@ -134,5 +135,6 @@ void cblas_wrap_sgemm(void* backend_data);
 //void custom_avx2_cpu_wrap_dslaxpby(void* backend_data);
 
 void custom_gpu_wrap_dslaxpby(void* backend_data, CQueue_p run_queue);
+void custom_gpu_wrap_haxpy(void* backend_data, CQueue_p run_queue);
 
 #endif

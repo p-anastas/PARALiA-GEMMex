@@ -6,6 +6,7 @@
 
 #include "chl_smart_wrappers.hpp"
 #include <omp.h>
+#include <cuda_fp16.h>
 
 template<typename VALUETYPE>
 void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed)
@@ -17,6 +18,7 @@ void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed)
 
 template void CHLParallelVecInitHost<double>(double *vec, long long length, int seed);
 template void CHLParallelVecInitHost<float>(float *vec, long long length, int seed);
+template void CHLParallelVecInitHost<__half>(__half *vec, long long length, int seed);
 
 long PAGE_sz = sysconf(_SC_PAGE_SIZE);
 
@@ -42,3 +44,5 @@ void CHLTouche(VALUETYPE *vec, long long vec_length, int vec_elemSize)
 
 template void CHLTouche<double>(double *vec, long long vec_length, int vec_elemSize);
 template void CHLTouche<float>(float *vec, long long vec_length, int vec_elemSize);
+template void CHLTouche<__half>(__half *vec, long long vec_length, int vec_elemSize);
+

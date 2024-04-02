@@ -197,7 +197,6 @@ void cublas_wrap_saxpy(void* backend_data, void* queue_wrap_p){
     (float*) *ptr_ker_translate->y, ptr_ker_translate->incy);
 }
 
-
 void cublas_wrap_daxpby(void* backend_data, void* queue_wrap_p){
   axpby_backend_in* ptr_ker_translate = (axpby_backend_in*) backend_data;
   //CHLSelectDevice(ptr_ker_translate->dev_id);
@@ -266,5 +265,29 @@ void cublas_wrap_sgemm(void* backend_data, void* queue_wrap_p){
     (float*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
     (float*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
     ((float*) ptr_ker_translate->beta), (float*) *ptr_ker_translate->C, ptr_ker_translate->ldC),
+    "cublas_wrap_sgemm: cublasSgemm failed\n");
+}
+
+void cublas_wrap_hgemm(void* backend_data, void* queue_wrap_p){
+  gemm_backend_in* ptr_ker_translate = (gemm_backend_in*) backend_data;
+  //CHLSelectDevice(ptr_ker_translate->dev_id);
+  cublasHandle_t temp_handle = *((cublasHandle_t*)((CQueue_p)queue_wrap_p)->backend_comp_md);
+#ifdef DEBUG
+  fprintf(stderr,"cublas_wrap_sgemm: cublasHgemm(temp_handle = %p, dev_id = %d, TransA = %c, TransB = %c,\
+    M = %d, N = %d, K = %d, alpha = %f, A = %p, lda = %d, \n\
+    B = %p, ldb = %d, beta = %f, C = %p, ldC = %d)\n",
+    temp_handle, ptr_ker_translate->dev_id, ptr_ker_translate->TransA, ptr_ker_translate->TransB,
+    ptr_ker_translate->M, ptr_ker_translate->N, ptr_ker_translate->K, *((__half*) ptr_ker_translate->alpha),
+    (__half*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
+    (__half*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
+    *((__half*) ptr_ker_translate->beta), (__half*) *ptr_ker_translate->C, ptr_ker_translate->ldC);
+#endif
+
+  massert(CUBLAS_STATUS_SUCCESS == cublasHgemm(temp_handle,
+    OpCharToCublas(ptr_ker_translate->TransA), OpCharToCublas(ptr_ker_translate->TransB),
+    ptr_ker_translate->M, ptr_ker_translate->N, ptr_ker_translate->K, ((__half*) ptr_ker_translate->alpha),
+    (__half*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
+    (__half*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
+    ((__half*) ptr_ker_translate->beta), (__half*) *ptr_ker_translate->C, ptr_ker_translate->ldC),
     "cublas_wrap_sgemm: cublasSgemm failed\n");
 }

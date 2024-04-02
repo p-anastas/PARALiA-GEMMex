@@ -283,6 +283,8 @@ void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc)
 	else if (typeid(VALUETYPE) == typeid(double))
 	  massert(curandGenerateUniformDouble(gen, (double*) vec, length) == cudaSuccess,
             cudaGetErrorString(cudaGetLastError()));
+	else if (typeid(VALUETYPE) == typeid(__half)) ;
+
 	CHLSyncCheckErr();
     	if (prev_loc != loc){
 		//warning("CHLVecInit: Reseting device to previous: %d\n", prev_loc);
@@ -294,6 +296,7 @@ void CHLVecInit(VALUETYPE *vec, long long length, int seed, int loc)
 
 template void CHLVecInit<double>(double *vec, long long length, int seed, int loc);
 template void CHLVecInit<float>(float *vec, long long length, int seed, int loc);
+template void CHLVecInit<__half>(__half *vec, long long length, int seed, int loc);
 
 long int CHLGetMaxDimSqAsset2D(int Asset2DNum, int dsize, long int step, int loc){
 	long long int free_mem, max_mem;

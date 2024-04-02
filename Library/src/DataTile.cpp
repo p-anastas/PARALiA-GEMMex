@@ -19,6 +19,10 @@ void set_val(dtype_enum dtype, void** wrap_ptr, double value){
 		*wrap_ptr = malloc(sizeof(float));
 		*((float*) *wrap_ptr) = (float) value; 
 	}
+	else if(dtype == HALF){
+		*wrap_ptr = malloc(sizeof(__half));
+		*((__half*) *wrap_ptr) = (__half) value; 
+	}
 	else error("set_val: Unsupported dtype %d\n", dtype);
 }
 
@@ -27,6 +31,7 @@ void set_val(dtype_enum dtype, void** wrap_ptr, double value){
 int Tile2D::get_dtype_size() {
     if (dtype == DOUBLE) return sizeof(double);
     else if (dtype == FLOAT) return sizeof(float);
+    else if (dtype == HALF) return sizeof(__half);
     else error("dtypesize: Unknown type");
     return -1;
 }
@@ -356,6 +361,8 @@ void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 		exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Daxpy", W_op_dev_id);
 	else if (dtype == FLOAT)
 		exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Saxpy", W_op_dev_id);
+	else if (dtype == HALF)
+		exec_queue[W_op_dev_id][W_op_queue_ctr]->run_operation(backend_axpy_wrapper, "Haxpy", W_op_dev_id);
 	if(conserve_memory_curr){
 		CBlock_wrap_p CBlock_unwraped = (CBlock_wrap_p) malloc(sizeof(CBlock_wrap));
 		CBlock_unwraped->CBlock = backup_C;
@@ -401,6 +408,7 @@ void Tile2D::WReduce_combine(){
 		WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Dslaxpby", W_init_loc);
 	else if (dtype == FLOAT)
 		WB_exec_queue->run_operation(backend_slaxpby_wrapper, "Sslaxpby", W_init_loc);
+	else error("WReduce_combine does not support dtype = %d\n", dtype);
 	W_ready->record_to_queue(WB_exec_queue);
 
 }

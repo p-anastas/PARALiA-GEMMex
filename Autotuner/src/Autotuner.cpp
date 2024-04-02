@@ -980,7 +980,7 @@ void ATC::assert_memory_requirements(){
 	int A_blocks_total = Grid_M * Grid_K,
 		B_blocks_total = Grid_N * Grid_K,
 		C_blocks_total = Grid_M * Grid_N;
-	Block_sz = T*T*sizeof(double);
+	Block_sz = T*T*elemSize;
 	int host_in_locs = 0;
 	for(int loc = CHL_WORKERS; loc < CHL_MEMLOCS; loc++) if(is_in_list(loc, active_memlocs, 
 			active_memloc_num)) host_in_locs = 1;

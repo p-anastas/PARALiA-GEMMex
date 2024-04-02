@@ -11,7 +11,8 @@
 
 enum dtype_enum{
 		DOUBLE,
-		FLOAT
+		FLOAT,
+        HALF
 };
 
 enum WR_properties{

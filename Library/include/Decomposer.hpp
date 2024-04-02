@@ -43,6 +43,7 @@ typedef class Decomposer
 	int dtypesize() {
 			if (dtype == DOUBLE) return sizeof(double);
 			else if (dtype == FLOAT) return sizeof(float);
+			else if (dtype == HALF) return sizeof(__half);
 			else error("dtypesize: Unknown type"); return 0;}
 	int size() { return dtypesize()*dim1*dim2; }
 	void DrawTileMap();
