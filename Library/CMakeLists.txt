@@ -26,6 +26,7 @@ ${LIBSC_DIR_SRC}/DataTile.cpp
 ${LIBSC_DIR_SRC}/Decomposer.cpp
 ${LIBSC_DIR_SRC}/Resource_manager.cpp
 ${LIBSC_DIR_SRC}/Functions/dgemm.cpp
+${LIBSC_DIR_SRC}/Functions/sgemm.cpp
 ${LIBSC_DIR}/${BACKEND}/Decom_backend.cpp
 )
 

@@ -14,11 +14,12 @@
 
 int main(const int argc, const char *argv[]) {
 	char TransA, TransB;
-  	double alpha, beta;
+  	double alpha_in, beta_in;
 	long int M, N, K;
 	int A_loc, B_loc, C_loc, C_out_loc;
 	ATC_p predef_control_values = NULL, return_values = NULL;
-	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha, &beta, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
+	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha_in, &beta_in, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
+  	float alpha = alpha_in, beta = beta_in;
 
 	char *filename = (char *) malloc(1024* sizeof(char));
 	if (predef_control_values!= NULL){
@@ -28,10 +29,10 @@ int main(const int argc, const char *argv[]) {
 			else if (predef_control_values->T > M/1.5 && predef_control_values->T > N/1.5 && predef_control_values->T > K/1.5)
 				warning("Given Tin=%ld bigger than all problem dims/1.5\n", predef_control_values->T);
 		}
-		sprintf(filename, "%s/dgemm_runner_predefined_vals_%s_%s.log",
+		sprintf(filename, "%s/sgemm_runner_predefined_vals_%s_%s.log",
 			TESTLIBDIR, CoCoImplementationPrint(), VERSION);
 	}
-	else sprintf(filename, "%s/dgemm_runner_%s_%s.log",
+	else sprintf(filename, "%s/sgemm_runner_%s_%s.log",
 		TESTLIBDIR, CoCoImplementationPrint(), VERSION);
 #ifdef CHECKLOG
 	CheckLogLvl3(filename, predef_control_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc);
@@ -50,14 +51,14 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, "\nAllocating memory...\n");
 	//for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
 
-	double *A, *B, *C;
+	float *A, *B, *C;
 	// allocate in device if loc = 0, otherwise allocate in pinned memory for benchmarks
-	A = (double*) CHLMalloc(M * K*sizeof(double), A_loc, 0);
-	B = (double*) CHLMalloc(N * K*sizeof(double), B_loc, 0);
-	C = (double*) CHLMalloc(M * N*sizeof(double), C_loc, 1);
-	if(A_loc == -2 || A_loc == CHL_WORKERS) CHLTouche(A, M*K, sizeof(double));
- 	if(B_loc == -2 || B_loc == CHL_WORKERS) CHLTouche(B, N*K, sizeof(double));
-	if(C_loc == -2 || C_loc == CHL_WORKERS) CHLTouche(C, M*N, sizeof(double));
+	A = (float*) CHLMalloc(M * K*sizeof(float), A_loc, 0);
+	B = (float*) CHLMalloc(N * K*sizeof(float), B_loc, 0);
+	C = (float*) CHLMalloc(M * N*sizeof(float), C_loc, 1);
+	if(A_loc == CHL_WORKERS) CHLTouche(A, M*K, sizeof(float));
+ 	if(B_loc == CHL_WORKERS) CHLTouche(B, N*K, sizeof(float));
+	if(C_loc == CHL_WORKERS) CHLTouche(C, M*N, sizeof(float));
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 	fprintf(stderr, "Done: Alloc time:\t%lf ms\n\n",  cpu_timer  * 1000);
@@ -71,44 +72,44 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, "done.\nInit time:\t%lf ms\n\n",  cpu_timer  * 1000);
 
 #ifdef RUNVALIDATION
-	double *C_out, *C_out1, *C_buf;
-	C_out  = (double*) CHLMalloc(M * N*sizeof(double), CHL_MEMLOCS-1, 1);
-	C_out1  = (double*) CHLMalloc(M * N*sizeof(double), CHL_MEMLOCS-1, 1);
-	C_buf  = (double*) CHLMalloc(M * N*sizeof(double), CHL_MEMLOCS-1, 1);
+	float *C_out, *C_out1, *C_buf;
+	C_out  = (float*) CHLMalloc(M * N*sizeof(float), CHL_MEMLOCS-1, 1);
+	C_out1  = (float*) CHLMalloc(M * N*sizeof(float), CHL_MEMLOCS-1, 1);
+	C_buf  = (float*) CHLMalloc(M * N*sizeof(float), CHL_MEMLOCS-1, 1);
 
-	CHLMemcpy(C_buf, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
+	CHLMemcpy(C_buf, C,  M * N *sizeof(float), CHL_MEMLOCS -1, C_loc);
 
 	// Call for Validate start
-	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	if (predef_control_values!= NULL) return_values = PARALiASgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
+	else return_values = PARALiASgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
-	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
+	CHLMemcpy(C, C_buf,  M * N *sizeof(float), C_loc, CHL_MEMLOCS -1);
 
 	// Call for Validate reuse
-	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	if (predef_control_values!= NULL) return_values = PARALiASgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
+	else return_values = PARALiASgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
 	for (int i = 0; i< CHL_MEMLOCS; i++) PARALiADevCacheFree(i);
 
- 	CHLMemcpy(C_out, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
- 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
+ 	CHLMemcpy(C_out, C,  M * N *sizeof(float), CHL_MEMLOCS -1, C_loc);
+ 	CHLMemcpy(C, C_buf,  M * N *sizeof(float), C_loc, CHL_MEMLOCS -1);
 
 	// Validate with cuBLASXt (questionable but CPU validation can be slower by at least a factor)
 	int dev_ids[CHL_WORKERS];
 	for (int i = 0; i < CHL_WORKERS; i++) dev_ids[i] = i;
-	cuBLASXtDgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, CHL_WORKERS, dev_ids);
-	CHLMemcpy(C_out1, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
- 	if(Dtest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
+	cuBLASXtSgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, CHL_WORKERS, dev_ids);
+	CHLMemcpy(C_out1, C,  M * N *sizeof(float), CHL_MEMLOCS -1, C_loc);
+ 	if(Stest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
 
- 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
-	CHLFree(C_out, M * N*sizeof(double), CHL_MEMLOCS-1);
-	CHLFree(C_out1, M * N*sizeof(double), CHL_MEMLOCS-1);
-	CHLFree(C_buf, M * N*sizeof(double), CHL_MEMLOCS-1);
+ 	CHLMemcpy(C, C_buf,  M * N *sizeof(float), C_loc, CHL_MEMLOCS -1);
+	CHLFree(C_out, M * N*sizeof(float), CHL_MEMLOCS-1);
+	CHLFree(C_out1, M * N*sizeof(float), CHL_MEMLOCS-1);
+	CHLFree(C_buf, M * N*sizeof(float), CHL_MEMLOCS-1);
 #endif
 
 	cpu_timer = csecond();
-	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	if (predef_control_values!= NULL) return_values = PARALiASgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
+	else return_values = PARALiASgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 
@@ -123,8 +124,8 @@ int main(const int argc, const char *argv[]) {
 	int warmup_bench_it = 10;
 	if ( M >= 20000 && N >= 20000 && K >= 20000) warmup_bench_it = 2;
 	for(int it = 0; it < warmup_bench_it; it++){
-		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+		if (predef_control_values!= NULL) return_values = PARALiASgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
+		else return_values = PARALiASgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	}
 	CHLSyncCheckErr();
 
@@ -135,8 +136,8 @@ int main(const int argc, const char *argv[]) {
 	bench_it = 10;
 	for(int it = 0; it < bench_it; it++){
 		cpu_timer = csecond();
-		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+		if (predef_control_values!= NULL) return_values = PARALiASgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
+		else return_values = PARALiASgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 		CHLSyncCheckErr();
 		cpu_timer = csecond() - cpu_timer;
 		StoreLogLvl3(filename, return_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc, cpu_timer, return_values->pred_t, return_values->pred_J);
@@ -145,7 +146,7 @@ int main(const int argc, const char *argv[]) {
 		avg_t += cpu_timer;
 	}
 	avg_t/=bench_it;
-	fprintf(stderr, "dgemm_runner (%s):\n\tfirst_it_t = %lf ms ( %lf Gflops/s )\n\tavg_t = %lf ms ( %lf Gflops/s )\n\tmin_t = %lf ms ( %lf Gflops/s )\n\tmax_t = %lf ms ( %lf Gflops/s )\n",
+	fprintf(stderr, "sgemm_runner (%s):\n\tfirst_it_t = %lf ms ( %lf Gflops/s )\n\tavg_t = %lf ms ( %lf Gflops/s )\n\tmin_t = %lf ms ( %lf Gflops/s )\n\tmax_t = %lf ms ( %lf Gflops/s )\n",
 	return_values->print_csv(),
 	first_over_t  * 1000, Gval_per_s(gemm_ops(M,N,K),first_over_t),
 	avg_t  * 1000, Gval_per_s(gemm_ops(M,N,K),avg_t),
@@ -155,8 +156,8 @@ int main(const int argc, const char *argv[]) {
 	for (int i = 0; i< CHL_MEMLOCS; i++) PARALiADevCacheFree((i));
 
 	CHLSyncCheckErr();
-	CHLFree(A, M * K*sizeof(double), A_loc);
-	CHLFree(B, N * K*sizeof(double), B_loc);
-	CHLFree(C, M * N*sizeof(double), C_loc);
+	CHLFree(A, M * K*sizeof(float), A_loc);
+	CHLFree(B, N * K*sizeof(float), B_loc);
+	CHLFree(C, M * N*sizeof(float), C_loc);
 	return 0;
 }

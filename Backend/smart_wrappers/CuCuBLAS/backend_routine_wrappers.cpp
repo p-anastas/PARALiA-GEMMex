@@ -74,7 +74,7 @@ void SKSetPtr(void* wrapped_ptr_and_parent){
 void cblas_wrap_daxpy(void* backend_data){
   axpy_backend_in<double>* ptr_ker_translate = (axpy_backend_in<double>*) backend_data;
 #ifdef DEBUG
-  fprintf(stderr,"cblas_wrap_daxpy: cublasDaxpy(dev_id = %d,\
+  fprintf(stderr,"cblas_wrap_daxpy: cblas_daxpy(dev_id = %d,\
     N = %d, alpha = %lf, x = %p, incx = %d, y = %p, incy = %d)\n",
     ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
     (double*) *ptr_ker_translate->x, ptr_ker_translate->incx,
@@ -82,6 +82,20 @@ void cblas_wrap_daxpy(void* backend_data){
 #endif
   cblas_daxpy(ptr_ker_translate->N, ptr_ker_translate->alpha,
     (double*) *ptr_ker_translate->x, ptr_ker_translate->incx, (double*)
+    *ptr_ker_translate->y, ptr_ker_translate->incy);
+}
+
+void cblas_wrap_saxpy(void* backend_data){
+  axpy_backend_in<float>* ptr_ker_translate = (axpy_backend_in<float>*) backend_data;
+#ifdef DEBUG
+  fprintf(stderr,"cblas_wrap_daxpy: cblas_saxpy(dev_id = %d,\
+    N = %d, alpha = %lf, x = %p, incx = %d, y = %p, incy = %d)\n",
+    ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->x, ptr_ker_translate->incx,
+    (float*) *ptr_ker_translate->y, ptr_ker_translate->incy);
+#endif
+  cblas_saxpy(ptr_ker_translate->N, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->x, ptr_ker_translate->incx, (float*)
     *ptr_ker_translate->y, ptr_ker_translate->incy);
 }
 
@@ -119,6 +133,26 @@ void cblas_wrap_dgemm(void* backend_data){
     ptr_ker_translate->beta, (double*) *ptr_ker_translate->C, ptr_ker_translate->ldC);
 }
 
+void cblas_wrap_sgemm(void* backend_data){
+  gemm_backend_in<float>* ptr_ker_translate = (gemm_backend_in<float>*) backend_data;
+#ifdef DDEBUG
+  fprintf(stderr,"cblas_wrap_dgemm: cblas_sgemm(dev_id = %d, TransA = %c, TransB = %c,\
+    M = %d, N = %d, K = %d, alpha = %lf, A = %p, lda = %d, \n\
+    B = %p, ldb = %d, beta = %lf, C = %p, ldC = %d)\n",
+    ptr_ker_translate->dev_id, ptr_ker_translate->TransA, ptr_ker_translate->TransB,
+    ptr_ker_translate->M, ptr_ker_translate->N, ptr_ker_translate->K, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
+    (float*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
+    ptr_ker_translate->beta, (float*) *ptr_ker_translate->C, ptr_ker_translate->ldC);
+#endif
+  cblas_sgemm(CblasColMajor,
+    OpCharToCblas(ptr_ker_translate->TransA), OpCharToCblas(ptr_ker_translate->TransB),
+    ptr_ker_translate->M, ptr_ker_translate->N, ptr_ker_translate->K, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
+    (float*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
+    ptr_ker_translate->beta, (float*) *ptr_ker_translate->C, ptr_ker_translate->ldC);
+}
+
 void cublas_wrap_daxpy(void* backend_data, void* queue_wrap_p){
   axpy_backend_in<double>* ptr_ker_translate = (axpy_backend_in<double>*) backend_data;
   //CHLSelectDevice(ptr_ker_translate->dev_id);
@@ -140,6 +174,29 @@ void cublas_wrap_daxpy(void* backend_data, void* queue_wrap_p){
     (double*) *ptr_ker_translate->x, ptr_ker_translate->incx,
     (double*) *ptr_ker_translate->y, ptr_ker_translate->incy);
 }
+
+void cublas_wrap_saxpy(void* backend_data, void* queue_wrap_p){
+  axpy_backend_in<float>* ptr_ker_translate = (axpy_backend_in<float>*) backend_data;
+  //CHLSelectDevice(ptr_ker_translate->dev_id);
+#ifdef DEBUG
+  fprintf(stderr,"cublas_wrap_daxpy: cublasSaxpy(dev_id = %d,\
+    N = %d, alpha = %lf, x = %p, incx = %d, y = %p, incy = %d)\n",
+    ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->x, ptr_ker_translate->incx,
+    (float*) *ptr_ker_translate->y, ptr_ker_translate->incy);
+#endif
+  cublasHandle_t temp_handle = *((cublasHandle_t*)((CQueue_p)queue_wrap_p)->backend_comp_md);
+
+  cublasStatus_t stat = cublasSaxpy(temp_handle,
+    ptr_ker_translate->N, (float*) &ptr_ker_translate->alpha, (float*) *ptr_ker_translate->x,
+    ptr_ker_translate->incx, (float*) *ptr_ker_translate->y, ptr_ker_translate->incy);
+  if(stat != CUBLAS_STATUS_SUCCESS) error("cublas_wrap_daxpy failed: cublasDaxpy(temp_handle = %p, dev_id = %d,\
+    N = %d, alpha = %lf, x = %p, incx = %d, y = %p, incy = %d)\n",
+    temp_handle, ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->x, ptr_ker_translate->incx,
+    (float*) *ptr_ker_translate->y, ptr_ker_translate->incy);
+}
+
 
 void cublas_wrap_daxpby(void* backend_data, void* queue_wrap_p){
   axpby_backend_in<double>* ptr_ker_translate = (axpby_backend_in<double>*) backend_data;
@@ -186,4 +243,28 @@ void cublas_wrap_dgemm(void* backend_data, void* queue_wrap_p){
     (double*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
     &ptr_ker_translate->beta, (double*) *ptr_ker_translate->C, ptr_ker_translate->ldC),
     "cublas_wrap_dgemm: cublasDgemm failed\n");
+}
+
+void cublas_wrap_sgemm(void* backend_data, void* queue_wrap_p){
+  gemm_backend_in<float>* ptr_ker_translate = (gemm_backend_in<float>*) backend_data;
+  //CHLSelectDevice(ptr_ker_translate->dev_id);
+  cublasHandle_t temp_handle = *((cublasHandle_t*)((CQueue_p)queue_wrap_p)->backend_comp_md);
+#ifdef DEBUG
+  fprintf(stderr,"cublas_wrap_dgemm: cublasSgemm(temp_handle = %p, dev_id = %d, TransA = %c, TransB = %c,\
+    M = %d, N = %d, K = %d, alpha = %f, A = %p, lda = %d, \n\
+    B = %p, ldb = %d, beta = %f, C = %p, ldC = %d)\n",
+    temp_handle, ptr_ker_translate->dev_id, ptr_ker_translate->TransA, ptr_ker_translate->TransB,
+    ptr_ker_translate->M, ptr_ker_translate->N, ptr_ker_translate->K, ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
+    (float*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
+    ptr_ker_translate->beta, (float*) *ptr_ker_translate->C, ptr_ker_translate->ldC);
+#endif
+
+  massert(CUBLAS_STATUS_SUCCESS == cublasSgemm(temp_handle,
+    OpCharToCublas(ptr_ker_translate->TransA), OpCharToCublas(ptr_ker_translate->TransB),
+    ptr_ker_translate->M, ptr_ker_translate->N, ptr_ker_translate->K, &ptr_ker_translate->alpha,
+    (float*) *ptr_ker_translate->A, ptr_ker_translate->ldA,
+    (float*) *ptr_ker_translate->B, ptr_ker_translate->ldB,
+    &ptr_ker_translate->beta, (float*) *ptr_ker_translate->C, ptr_ker_translate->ldC),
+    "cublas_wrap_dgemm: cublasSgemm failed\n");
 }

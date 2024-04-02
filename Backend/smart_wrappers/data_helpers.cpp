@@ -24,19 +24,19 @@ template<typename VALUETYPE>
 void CHLTouche(VALUETYPE *vec, long long vec_length, int vec_elemSize)
 {
 	int elem_offset = PAGE_sz/vec_elemSize;
-#ifndef PRODUCTION
-	#pragma omp parallel
+	int nthreads; 
+	fprintf(stderr, "CHLTouche: PAGE_sz = %ld\n", PAGE_sz);
+	#pragma omp parallel 
 	{
 		/* Obtain thread number */
- 		int tid = omp_get_thread_num();
+ 			int tid = omp_get_thread_num();
  		/* Only master thread does this */
  		if (tid == 0){
-			int nthreads = omp_get_num_threads();
+			nthreads = omp_get_num_threads();
 			fprintf(stderr, "CHLTouche(%p, %lld, %d): Using %d threads for touching memory\n", vec, vec_length, vec_elemSize, nthreads);
 		}
 	}
-#endif
-	#pragma omp parallel for
+	#pragma omp parallel for schedule(static,vec_length/elem_offset/nthreads)
 	for (long long i = 0; i < vec_length/elem_offset; i++) vec[i*elem_offset] = (VALUETYPE) Drandom();
 }
 
