@@ -246,7 +246,6 @@ long int Hvec_diff(__half* a, __half* b, long long size, __half eps) {
 }
 
 short Htest_equality(__half* C_comp, __half* C, long long size) {
- return 3;
   long int acc = 2, failed;
   float eps = 1e-2;
   failed = Hvec_diff(C_comp, C, size, eps);
