@@ -150,19 +150,19 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 void custom_gpu_wrap_dslaxpby(void* backend_data, CQueue_p run_queue){
-  slaxpby_backend_in<double>* ptr_ker_translate = (slaxpby_backend_in<double>*) backend_data;
+  slaxpby_backend_in* ptr_ker_translate = (slaxpby_backend_in*) backend_data;
 #ifdef DEBUG
   fprintf(stderr,"custom_gpu_wrap_dslaxpby(dev_id = %d,\
     N = %d, alpha = %lf, x = %p, incx = %d, b = %lf, y = %p, incy = %d, slide_x = %d, slide_y = %d)\n",
-    ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
-    (double*) *ptr_ker_translate->x, ptr_ker_translate->incx, ptr_ker_translate->beta,
+    ptr_ker_translate->dev_id, ptr_ker_translate->N, *((double*)ptr_ker_translate->alpha),
+    (double*) *ptr_ker_translate->x, ptr_ker_translate->incx, *((double*)ptr_ker_translate->beta),
     (double*) *ptr_ker_translate->y, ptr_ker_translate->incy, ptr_ker_translate->slide_x, ptr_ker_translate->slide_y);
 #endif
   /*
   dim3 grid_sz((ptr_ker_translate->slide_x), (ptr_ker_translate->N + 1023)/1024);
   dim3 block_sz(1, 1024);
   dslaxpby<<<grid_sz, block_sz, 0, *((cudaStream_t*)run_queue->backend_queue_ptr) >>>
-  (ptr_ker_translate->N, ptr_ker_translate->alpha, (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
+  (ptr_ker_translate->N, *((double*)ptr_ker_translate->alpha), (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
   ptr_ker_translate->beta, (double*) *ptr_ker_translate->y, ptr_ker_translate->slide_y);
   */
   int numSMs;
@@ -170,8 +170,8 @@ void custom_gpu_wrap_dslaxpby(void* backend_data, CQueue_p run_queue){
   dim3 grid_sz(numSMs, 1), block_sz(1, 1024);
   cudaStream_t stream = *((cudaStream_t*) run_queue->backend_queue_ptr);
   dslaxpby_gridstride<<<grid_sz, block_sz, 0, stream>>>
-  (ptr_ker_translate->N, ptr_ker_translate->alpha, (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
-  ptr_ker_translate->beta, (double*) *ptr_ker_translate->y, ptr_ker_translate->slide_y);
+  (ptr_ker_translate->N, *((double*)ptr_ker_translate->alpha), (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
+  *((double*)ptr_ker_translate->beta), (double*) *ptr_ker_translate->y, ptr_ker_translate->slide_y);
   
   //gpuErrchk( cudaPeekAtLastError() );
   //gpuErrchk( cudaDeviceSynchronize() );

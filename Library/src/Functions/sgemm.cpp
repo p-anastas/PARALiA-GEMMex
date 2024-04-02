@@ -67,7 +67,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 	local_PMD->decom[1]->Tile_map[local_PMD->decom[1]->GridSz1*local_PMD->decom[1]->GridSz2-1]->dim2,
 	local_PMD->decom[0]->Tile_map[local_PMD->decom[0]->GridSz1*local_PMD->decom[0]->GridSz2-1]->dim2);
 #endif
-	gemm_backend_in<float>* initial_sgemm = (gemm_backend_in<float>*) local_PMD->problem_wrap;
+	gemm_backend_in* initial_sgemm = (gemm_backend_in*) local_PMD->problem_wrap;
 	//int current_ctr = 0;
 	for (int mi = 0; mi < local_PMD->decom[0]->GridSz1; mi++){
 		for (int ni = 0; ni < local_PMD->decom[1]->GridSz2; ni++){
@@ -90,9 +90,9 @@ void CreateTasksSgemm(PMD_p local_PMD){
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
 				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42) B_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
 				else B_tile->Block_reuses[C_tile->W_op_dev_id]++; 
-				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in<float>));
-				gemm_backend_in<float>*  ptr_ker_translate = 
-					(gemm_backend_in<float>*) C_tile->W_op_params[ki];
+				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in));
+				gemm_backend_in*  ptr_ker_translate = 
+					(gemm_backend_in*) C_tile->W_op_params[ki];
 				ptr_ker_translate->TransA = initial_sgemm->TransA;
 				ptr_ker_translate->TransB = initial_sgemm->TransB;
 				ptr_ker_translate->M = C_tile->dim1;
@@ -108,7 +108,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
 					else ptr_ker_translate->beta = initial_sgemm->beta;
 				}
-				else ptr_ker_translate->beta = 1.0;
+				else set_val(C_tile->dtype, &ptr_ker_translate->beta, 1.0);
 				ptr_ker_translate->ldA = A_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldB = B_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldC = C_tile->ldim[C_tile->W_op_dev_id];
@@ -127,7 +127,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 }
 
 void UpdateTasksSgemm(PMD_p local_PMD){
-	gemm_backend_in<float>* initial_sgemm = (gemm_backend_in<float>*) local_PMD->problem_wrap;
+	gemm_backend_in* initial_sgemm = (gemm_backend_in*) local_PMD->problem_wrap;
 	//int current_ctr = 0;
 	for (int mi = 0; mi < local_PMD->decom[0]->GridSz1; mi++){
 		for (int ni = 0; ni < local_PMD->decom[1]->GridSz2; ni++){
@@ -146,16 +146,17 @@ void UpdateTasksSgemm(PMD_p local_PMD){
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
 				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42) B_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
 				else B_tile->Block_reuses[C_tile->W_op_dev_id]++; 
-				gemm_backend_in<float>*  ptr_ker_translate = (gemm_backend_in<float>*) C_tile->W_op_params[ki];
+				gemm_backend_in*  ptr_ker_translate = (gemm_backend_in*) C_tile->W_op_params[ki];
 				ptr_ker_translate->A = NULL;
 				ptr_ker_translate->B = NULL;
 				ptr_ker_translate->C = NULL;
 				ptr_ker_translate->alpha = initial_sgemm->alpha;
 				if (!ki){
-					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
+					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) 
+						set_val(C_tile->dtype, &ptr_ker_translate->beta, 0);
 					else ptr_ker_translate->beta = initial_sgemm->beta;
 				}
-				else ptr_ker_translate->beta = 1.0;
+				else set_val(C_tile->dtype, &ptr_ker_translate->beta, 1.0);
 				ptr_ker_translate->ldA = A_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldB = B_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldC = C_tile->ldim[C_tile->W_op_dev_id];
@@ -189,11 +190,11 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 
 	int reuse_problem_flag = 0;
 	PMD_p local_PMD = NULL; 
-	gemm_backend_in<float>* initial_sgemm = NULL;
+	gemm_backend_in* initial_sgemm = NULL;
 
 	for(int cache_entries = 0; cache_entries < PMD_cache_entries; cache_entries++)
 	if(PMD_cache[cache_entries] && !strcmp(PMD_cache[cache_entries]->problem_name, "MM_FP32")){
-			initial_sgemm = (gemm_backend_in<float>*) PMD_cache[cache_entries]->problem_wrap;
+			initial_sgemm = (gemm_backend_in*) PMD_cache[cache_entries]->problem_wrap;
 #ifdef DEBUG
 			PMD_cache[cache_entries]->print();
 #endif
@@ -232,14 +233,14 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 				PMD_cache[PMD_cache_entries] = new ProblemMetadata();
 				local_PMD = PMD_cache[PMD_cache_entries++];
 			}
-			local_PMD->problem_wrap = malloc(sizeof(gemm_backend_in<float>));
+			local_PMD->problem_wrap = malloc(sizeof(gemm_backend_in));
 	}
 	else{;
 #ifdef DEBUG
 			fprintf(stderr, "Reusing local_PMD = %p with similar characteristics\n", local_PMD);
 #endif
 	}
-	initial_sgemm = (gemm_backend_in<float>*) local_PMD->problem_wrap;
+	initial_sgemm = (gemm_backend_in*) local_PMD->problem_wrap;
 	initial_sgemm->TransA = TransA;
 	initial_sgemm->TransB = TransB;
 	initial_sgemm->M = M;
@@ -248,8 +249,8 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 	initial_sgemm->A = (void**) &A;
 	initial_sgemm->B = (void**) &B;
 	initial_sgemm->C = (void**) &C;
-	initial_sgemm->alpha = alpha;
-	initial_sgemm->beta = beta;
+	initial_sgemm->alpha = &alpha;
+	initial_sgemm->beta = &beta;
 	initial_sgemm->ldA = ldA;
 	initial_sgemm->ldB = ldB;
 	initial_sgemm->ldC = ldC;

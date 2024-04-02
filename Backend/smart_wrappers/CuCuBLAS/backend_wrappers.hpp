@@ -13,55 +13,55 @@
 #include "chl_smart_wrappers.hpp"
 #include <atomic>
 
-template<typename VALUETYPE> class gemm_backend_in{
+class gemm_backend_in{
 public:
 	char TransA,  TransB;
 	int M, N, K, ldA, ldB, ldC;
-	VALUETYPE alpha,beta;
+	void* alpha, *beta;
 	void **A, **B, **C;
 	void* A_tile_v, *B_tile_v, *C_tile_v;
 	short dev_id;
 };
 
-template<typename VALUETYPE> class gemv_backend_in{
+class gemv_backend_in{
 public:
 	char TransA,  incx, incy;
 	int M, N, ldA;
-	VALUETYPE alpha,beta;
+	void* alpha, *beta;
 	void **A, **x, **y;
 	short dev_id;
 };
 
-template<typename VALUETYPE> class axpy_backend_in{
+class axpy_backend_in{
 public:
 		int N, incx, incy;
-	VALUETYPE alpha;
+	void* alpha;
 	void **x, **y;
 	short dev_id;
 };
 
-template<typename VALUETYPE> class slaxpby_backend_in{
+class slaxpby_backend_in{
 public:
 	int N, incx, incy;
 	int slide_x, slide_y;
-	VALUETYPE alpha, beta;
+	void* alpha, *beta;
 	void **x, **y;
 	short dev_id;
 };
 
-template<typename VALUETYPE> class axpby_backend_in{
+class axpby_backend_in{
 public:
 	int N, incx, incy;
-	VALUETYPE alpha, beta;
+	void* alpha, *beta;
 	void **x, **y;
 	short dev_id;
 };
 
-template<typename VALUETYPE> class dot_backend_in{
+class dot_backend_in{
 public:
 	int N, incx, incy;
 	void **x, **y;
-	VALUETYPE* result;
+	void* result;
 	short dev_id;
 };
 

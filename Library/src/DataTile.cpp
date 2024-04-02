@@ -10,6 +10,18 @@
 
 int Tile2D_num = 0;
 
+void set_val(dtype_enum dtype, void** wrap_ptr, double value){
+	if(dtype == DOUBLE){
+		*wrap_ptr = malloc(sizeof(double));
+		*((double*) *wrap_ptr) = (double) value; 
+	}
+	else if(dtype == FLOAT){
+		*wrap_ptr = malloc(sizeof(float));
+		*((float*) *wrap_ptr) = (float) value; 
+	}
+	else error("set_val: Unsupported dtype %d\n", dtype);
+}
+
 //----------------------------------------------General class-----------------------------------------//
 
 int Tile2D::get_dtype_size() {
@@ -208,7 +220,7 @@ void Tile2D::run_operation(int W_op_id, LinkRoute_p lazy_route)
 			id, GridId1, GridId2, W_op_dev_id);
 #endif
 	// Extract the Cblock buffers from the (now defined) Tiles. 
-	gemm_backend_in<double>*  ptr_ker_translate = (gemm_backend_in<double>*) W_op_params[W_op_id];
+	gemm_backend_in*  ptr_ker_translate = (gemm_backend_in*) W_op_params[W_op_id];
 	ptr_ker_translate->A = &((Tile2D_p)ptr_ker_translate->A_tile_v)->StoreBlock[W_op_dev_id]->Adrs;
 	ptr_ker_translate->B = &((Tile2D_p)ptr_ker_translate->B_tile_v)->StoreBlock[W_op_dev_id]->Adrs;
 	ptr_ker_translate->C = &/*((Tile2D_p)ptr_ker_translate->C_tile_v)->*/StoreBlock[W_op_dev_id]->Adrs;
@@ -330,7 +342,7 @@ void Tile2D::WR_lazy_combine(LinkRoute_p lazy_route){
 	CBlock_p temp_block = StoreBlock[W_op_dev_id]; 
 	StoreBlock[W_op_dev_id] = backup_C; 
 	backup_C = temp_block; 
-	axpy_backend_in<double>* backend_axpy_wrapper = (axpy_backend_in<double>*) malloc(sizeof(struct axpy_backend_in<double>));
+	axpy_backend_in* backend_axpy_wrapper = (axpy_backend_in*) malloc(sizeof(struct axpy_backend_in));
     backend_axpy_wrapper->N = dim1*dim2;
     backend_axpy_wrapper->incx = backend_axpy_wrapper->incy = 1;
     backend_axpy_wrapper->alpha = reduce_mult;
@@ -366,11 +378,11 @@ void Tile2D::WReduce_combine(){
 	StoreBlock[W_init_loc] = backup_C;
 	ldim[W_init_loc] = backup_C_ldim; 
 
-	slaxpby_backend_in<double>* backend_slaxpby_wrapper = (slaxpby_backend_in<double>*) malloc(sizeof(struct slaxpby_backend_in<double>));
+	slaxpby_backend_in* backend_slaxpby_wrapper = (slaxpby_backend_in*) malloc(sizeof(struct slaxpby_backend_in));
     backend_slaxpby_wrapper->N = dim1;
     backend_slaxpby_wrapper->incx = 1;
     backend_slaxpby_wrapper->incy = 1;
-    backend_slaxpby_wrapper->alpha = 1.0;
+	set_val(dtype, &backend_slaxpby_wrapper->alpha, 1.0);
     backend_slaxpby_wrapper->beta = reduce_mult;
     backend_slaxpby_wrapper->dev_id = W_init_loc;
     backend_slaxpby_wrapper->x = (void**) &(temp_block->Adrs);
