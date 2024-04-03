@@ -3,6 +3,9 @@
 ## This is the configuration template file for CHANGELINK compilation and deployment in a new system.
 ## The intended use is to create one such config for each different deplyed system (e.g. config_sys1.sh, config_sys2.sh etc) in order to allow easy deployment.
 
+#------------------------------------------------------Required Modules/bindings----------------------------------------------------#
+export OMP_NUM_THREADS=20
+export OMP_PROC_BIND=spread
 #--------------------------------------------------------------Basic----------------------------------------------------------------#
 
 # CHECKME: A desired name for the testbed to be used for your build-dirs and logfiles.

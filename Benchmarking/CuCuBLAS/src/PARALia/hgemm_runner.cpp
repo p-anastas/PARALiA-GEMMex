@@ -27,10 +27,10 @@ int main(const int argc, const char *argv[]) {
 			else if (predef_control_values->T > M/1.5 && predef_control_values->T > N/1.5 && predef_control_values->T > K/1.5)
 				warning("Given Tin=%ld bigger than all problem dims/1.5\n", predef_control_values->T);
 		}
-		sprintf(filename, "%s/sgemm_runner_predefined_vals_%s_%s.log",
+		sprintf(filename, "%s/hgemm_runner_predefined_vals_%s_%s.log",
 			TESTLIBDIR, CoCoImplementationPrint(), VERSION);
 	}
-	else sprintf(filename, "%s/sgemm_runner_%s_%s.log",
+	else sprintf(filename, "%s/hgemm_runner_%s_%s.log",
 		TESTLIBDIR, CoCoImplementationPrint(), VERSION);
 #ifdef CHECKLOG
 	CheckLogLvl3(filename, predef_control_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc);
@@ -151,7 +151,7 @@ int main(const int argc, const char *argv[]) {
 		avg_t += cpu_timer;
 	}
 	avg_t/=bench_it;
-	fprintf(stderr, "sgemm_runner (%s):\n\tfirst_it_t = %lf ms ( %lf Gflops/s )\n\tavg_t = %lf ms ( %lf Gflops/s )\n\tmin_t = %lf ms ( %lf Gflops/s )\n\tmax_t = %lf ms ( %lf Gflops/s )\n",
+	fprintf(stderr, "hgemm_runner (%s):\n\tfirst_it_t = %lf ms ( %lf Gflops/s )\n\tavg_t = %lf ms ( %lf Gflops/s )\n\tmin_t = %lf ms ( %lf Gflops/s )\n\tmax_t = %lf ms ( %lf Gflops/s )\n",
 	return_values->print_csv(),
 	first_over_t  * 1000, Gval_per_s(gemm_ops(M,N,K),first_over_t),
 	avg_t  * 1000, Gval_per_s(gemm_ops(M,N,K),avg_t),

@@ -12,7 +12,15 @@ template<typename VALUETYPE>
 void CHLParallelVecInitHost(VALUETYPE *vec, long long length, int seed)
 {
 	srand(seed);
-	//#pragma omp parallel for
+	/*int nthreads;
+	#pragma omp parallel 
+	{
+		// Obtain thread number
+ 		int tid = omp_get_thread_num();
+ 		// Only master thread does this
+ 		if (tid == 0) nthreads = omp_get_num_threads();
+	}
+	#pragma omp parallel for schedule(static,length/nthreads)*/
 	for (long long i = 0; i < length; i++) vec[i] = (VALUETYPE) Drandom();
 }
 
