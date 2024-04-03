@@ -154,7 +154,8 @@ void RMSyncRecvQueues(){
 }
 
 ProblemMetadata::~ProblemMetadata(){
-	delete autotuner;
+	for (int idx = 0; idx < REP_TILE; idx++)
+		delete autotuner[idx];
 	//free((void*)problem_name);
 	free(problem_wrap);
 	for (int idx = 0; idx < decom_num; idx++) delete decom[idx];

@@ -11,7 +11,8 @@
 
 enum dtype_enum{
 		DOUBLE,
-		FLOAT
+		FLOAT,
+        HALF
 };
 
 enum WR_properties{
@@ -68,7 +69,7 @@ public:
     /// Only applicable for ALGO_WR_LAZY/ALGO_WREDUCE. 
     /// For ALGO_WR_LAZY: C = reduce_mult * C' + C (axpy)
     /// For ALGO_WREDUCE: C = 1.0 * C' + reduce_mult * C (axpby)
-    double reduce_mult; 
+    void* reduce_mult; 
     CBlock_p backup_C; 
 
     /// Only for ALGO_WR_LAZY. Fetch C0 to a temp Cblock and perform C = reduce_mult * C' + C
@@ -89,6 +90,7 @@ public:
 
 }* Tile2D_p;
 
+void set_val(dtype_enum dtype, void** wrap_ptr, double value);
 /// Defines if the task scheduler has to make software-buffer blocks AVAILABLE
 /// when their corresponding DataTiles are no longer needed in some location
 extern int conserve_memory_curr; 

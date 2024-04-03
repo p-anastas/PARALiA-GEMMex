@@ -63,8 +63,8 @@ typedef class Buffer{
 		int id; // A unique id per Buffer
 		int dev_id; /// Pressumably this should be sufficient for current use cases instead of id, since we use only 1 Buffer/dev
 		long long Size; // The sum of a Buffer's CBlock_sizes.
-		void* cont_buf_head; /// Used only if ENABLE_BUFFER_CONTINUOUS_ALLOC
-		long long cont_buf_head_sz;
+		//void* cont_buf_head; /// Used only if ENABLE_BUFFER_CONTINUOUS_ALLOC
+		//long long cont_buf_head_sz;
 		
 		int SerialCtr; // Number of blocks currently in buffer.
 		int BlockNum; // Number of Blocks the buffer holds

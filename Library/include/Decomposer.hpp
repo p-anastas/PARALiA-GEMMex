@@ -43,6 +43,7 @@ typedef class Decomposer
 	int dtypesize() {
 			if (dtype == DOUBLE) return sizeof(double);
 			else if (dtype == FLOAT) return sizeof(float);
+			else if (dtype == HALF) return sizeof(__half);
 			else error("dtypesize: Unknown type"); return 0;}
 	int size() { return dtypesize()*dim1*dim2; }
 	void DrawTileMap();
@@ -64,6 +65,7 @@ typedef class Decom2D : public Decomposer {
 	Decom2D(void* adrr, int in_dim1, int in_dim2, int in_ldim, char transpose, dtype_enum dtype_in);
 	void InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop);
 	void Reset(void* new_adrs, int T1, int T2, long new_ldim, Buffer_p* init_loc_cache_p);
+	void MatrixReset(void* new_adrs, long new_ldim);
 	Tile2D_p getTile(int iloc1, int iloc2);
 
 

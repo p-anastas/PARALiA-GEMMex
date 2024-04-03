@@ -47,6 +47,7 @@ add_executable (dgemm_runner ${BENCH_DIR_SRC}/PARALia/dgemm_runner.cpp )
 
 add_executable (sgemm_tester ${BENCH_DIR_SRC}/PARALia/sgemm_tester.cpp )
 add_executable (sgemm_runner ${BENCH_DIR_SRC}/PARALia/sgemm_runner.cpp )
+add_executable (hgemm_runner ${BENCH_DIR_SRC}/PARALia/hgemm_runner.cpp )
 
 #add_executable (dgemm_runner_hetero ${BENCH_DIR_SRC}/PARALia/dgemm_runner_hetero.cu )
 add_executable (dgemm_predictor ${BENCH_DIR_SRC}/PARALia/dgemm_predictor.cpp )
@@ -59,6 +60,7 @@ target_link_libraries(dgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
 
 target_link_libraries(sgemm_tester ${INTERNAL_LINK_LIB} benchparalia )
 target_link_libraries(sgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
+target_link_libraries(hgemm_runner ${INTERNAL_LINK_LIB} benchparalia )
 
 target_link_libraries(dgemm_predictor ${INTERNAL_LINK_LIB} benchparalia )
 

@@ -78,9 +78,9 @@ set(STREAMING_BUFFER_OVERLAP 8)
 ##             be fetched, reduced locally in the last computation location and written back.
 ## - ALGO_WREDUCE: The output tiles are not fetched from the source. Instead, computations will use
 ##             local buffers. After they are complete, tiles are reduced to the output (=source) location.
-set(OUTPUT_ALGO_MODE ALGO_WR)
+#set(OUTPUT_ALGO_MODE ALGO_WR)
 #set(OUTPUT_ALGO_MODE ALGO_WR_LAZY)
-#set(OUTPUT_ALGO_MODE ALGO_AUTO)
+set(OUTPUT_ALGO_MODE ALGO_AUTO)
 
 # Enable overlapping Send & recv Communication
 add_definitions(-DENABLE_SEND_RECV_OVERLAP)
@@ -107,6 +107,11 @@ add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 ## Decision regarding perplexing tile selection and workload selection
 ## by applying estimated overlap sl from tile to device split prediction
 add_definitions(-DAPPLY_TILE_SL_TO_WORKLOAD_SPLIT)
+## The number of different top "REP_TILE" tile sizes that will be tested.
+## Only fruitful for repetitive GEMMs on the same configuration (and with reps >> REP_TILE)
+## The maximum allowed value for this is 10 (any higher will be set to 10 instead)
+set(REP_TILE 5)
+
 ## TODO: For future work could autotune conditions.
 ## Conditions (with decreasing priority): 
 ## 1: NO-Imbalance: Spliting creates subkernels that can be distributed equally to devices without WR-sharing
@@ -120,6 +125,7 @@ add_definitions(-DMAX_DESIRED_SK_DEV_SLOWDOWN=0.1)
 ## 5: T-max: Tile should be <= than a preset value
 add_definitions(-DTILE_MAX=8192)
 add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
+
 
 ###########################################################################################
 #-----------------------------------Task distributions------------------------------------#
@@ -228,10 +234,10 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DPRODUCTION)
 
 #Run in debug mode, which includes detailed function calls and info for error-checking
-add_definitions(-DDEBUG)
+#add_definitions(-DDEBUG)
 
 #Run in deep debug mode, for command-to-command debugging
-add_definitions(-DDDEBUG)
+#add_definitions(-DDDEBUG)
 
 #Run Grid amalgamantion debug mode
 #add_definitions(-DCLDEBUG)
@@ -293,6 +299,8 @@ add_definitions(-DTASK_ORDER_IN="${TASK_ORDER}")
 add_definitions(-DFETCH_ROUTING_IN="${FETCH_ROUTING}")
 add_definitions(-DWB_ROUTING_IN="${WB_ROUTING}")
 add_definitions(-DPREDICT_OPTIMIZE_TARGET_IN="${PREDICT_OPTIMIZE_TARGET}")
+add_definitions(-DREP_TILE_IN=${REP_TILE})
+
 
 ###########################################################################################
 #-----------------------------------CUDA definitions--------------------------------------#

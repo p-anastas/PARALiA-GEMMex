@@ -250,7 +250,7 @@ long double P2P_queue_load::ETA_get(int dest, int src){
 
 long double LinkRoute::optimize_chain_ETA(int* loc_map, long int size, int update_flag){
 	if(!queue_load_grid) queue_load_grid = new P2P_queue_load();
-	long double min_ETA = DBL_MAX, tile_t = DBL_MAX/100, fire_t = csecond() - queue_load_grid->start_time;
+	long double min_ETA = DBL_MAX, tile_t, fire_t = csecond() - queue_load_grid->start_time;
 	hop_num = 0;
 	std::list<int> loc_list;
 	int tmp_hop = -42; 

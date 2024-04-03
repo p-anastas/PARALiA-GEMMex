@@ -22,6 +22,8 @@ const char* TASK_ORDER = TASK_ORDER_IN;
 const char* FETCH_ROUTING = FETCH_ROUTING_IN;
 const char* WB_ROUTING = WB_ROUTING_IN;
 const char* PREDICT_OPTIMIZE_TARGET = PREDICT_OPTIMIZE_TARGET_IN;
+int REP_TILE = std::min(REP_TILE_IN, 10);
+
 
 double csecond(void) {
   struct timespec tms;
@@ -145,7 +147,7 @@ double dabs(double x){
 
 inline float Serror(float a, float b) {
   if (a == 0) return (float) dabs((float)(a - b));
-  return dabs(a - b)/a;
+  return (float) dabs(a - b)/a;
 }
 
 inline double Derror(double a, double b) {
@@ -224,6 +226,48 @@ short Dtest_equality(double* C_comp, double* C, long long size) {
   return 0;
   }
   else
+    fprintf(stderr, "Test passed(Accuracy= %zu digits, %zu/%lld breaking for %zu)\n\n",
+            acc, failed, size, acc + 1);
+  return (short) acc;
+}
+
+inline double Herror(__half a, __half b) {
+  if (a == 0) return (__half) dabs(a - b);
+  return (__half) dabs(a - b)/a;
+}
+
+long int Hvec_diff(__half* a, __half* b, long long size, __half eps) {
+	long int failed = 0;
+	#pragma omp parallel for
+	for (long long i = 0; i < size; i++)
+		if (Herror(a[i], b[i]) > eps){
+			#pragma omp atomic
+			failed++;
+		}
+	return failed;
+}
+
+short Htest_equality(__half* C_comp, __half* C, long long size) {
+  long int acc = 2, failed;
+  float eps = 1e-2;
+  failed = Hvec_diff(C_comp, C, size, eps);
+  while (eps > FLT_MIN && !failed && acc < 30) {
+    eps *= 0.1;
+    acc++;
+    failed = Hvec_diff(C_comp, C, size, eps);
+  }
+  if (2==acc) {
+  	fprintf(stderr, "Test failed %zu times\n", failed);
+  	int ctr = 0, itt = 0;
+  	while (ctr < 10 & itt < size){
+  		if (Herror(C_comp[itt], C[itt]) > eps){
+  			fprintf(stderr, "Baseline vs Tested: %lf vs %lf\n", (double) C_comp[itt], (double) C[itt]);
+  			ctr++;
+  		}
+  		itt++;
+  	}
+    return 0;
+  } else
     fprintf(stderr, "Test passed(Accuracy= %zu digits, %zu/%lld breaking for %zu)\n\n",
             acc, failed, size, acc + 1);
   return (short) acc;

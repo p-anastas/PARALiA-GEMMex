@@ -7,6 +7,7 @@
 #include "Decomposer.hpp"
 #include "Resource_manager.hpp"
 #include "chl_smart_wrappers.hpp"
+#include <cuda_fp16.h>
 
 Decom2D::Decom2D( void* in_adr, int in_dim1, int in_dim2, int in_ldim, char in_transpose, dtype_enum dtype_in){
 #ifdef DEBUG
@@ -41,12 +42,14 @@ void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size,
       if (transpose == 'N'){
          if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*new_T1 + itt2*new_T2*ldim));
          else if(dtype == FLOAT) tile_addr = ((float*)adrs) + ((long)(itt1*new_T1 + itt2*new_T2*ldim));
+         else if(dtype == HALF) tile_addr = ((__half*)adrs) + ((long)(itt1*new_T1 + itt2*new_T2*ldim));
          else error("Decom2D::Reset: dtype not implemented");
          Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p);
        }
       else if (transpose == 'T'){
         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*new_T1*ldim + itt2*new_T2));
          else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + ((long)(itt1*new_T1*ldim + itt2*new_T2));
+         else if(dtype == HALF)  tile_addr = ((__half*)adrs) + ((long)(itt1*new_T1*ldim + itt2*new_T2));
         else error("Decom2D::Reset: dtype not implemented");
         Tile_map[current_ctr]->reset(tile_addr, ldim, init_loc_cache_p);
       }
@@ -57,6 +60,20 @@ void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size,
    #ifdef DEBUG
    	fprintf(stderr, "<-----|\n");
    #endif
+}
+
+void Decom2D::MatrixReset(void* new_adrs, long new_chunk_size){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> Decom2D::MatrixReset(ptr = %p, loc = %d)\n", new_adrs, init_loc_cache_p, loc);
+#endif
+	adrs = new_adrs;
+	ldim = new_chunk_size; 
+	for (long int itt1 = 0; itt1 < GridSz1; itt1++)
+		for (long int itt2 = 0 ; itt2 < GridSz2; itt2++)
+			delete Tile_map[itt1*GridSz2 + itt2];
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
 }
 
 void Decomposer::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop){
@@ -99,12 +116,14 @@ void Decom2D::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_propert
       if (transpose == 'N'){
          if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*T1 + itt2*T2*ldim));
          else if(dtype == FLOAT) tile_addr = ((float*)adrs) + ((long)(itt1*T1 + itt2*T2*ldim));
+         else if(dtype == HALF) tile_addr = ((__half*)adrs) + ((long)(itt1*T1 + itt2*T2*ldim));
          else error("Decom2D::InitTileMap: dtype not implemented");
          Tile_map[current_ctr] = new Tile2D(tile_addr, T1tmp, T2tmp, ldim, itt1, itt2, dtype, loc_idx, init_loc_cache_p);
        }
       else if (transpose == 'T'){
         if (dtype == DOUBLE) tile_addr = ((double*)adrs) + ((long)(itt1*T1*ldim + itt2*T2));
          else if(dtype == FLOAT)  tile_addr = ((float*)adrs) + ((long)(itt1*T1*ldim + itt2*T2));
+         else if(dtype == HALF)  tile_addr = ((__half*)adrs) + ((long)(itt1*T1*ldim + itt2*T2));
         else error("Decom2D::InitTileMap: dtype not implemented");
         Tile_map[current_ctr] = new Tile2D(tile_addr, T2tmp, T1tmp, ldim, itt2, itt1, dtype, loc_idx, init_loc_cache_p);
       }

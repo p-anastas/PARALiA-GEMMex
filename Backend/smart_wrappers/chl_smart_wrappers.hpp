@@ -20,6 +20,8 @@
 //#define _GNU_SOURCE 
 #include <pthread.h>
 
+#include <cuda_fp16.h>
+
 extern int CHL_MEMLOCS;
 
 
@@ -33,6 +35,7 @@ extern const char* TASK_ORDER;
 extern const char* FETCH_ROUTING;
 extern const char* WB_ROUTING;
 extern const char* PREDICT_OPTIMIZE_TARGET;
+extern int REP_TILE;
 
 /// Signal handler for errors
 #include <execinfo.h>
@@ -93,6 +96,7 @@ const char *print_mem(mem_layout mem);
 inline double Drandom() { return (double)rand() / (double)RAND_MAX;}
 short Dtest_equality(double* C_comp, double* C, long long size);
 short Stest_equality(float* C_comp, float* C, long long size);
+short Htest_equality(__half* C_comp, __half* C, long long size);
 
 double Gval_per_s(long long value, double time);
 

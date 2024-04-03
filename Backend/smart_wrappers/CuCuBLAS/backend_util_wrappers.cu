@@ -150,19 +150,19 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 void custom_gpu_wrap_dslaxpby(void* backend_data, CQueue_p run_queue){
-  slaxpby_backend_in<double>* ptr_ker_translate = (slaxpby_backend_in<double>*) backend_data;
+  slaxpby_backend_in* ptr_ker_translate = (slaxpby_backend_in*) backend_data;
 #ifdef DEBUG
   fprintf(stderr,"custom_gpu_wrap_dslaxpby(dev_id = %d,\
     N = %d, alpha = %lf, x = %p, incx = %d, b = %lf, y = %p, incy = %d, slide_x = %d, slide_y = %d)\n",
-    ptr_ker_translate->dev_id, ptr_ker_translate->N, ptr_ker_translate->alpha,
-    (double*) *ptr_ker_translate->x, ptr_ker_translate->incx, ptr_ker_translate->beta,
+    ptr_ker_translate->dev_id, ptr_ker_translate->N, *((double*)ptr_ker_translate->alpha),
+    (double*) *ptr_ker_translate->x, ptr_ker_translate->incx, *((double*)ptr_ker_translate->beta),
     (double*) *ptr_ker_translate->y, ptr_ker_translate->incy, ptr_ker_translate->slide_x, ptr_ker_translate->slide_y);
 #endif
   /*
   dim3 grid_sz((ptr_ker_translate->slide_x), (ptr_ker_translate->N + 1023)/1024);
   dim3 block_sz(1, 1024);
   dslaxpby<<<grid_sz, block_sz, 0, *((cudaStream_t*)run_queue->backend_queue_ptr) >>>
-  (ptr_ker_translate->N, ptr_ker_translate->alpha, (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
+  (ptr_ker_translate->N, *((double*)ptr_ker_translate->alpha), (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
   ptr_ker_translate->beta, (double*) *ptr_ker_translate->y, ptr_ker_translate->slide_y);
   */
   int numSMs;
@@ -170,10 +170,44 @@ void custom_gpu_wrap_dslaxpby(void* backend_data, CQueue_p run_queue){
   dim3 grid_sz(numSMs, 1), block_sz(1, 1024);
   cudaStream_t stream = *((cudaStream_t*) run_queue->backend_queue_ptr);
   dslaxpby_gridstride<<<grid_sz, block_sz, 0, stream>>>
-  (ptr_ker_translate->N, ptr_ker_translate->alpha, (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
-  ptr_ker_translate->beta, (double*) *ptr_ker_translate->y, ptr_ker_translate->slide_y);
+  (ptr_ker_translate->N, *((double*)ptr_ker_translate->alpha), (double*) *ptr_ker_translate->x, ptr_ker_translate->slide_x, 
+  *((double*)ptr_ker_translate->beta), (double*) *ptr_ker_translate->y, ptr_ker_translate->slide_y);
   
   //gpuErrchk( cudaPeekAtLastError() );
   //gpuErrchk( cudaDeviceSynchronize() );
 
+}
+
+__global__ void haxpy(int n, __half a, const __half *x, __half *y)
+{
+	int start = threadIdx.x + blockDim.x * blockIdx.x;
+	int stride = blockDim.x * gridDim.x;
+	int n2 = n/2;
+	half2 *x2 = (half2*)x, *y2 = (half2*)y;
+
+	for (int i = start; i < n2; i+= stride) 
+	y2[i] = __hfma2(__halves2half2(a, a), x2[i], y2[i]);
+
+	// first thread handles singleton for odd arrays
+	if (start == 0 && (n%2))
+	y[n-1] = __hfma(a, x[n-1], y[n-1]);   
+}
+
+void custom_gpu_wrap_haxpy(void* backend_data, CQueue_p run_queue){
+	 axpy_backend_in* ptr_ker_translate = (axpy_backend_in*) backend_data;
+  //CHLSelectDevice(ptr_ker_translate->dev_id);
+#ifdef DEBUG
+  fprintf(stderr,"custom_gpu_wrap_haxpy(dev_id = %d,\
+    N = %d, alpha = %lf, x = %p, incx = %d, y = %p, incy = %d)\n",
+    ptr_ker_translate->dev_id, ptr_ker_translate->N, *((__half*) ptr_ker_translate->alpha),
+    (__half*) *ptr_ker_translate->x, ptr_ker_translate->incx,
+    (__half*) *ptr_ker_translate->y, ptr_ker_translate->incy);
+#endif
+  int numSMs;
+  cudaDeviceGetAttribute(&numSMs, cudaDevAttrMultiProcessorCount, ptr_ker_translate->dev_id);
+  dim3 grid_sz(numSMs), block_sz(1024);
+  cudaStream_t stream = *((cudaStream_t*) run_queue->backend_queue_ptr);
+  haxpy<<<grid_sz, block_sz, 0, stream>>>
+  (ptr_ker_translate->N, *((__half*)ptr_ker_translate->alpha), (__half*) 
+  *ptr_ker_translate->x, (__half*) *ptr_ker_translate->y);
 }

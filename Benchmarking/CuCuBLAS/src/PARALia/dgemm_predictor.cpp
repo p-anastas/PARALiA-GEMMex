@@ -55,7 +55,7 @@ int main(const int argc, const char *argv[]) {
 	B_ptr = (double*) CHLMalloc(N*K*sizeof(double), B_loc, 0);
 	C_ptr = (double*) CHLMalloc(M*N*sizeof(double), C_loc, 1);
 
-	gemm_backend_in<double>* initial_gemm = (gemm_backend_in<double>*) malloc(sizeof(struct gemm_backend_in<double>));
+	gemm_backend_in* initial_gemm = (gemm_backend_in*) malloc(sizeof(struct gemm_backend_in));
 
 	initial_gemm->TransA = TransA;
 	initial_gemm->TransB = TransB;
@@ -65,8 +65,8 @@ int main(const int argc, const char *argv[]) {
 	initial_gemm->A = (void**) &A_ptr;
 	initial_gemm->B = (void**) &B_ptr;
 	initial_gemm->C = (void**) &C_ptr;
-	initial_gemm->alpha = alpha;
-	initial_gemm->beta = beta;
+	initial_gemm->alpha = &alpha;
+	initial_gemm->beta = &beta;
 	initial_gemm->ldA = ldA;
 	initial_gemm->ldB = ldB;
 	initial_gemm->ldC = ldC;

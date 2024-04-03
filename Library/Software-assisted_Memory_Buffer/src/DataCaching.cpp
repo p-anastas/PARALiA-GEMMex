@@ -14,6 +14,11 @@ Buffer_p current_SAB[64] = {NULL};
 int CBlock_ctr[64] = {0};
 int DevBuffer_ctr = 0;
 
+#ifdef ENABLE_BUFFER_CONTINUOUS_ALLOC
+void* buffer_backup[64] = {NULL};
+long long buffer_backup_sz[64] = {0};
+#endif
+
 const char* print_state(state in_state){
 	switch(in_state){
 		case(NATIVE):
@@ -187,7 +192,8 @@ Buffer::Buffer(int dev_id_in, long long block_num, long long block_size){
 	Size = BlockSize*BlockNum;
 	Blocks =  (CBlock_p*) malloc (BlockNum * sizeof(CBlock_p));
 	for (int idx = 0; idx < BlockNum; idx++) Blocks[idx] = new BufferBlock(idx, this, BlockSize);
-	cont_buf_head = NULL;
+	//buffer_backup[dev_id] = NULL;
+	//buffer_backup_sz[dev_id] = 0; 
 #ifdef CDEBUG
 	fprintf(stderr, "<-----| [dev_id=%d] Buffer::Buffer()\n", dev_id_in);
 #endif
@@ -199,11 +205,15 @@ Buffer::~Buffer(){
 #endif
 	DevBuffer_ctr--;
 #ifdef ENABLE_BUFFER_CONTINUOUS_ALLOC
-	long long buff_size = 0;
-	if(cont_buf_head) CHLFree(cont_buf_head, cont_buf_head_sz, dev_id);
+#ifndef BUFFER_REUSE_ENABLE
+	if(buffer_backup[dev_id]){
+		CHLFree(buffer_backup[dev_id], buffer_backup_sz[dev_id], dev_id);
+		buffer_backup[dev_id] = NULL;
+		buffer_backup_sz[dev_id] = 0;
+	}
+#endif
 	for (int idx = 0; idx < BlockNum; idx++) if(Blocks[idx]!=NULL)
 		Blocks[idx]->Adrs = NULL;
-	cont_buf_head = NULL;
 #endif
 	for (int idx = 0; idx < BlockNum; idx++) delete Blocks[idx];
 	free(Blocks);
@@ -263,12 +273,21 @@ void Buffer::allocate(){
 #endif
 	long long total_sz = 0, total_offset = 0;
 	for(int i=0; i<BlockNum; i++) if(Blocks[i]!=NULL && Blocks[i]->Adrs==NULL) total_sz+= Blocks[i]->Size;
-	if(!cont_buf_head && total_sz) cont_buf_head = CHLMalloc(total_sz, dev_id, 1);
-	cont_buf_head_sz = total_sz;
+	if(total_sz){
+		if(!buffer_backup[dev_id]){
+			buffer_backup[dev_id] = CHLMalloc(total_sz, dev_id, 1);
+			buffer_backup_sz[dev_id] = total_sz;
+		}
+		else if(buffer_backup[dev_id] && total_sz > buffer_backup_sz[dev_id]){
+			CHLFree(buffer_backup[dev_id], buffer_backup_sz[dev_id], dev_id);
+			buffer_backup[dev_id] = CHLMalloc(total_sz, dev_id, 1);
+			buffer_backup_sz[dev_id] = total_sz;	
+		}
+	}
 	for(int i=0; i<BlockNum; i++)
 		if(Blocks[i]!=NULL){
 			if(Blocks[i]->Adrs==NULL){
-				Blocks[i]->Adrs = cont_buf_head + total_offset;
+				Blocks[i]->Adrs = buffer_backup[dev_id] + total_offset;
 				total_offset+=Blocks[i]->Size;
 			}
 		}

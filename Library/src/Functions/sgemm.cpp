@@ -21,34 +21,34 @@ double gemm_entry_ts;
 #endif
 
 void ManageCachesSgemm(PMD_p local_PMD){
-	for(int loc = 0; loc < CHL_MEMLOCS; loc++) if(local_PMD->autotuner->Block_num[loc]){
+	for(int loc = 0; loc < CHL_MEMLOCS; loc++) if(local_PMD->autotuner[0]->Block_num[loc]){
 #ifndef PRODUCTION
-		if(local_PMD->autotuner->Block_num[loc] == -42) 
-			error("PARALiASgemm: local_PMD->autotuner->Block_num[%d] is -42\n", loc);
+		if(local_PMD->autotuner[0]->Block_num[loc] == -42) 
+			error("PARALiASgemm: local_PMD->autotuner[0]->Block_num[%d] is -42\n", loc);
 #endif
 		//long long prev_DevCache_sz = 0;
 		//if (current_SAB[loc] != NULL) prev_DevCache_sz = (long long)
 		//	current_SAB[loc]->BlockSize * current_SAB[loc]->BlockNum;
 #ifdef BUFFER_REUSE_ENABLE
 		if(current_SAB[loc] == NULL) current_SAB[loc] = 
-			new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
-		else if (current_SAB[loc]->BlockSize != local_PMD->autotuner->Block_sz 
-			|| current_SAB[loc]->BlockNum < local_PMD->autotuner->Block_num[loc]){
+			new Buffer(loc, local_PMD->autotuner[0]->Block_num[loc], local_PMD->autotuner[0]->Block_sz);
+		else if (current_SAB[loc]->BlockSize != local_PMD->autotuner[0]->Block_sz 
+			|| current_SAB[loc]->BlockNum < local_PMD->autotuner[0]->Block_num[loc]){
 			error("PARALiASgemm: PARALiA 3.0 should not enter this\n");
 #ifdef DEBUG
 			fprintf(stderr, "PARALiASgemm: Previous Cache smaller than requested:\
-			current_SAB[%d]->BlockSize=%lld vs local_PMD->autotuner->Block_sz = %lld,\
-			current_SAB[%d]->BlockNum=%d vs local_PMD->autotuner->Block_num[loc] = %d\n",
-			loc, current_SAB[loc]->BlockSize, local_PMD->autotuner->Block_sz,
-			loc, current_SAB[loc]->BlockNum, local_PMD->autotuner->Block_num[loc]);
+			current_SAB[%d]->BlockSize=%lld vs local_PMD->autotuner[0]->Block_sz = %lld,\
+			current_SAB[%d]->BlockNum=%d vs local_PMD->autotuner[0]->Block_num[loc] = %d\n",
+			loc, current_SAB[loc]->BlockSize, local_PMD->autotuner[0]->Block_sz,
+			loc, current_SAB[loc]->BlockNum, local_PMD->autotuner[0]->Block_num[loc]);
 #endif
 			delete current_SAB[loc];
-			current_SAB[loc] = new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
+			current_SAB[loc] = new Buffer(loc, local_PMD->autotuner[0]->Block_num[loc], local_PMD->autotuner[0]->Block_sz);
 		}
 #else
 		if(current_SAB[loc]!= NULL) 
 			error("PARALiASgemm: current_SAB[%d] was not NULL with reuse disabled\n", loc);
-		current_SAB[loc] = new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
+		current_SAB[loc] = new Buffer(loc, local_PMD->autotuner[0]->Block_num[loc], local_PMD->autotuner[0]->Block_sz);
 #endif
 	}
 	for (int i = 0; i < CHL_MEMLOCS; i++) local_PMD->SAB[i] = current_SAB[i];
@@ -59,7 +59,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 
 #ifdef DEBUG
 	fprintf(stderr, "|-----> CreateTasksSgemm(%p,%ld,%ld)\n",
-		local_PMD, local_PMD->autotuner->T, local_PMD->autotuner->comp_task_num);
+		local_PMD, local_PMD->autotuner[0]->T, local_PMD->autotuner[0]->comp_task_num);
 	fprintf(stderr,"MgridSz = %d, NgridSz = %d, KgridSz = %d\n",
 		local_PMD->decom[0]->GridSz1, local_PMD->decom[1]->GridSz2, local_PMD->decom[0]->GridSz2);
 	fprintf(stderr,"Mlast = %d, Nlast = %d, Klast = %d\n",
@@ -67,7 +67,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 	local_PMD->decom[1]->Tile_map[local_PMD->decom[1]->GridSz1*local_PMD->decom[1]->GridSz2-1]->dim2,
 	local_PMD->decom[0]->Tile_map[local_PMD->decom[0]->GridSz1*local_PMD->decom[0]->GridSz2-1]->dim2);
 #endif
-	gemm_backend_in<float>* initial_sgemm = (gemm_backend_in<float>*) local_PMD->problem_wrap;
+	gemm_backend_in* initial_sgemm = (gemm_backend_in*) local_PMD->problem_wrap;
 	//int current_ctr = 0;
 	for (int mi = 0; mi < local_PMD->decom[0]->GridSz1; mi++){
 		for (int ni = 0; ni < local_PMD->decom[1]->GridSz2; ni++){
@@ -77,7 +77,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 			C_tile->W_op_name = "MM_FP32";
 			C_tile->W_op_params = (void**) malloc(C_tile->W_op_num*sizeof(void*));
 			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
-			C_tile->W_op_dev_id = local_PMD->autotuner->comp_task_unit_list[comp_task_idx];
+			C_tile->W_op_dev_id = local_PMD->autotuner[0]->comp_task_unit_list[comp_task_idx];
 			C_tile->Block_reuses[C_tile->W_op_dev_id] = C_tile->W_op_num;
 			if ((C_tile->WRP == WR_LAZY || C_tile->WRP == W_REDUCE) && C_tile->W_init_loc == C_tile->W_op_dev_id) C_tile->set_WRP(WR);
 			C_tile->W_op_complete = new Event();
@@ -90,9 +90,9 @@ void CreateTasksSgemm(PMD_p local_PMD){
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
 				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42) B_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
 				else B_tile->Block_reuses[C_tile->W_op_dev_id]++; 
-				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in<float>));
-				gemm_backend_in<float>*  ptr_ker_translate = 
-					(gemm_backend_in<float>*) C_tile->W_op_params[ki];
+				C_tile->W_op_params[ki] = (void*) malloc(sizeof(gemm_backend_in));
+				gemm_backend_in*  ptr_ker_translate = 
+					(gemm_backend_in*) C_tile->W_op_params[ki];
 				ptr_ker_translate->TransA = initial_sgemm->TransA;
 				ptr_ker_translate->TransB = initial_sgemm->TransB;
 				ptr_ker_translate->M = C_tile->dim1;
@@ -105,10 +105,11 @@ void CreateTasksSgemm(PMD_p local_PMD){
 				ptr_ker_translate->C = NULL;
 				ptr_ker_translate->alpha = initial_sgemm->alpha;
 				if (!ki){
-					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
+					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP)
+						set_val(C_tile->dtype, &ptr_ker_translate->beta, 0);
 					else ptr_ker_translate->beta = initial_sgemm->beta;
 				}
-				else ptr_ker_translate->beta = 1.0;
+				else set_val(C_tile->dtype, &ptr_ker_translate->beta, 1.0);
 				ptr_ker_translate->ldA = A_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldB = B_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldC = C_tile->ldim[C_tile->W_op_dev_id];
@@ -127,7 +128,7 @@ void CreateTasksSgemm(PMD_p local_PMD){
 }
 
 void UpdateTasksSgemm(PMD_p local_PMD){
-	gemm_backend_in<float>* initial_sgemm = (gemm_backend_in<float>*) local_PMD->problem_wrap;
+	gemm_backend_in* initial_sgemm = (gemm_backend_in*) local_PMD->problem_wrap;
 	//int current_ctr = 0;
 	for (int mi = 0; mi < local_PMD->decom[0]->GridSz1; mi++){
 		for (int ni = 0; ni < local_PMD->decom[1]->GridSz2; ni++){
@@ -146,16 +147,17 @@ void UpdateTasksSgemm(PMD_p local_PMD){
 				Tile2D_p B_tile = local_PMD->decom[1]->getTile(ki,ni);
 				if(B_tile->Block_reuses[C_tile->W_op_dev_id] == -42) B_tile->Block_reuses[C_tile->W_op_dev_id] = 1;
 				else B_tile->Block_reuses[C_tile->W_op_dev_id]++; 
-				gemm_backend_in<float>*  ptr_ker_translate = (gemm_backend_in<float>*) C_tile->W_op_params[ki];
+				gemm_backend_in*  ptr_ker_translate = (gemm_backend_in*) C_tile->W_op_params[ki];
 				ptr_ker_translate->A = NULL;
 				ptr_ker_translate->B = NULL;
 				ptr_ker_translate->C = NULL;
 				ptr_ker_translate->alpha = initial_sgemm->alpha;
 				if (!ki){
-					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) ptr_ker_translate->beta = 0;
+					if(WR_LAZY == C_tile->WRP || W_REDUCE == C_tile->WRP) 
+						set_val(C_tile->dtype, &ptr_ker_translate->beta, 0);
 					else ptr_ker_translate->beta = initial_sgemm->beta;
 				}
-				else ptr_ker_translate->beta = 1.0;
+				else set_val(C_tile->dtype, &ptr_ker_translate->beta, 1.0);
 				ptr_ker_translate->ldA = A_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldB = B_tile->ldim[C_tile->W_op_dev_id];
 				ptr_ker_translate->ldC = C_tile->ldim[C_tile->W_op_dev_id];
@@ -189,11 +191,11 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 
 	int reuse_problem_flag = 0;
 	PMD_p local_PMD = NULL; 
-	gemm_backend_in<float>* initial_sgemm = NULL;
+	gemm_backend_in* initial_sgemm = NULL;
 
 	for(int cache_entries = 0; cache_entries < PMD_cache_entries; cache_entries++)
 	if(PMD_cache[cache_entries] && !strcmp(PMD_cache[cache_entries]->problem_name, "MM_FP32")){
-			initial_sgemm = (gemm_backend_in<float>*) PMD_cache[cache_entries]->problem_wrap;
+			initial_sgemm = (gemm_backend_in*) PMD_cache[cache_entries]->problem_wrap;
 #ifdef DEBUG
 			PMD_cache[cache_entries]->print();
 #endif
@@ -202,11 +204,11 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 			reuse_problem_flag = 0;
 			if(initial_sgemm->TransB != TransB)
 				reuse_problem_flag = 0;
-			if(PMD_cache[cache_entries]->autotuner->M != M)
+			if(PMD_cache[cache_entries]->autotuner[0]->M != M)
 				reuse_problem_flag = 0;
-			if(PMD_cache[cache_entries]->autotuner->N != N)
+			if(PMD_cache[cache_entries]->autotuner[0]->N != N)
 				reuse_problem_flag = 0;
-			if(PMD_cache[cache_entries]->autotuner->K != K)
+			if(PMD_cache[cache_entries]->autotuner[0]->K != K)
 				reuse_problem_flag = 0;
 			if(PMD_cache[cache_entries]->decom[0] && PMD_cache[cache_entries]->decom[0]->loc != CHLGetPtrLoc(A))
 				reuse_problem_flag = 0;
@@ -232,14 +234,14 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 				PMD_cache[PMD_cache_entries] = new ProblemMetadata();
 				local_PMD = PMD_cache[PMD_cache_entries++];
 			}
-			local_PMD->problem_wrap = malloc(sizeof(gemm_backend_in<float>));
+			local_PMD->problem_wrap = malloc(sizeof(gemm_backend_in));
 	}
 	else{;
 #ifdef DEBUG
 			fprintf(stderr, "Reusing local_PMD = %p with similar characteristics\n", local_PMD);
 #endif
 	}
-	initial_sgemm = (gemm_backend_in<float>*) local_PMD->problem_wrap;
+	initial_sgemm = (gemm_backend_in*) local_PMD->problem_wrap;
 	initial_sgemm->TransA = TransA;
 	initial_sgemm->TransB = TransB;
 	initial_sgemm->M = M;
@@ -248,8 +250,8 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 	initial_sgemm->A = (void**) &A;
 	initial_sgemm->B = (void**) &B;
 	initial_sgemm->C = (void**) &C;
-	initial_sgemm->alpha = alpha;
-	initial_sgemm->beta = beta;
+	initial_sgemm->alpha = &alpha;
+	initial_sgemm->beta = &beta;
 	initial_sgemm->ldA = ldA;
 	initial_sgemm->ldB = ldB;
 	initial_sgemm->ldC = ldC;
@@ -271,16 +273,16 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->decom[1]->prepareAsync();
 		local_PMD->decom[2]->prepareAsync();
 
-		local_PMD->autotuner = new ATC();
-		if (predef_controller_sgemm && local_PMD->autotuner->diff_intialized_params_ATC(predef_controller_sgemm))
-			local_PMD->autotuner->mimic_ATC(predef_controller_sgemm);
-		autotune_timer = local_PMD->autotuner->autotune_problem(local_PMD->problem_name, CHLGetPtrLoc(A), 
+		local_PMD->autotuner[0] = new ATC();
+		if (predef_controller_sgemm && local_PMD->autotuner[0]->diff_intialized_params_ATC(predef_controller_sgemm))
+			local_PMD->autotuner[0]->mimic_ATC(predef_controller_sgemm);
+		autotune_timer = local_PMD->autotuner[0]->autotune_problem(local_PMD->problem_name, CHLGetPtrLoc(A), 
 		CHLGetPtrLoc(B), CHLGetPtrLoc(C), 
 		CHLGetPtrLoc(C), M, N, K, sizeof(float));
 
 		for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
 
-		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) local_PMD->autotuner->select_algo();
+		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) local_PMD->autotuner[0]->select_algo();
 
 #ifdef TEST
 		cpu_timer = csecond() - cpu_timer;
@@ -289,7 +291,7 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 		for (int i = 0; i < CHL_MEMLOCS; i++) current_SAB[i] = NULL;
 		ManageCachesSgemm(local_PMD);
-		T = local_PMD->autotuner->T;
+		T = local_PMD->autotuner[0]->T;
 		local_PMD->decom[0]->InitTileMap(T, T, local_PMD->SAB, RONLY);
 		local_PMD->decom[1]->InitTileMap(T, T, local_PMD->SAB, RONLY);
 		WR_properties C_tile_prop; 
@@ -304,17 +306,17 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 		cpu_timer = csecond();
 #endif
 		CreateTasksSgemm(local_PMD);
-		remaining_tasks = local_PMD->autotuner->task_num;
+		remaining_tasks = local_PMD->autotuner[0]->task_num;
 	}
 	else{
 		int buffer_freed = 0; 
 		for (int i = 0; i < CHL_MEMLOCS; i++){
 			current_SAB[i] = local_PMD->SAB[i];
-			if(is_in_list (i, local_PMD->autotuner->active_memlocs, 
-			local_PMD->autotuner->active_memloc_num)) buffer_freed = 1; 
+			if(is_in_list (i, local_PMD->autotuner[0]->active_memlocs, 
+			local_PMD->autotuner[0]->active_memloc_num)) buffer_freed = 1; 
 		}
 		if(buffer_freed) ManageCachesSgemm(local_PMD);
-		T = local_PMD->autotuner->T;
+		T = local_PMD->autotuner[0]->T;
 		local_PMD->decom[0]->Reset((void*) A, T, T, ldA, local_PMD->SAB);
 		local_PMD->decom[1]->Reset((void*) B, T, T, ldB, local_PMD->SAB);
 		local_PMD->decom[2]->Reset((void*) C, T, T, ldC, local_PMD->SAB);
@@ -324,9 +326,9 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 		cpu_timer = csecond();
 #endif
 		UpdateTasksSgemm(local_PMD);
-		remaining_tasks = local_PMD->autotuner->task_num;
+		remaining_tasks = local_PMD->autotuner[0]->task_num;
 	}
-	conserve_memory_curr = local_PMD->autotuner->conserve_memory; 
+	conserve_memory_curr = local_PMD->autotuner[0]->conserve_memory; 
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -342,8 +344,8 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 	cpu_timer = csecond();
 #endif
 
-	RMInitResources(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
-	//RMInitWS(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
+	RMInitResources(local_PMD->autotuner[0]->active_unit_id_list, local_PMD->autotuner[0]->active_unit_num);
+	//RMInitWS(local_PMD->autotuner[0]->active_unit_id_list, local_PMD->autotuner[0]->active_unit_num);
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Queue/Handle init: t_resource = %lf ms\n", cpu_timer*1000);
@@ -351,7 +353,7 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 	double run_timer = cpu_timer; 
 #endif
 	while (remaining_tasks){
-		Ttask_p curr = local_PMD->autotuner->task_list[local_PMD->autotuner->task_num - remaining_tasks];
+		Ttask_p curr = local_PMD->autotuner[0]->task_list[local_PMD->autotuner[0]->task_num - remaining_tasks];
 		Tile2D_p target_tile = local_PMD->decom[curr->DecomIdx]->getTile(curr->TileIdx, curr->TileIdy);
 		if (curr->type == FETCH) target_tile->fetch(curr->predef_route);
 		else if (curr->type == COMPUTE)target_tile->run_operation(curr->op_id, curr->predef_route);
@@ -379,15 +381,15 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 #ifdef TEST
 	cpu_timer = csecond() - run_timer;
 	fprintf(stderr, "Synced result -> t_exec_full = %lf ms\n", cpu_timer*1000);
-	fprintf(stderr, "t_predicted for T=%zu was %.2lf ms : %lf percentile error\n", T, local_PMD->autotuner->pred_t*1000,
-	(local_PMD->autotuner->pred_t==0)? 0.0: (local_PMD->autotuner->pred_t - cpu_timer )/local_PMD->autotuner->pred_t*100);
+	fprintf(stderr, "t_predicted for T=%zu was %.2lf ms : %lf percentile error\n", T, local_PMD->autotuner[0]->pred_t*1000,
+	(local_PMD->autotuner[0]->pred_t==0)? 0.0: (local_PMD->autotuner[0]->pred_t - cpu_timer )/local_PMD->autotuner[0]->pred_t*100);
 	cpu_timer = csecond();
 #endif
 #ifdef PDEBUG
 	fprintf(stderr, "PARALiASgemm(): completed for PMD_cache_entries = %d\n", PMD_cache_entries);
 #endif
 #ifdef STEST
-	STEST_print_SK(thread_dev_data, gemm_entry_ts, local_PMD->autotuner->active_unit_num);
+	STEST_print_SK(thread_dev_data, gemm_entry_ts, local_PMD->autotuner[0]->active_unit_num);
 #endif
 
 #ifdef TTEST
@@ -461,7 +463,7 @@ ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K
 	predef_controller_sgemm = NULL;
 	// Better not return our global to the user, he can accidentally do stuff to it.
 	ATC_p result = new ATC();
-	result->mimic_ATC(local_PMD->autotuner);
+	result->mimic_ATC(local_PMD->autotuner[0]);
 	return result;
 }
 

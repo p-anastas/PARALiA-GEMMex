@@ -51,6 +51,7 @@ ATC::ATC(){
 	comp_task_unit_list = NULL;
 	comp_task_per_unit_list = NULL;
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
+	for (int idx = 0; idx < REP_TILE; idx++) T_best_candidates[idx] = -1;
 	pred_t = pred_J = DBL_MAX;
 	PDP_i = EDP_i = -1.0;
 	T_aggregate_sl = T_remainder_sl = T_small_sl = T_sknum_sl = T_big_sl = 0.0;
@@ -109,6 +110,7 @@ void ATC::reset(){
 	delete inter_grid;
 	inter_grid = NULL;
 	T = active_unit_num = task_num = comp_task_num = Block_sz = -1;
+	for (int idx = 0; idx < REP_TILE; idx++) T_best_candidates[idx] = -1;
 	pred_t = -1.0;
 	cache_limit = conserve_memory = disable_caching = perfect_balance = 0;
 	if(!strcmp(DISTRIBUTION, "2D-BLOCK-CYCLIC")) use_2d_decom = 1; 
@@ -173,6 +175,7 @@ void ATC::mimic_ATC(ATC_p other_ATC){
 	D_loc = other_ATC->D_loc;
 
 	T = other_ATC->T;
+	for (int idx = 0; idx < REP_TILE; idx++) T_best_candidates[idx] = other_ATC->T_best_candidates[idx];
 	T_aggregate_sl = other_ATC->T_aggregate_sl;
 	T_imbalance_sl = other_ATC->T_imbalance_sl;
 	T_remainder_sl = other_ATC->T_remainder_sl;
@@ -513,25 +516,31 @@ fprintf(stderr,  "|-----> ATC::optimize_tile( autotune_controller{ T=%ld, active
 		// This is a tile small enough to allow 2D-block-cyclic decomposition in active_unit_num
 		max_allowed_T = std::min(M/(D1_parts_tmp), std::min(N/(D2_parts_temp), K));
 	}
-	int best_T = -1;
-	double* best_T_sl = (double*) calloc(6,sizeof(double));
-	for(int idx = 0; idx < 6; idx++) best_T_sl[idx] = DBL_MAX;
-	double* c_T_sl = (double*) calloc(6,sizeof(double));
+	double best_T_sl[REP_TILE][6];
+	for(int repi = 0; repi < REP_TILE; repi++){
+		for(int idx = 0; idx < 6; idx++) best_T_sl[repi][idx] = DBL_MAX;
+	}
+	double c_T_sl[6] = {0};
 	for (int candidate_T = max_allowed_T; candidate_T > 0; candidate_T--)
 	// Condition 1
 	//if(!((M/(candidate_T) + ((M%(candidate_T))? 1:0))
 	// *(N/(candidate_T) + ((N%(candidate_T))? 1:0)) % active_unit_num))
 	{ 
 		get_T_slowdowns(c_T_sl, candidate_T); 
-		if (c_T_sl[0] < best_T_sl[0]){
-			for(int idx = 0; idx < 6; idx++) best_T_sl[idx] = c_T_sl[idx];
-			best_T = candidate_T;
+		for(int repi = 0; repi < REP_TILE; repi++){
+			if (c_T_sl[0] < best_T_sl[repi][0]){
+				for(int repj = REP_TILE - 1; repj > repi; repj--){
+					T_best_candidates[repj] = T_best_candidates[repj-1];
+					for(int idx = 0; idx < 6; idx++) best_T_sl[repj][idx] = best_T_sl[repj-1][idx];
+				}
+				T_best_candidates[repi] = candidate_T;
+				for(int idx = 0; idx < 6; idx++) best_T_sl[repi][idx] = c_T_sl[idx];
+				break;
+			}
 		}
 	}
-	T = best_T;
-	set_T_slowdowns(best_T_sl);
-	free(best_T_sl);
-	free(c_T_sl);
+	T = T_best_candidates[0];
+	set_T_slowdowns(best_T_sl[0]);
 #ifdef PDEBUG
 	fprintf(stderr,  "====================================\n");
 	fprintf(stderr,  "Predict T=%ld with T_aggregate_sl = %lf, T_remainder_sl= %lf, T_small_sl= %lf, "
@@ -980,7 +989,7 @@ void ATC::assert_memory_requirements(){
 	int A_blocks_total = Grid_M * Grid_K,
 		B_blocks_total = Grid_N * Grid_K,
 		C_blocks_total = Grid_M * Grid_N;
-	Block_sz = T*T*sizeof(double);
+	Block_sz = T*T*elemSize;
 	int host_in_locs = 0;
 	for(int loc = CHL_WORKERS; loc < CHL_MEMLOCS; loc++) if(is_in_list(loc, active_memlocs, 
 			active_memloc_num)) host_in_locs = 1;
