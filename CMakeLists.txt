@@ -107,6 +107,9 @@ add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 ## Decision regarding perplexing tile selection and workload selection
 ## by applying estimated overlap sl from tile to device split prediction
 add_definitions(-DAPPLY_TILE_SL_TO_WORKLOAD_SPLIT)
+## The number of different top "REP_TILE" tile sizes that will be tested.
+## Only fruitful for repetitive GEMMs on the same configuration (and with reps >> REP_TILE)
+add_definitions(-DREP_TILE=5)
 ## TODO: For future work could autotune conditions.
 ## Conditions (with decreasing priority): 
 ## 1: NO-Imbalance: Spliting creates subkernels that can be distributed equally to devices without WR-sharing
@@ -120,6 +123,7 @@ add_definitions(-DMAX_DESIRED_SK_DEV_SLOWDOWN=0.1)
 ## 5: T-max: Tile should be <= than a preset value
 add_definitions(-DTILE_MAX=8192)
 add_definitions(-DTILE_MAX_SLOWDOWN=0.1)
+
 
 ###########################################################################################
 #-----------------------------------Task distributions------------------------------------#

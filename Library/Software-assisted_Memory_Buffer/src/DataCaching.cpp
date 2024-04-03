@@ -192,8 +192,8 @@ Buffer::Buffer(int dev_id_in, long long block_num, long long block_size){
 	Size = BlockSize*BlockNum;
 	Blocks =  (CBlock_p*) malloc (BlockNum * sizeof(CBlock_p));
 	for (int idx = 0; idx < BlockNum; idx++) Blocks[idx] = new BufferBlock(idx, this, BlockSize);
-	buffer_backup[dev_id] = NULL;
-	buffer_backup_sz[dev_id] = 0; 
+	//buffer_backup[dev_id] = NULL;
+	//buffer_backup_sz[dev_id] = 0; 
 #ifdef CDEBUG
 	fprintf(stderr, "<-----| [dev_id=%d] Buffer::Buffer()\n", dev_id_in);
 #endif
