@@ -85,6 +85,8 @@ char* CoCoImplementationPrint(){
 	else sprintf(string_helper, "_PW-PRED-%s-%.2lf", PREDICT_OPTIMIZE_TARGET, PERPER_LIMIT);
 	strcat(string_out, string_helper);
 #endif
+	sprintf(string_helper, "_REPTILE-%d", REP_TILE);
+	strcat(string_out, string_helper);
 //#ifdef DDEBUG
 	printf("%s\n", string_out);
 //#endif

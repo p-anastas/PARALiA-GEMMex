@@ -118,7 +118,7 @@ set(REP_TILE 5)
 ## 2: NO-remainder: split should not create remainder Tiles if possible
 ## 3: T-min: Tile should be >= than a preset value
 add_definitions(-DTILE_MIN=2048)
-add_definitions(-DTILE_MIN_SLOWDOWN=0.2)
+add_definitions(-DTILE_MIN_SLOWDOWN=0.1)
 ## 4: SK-num: subkernels per device must be >= MIN_DESIRED_SK_DEV
 add_definitions(-DMAX_DESIRED_SK_DEV=256)
 add_definitions(-DMAX_DESIRED_SK_DEV_SLOWDOWN=0.1)

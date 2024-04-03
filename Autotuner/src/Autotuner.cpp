@@ -539,6 +539,7 @@ fprintf(stderr,  "|-----> ATC::optimize_tile( autotune_controller{ T=%ld, active
 			}
 		}
 	}
+
 	T = T_best_candidates[0];
 	set_T_slowdowns(best_T_sl[0]);
 #ifdef PDEBUG

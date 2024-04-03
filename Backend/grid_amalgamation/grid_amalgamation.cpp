@@ -30,10 +30,10 @@ void system_gamalg_init_from_DB(){
             int load_success = temp_gamalgs[system_gamalg_ctr]->load_edges(queue_configuration_list[config_idx][0], 
 				queue_configuration_list[config_idx][1]);
             if (load_success){
-//#ifdef PDEBUG
+#ifdef PDEBUG
                 fprintf(stderr,"system_gamalg_init_from_DB(): Loaded Grid_amalgamation (in_queue_id = %d, out_queue_id = %d) from DB in system_gamalg_ctr = %d\n",
                     queue_configuration_list[config_idx][0], queue_configuration_list[config_idx][1], system_gamalg_ctr);
-//#endif
+#endif
                 system_gamalg_ctr++;
             }
             else{ 
