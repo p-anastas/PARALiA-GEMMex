@@ -20,46 +20,46 @@ ATC_p predef_controller_dgemm = NULL;
 double gemm_entry_ts;
 #endif
 
-void ManageCachesDgemm(PMD_p local_PMD){
-	for(int loc = 0; loc < CHL_MEMLOCS; loc++) if(local_PMD->autotuner->Block_num[loc]){
+void ManageCachesDgemm(PMD_p local_PMD, int aut_idx){
+	for(int loc = 0; loc < CHL_MEMLOCS; loc++) if(local_PMD->autotuner[aut_idx]->Block_num[loc]){
 #ifndef PRODUCTION
-		if(local_PMD->autotuner->Block_num[loc] == -42) 
-			error("PARALiADgemm: local_PMD->autotuner->Block_num[%d] is -42\n", loc);
+		if(local_PMD->autotuner[aut_idx]->Block_num[loc] == -42) 
+			error("PARALiADgemm: local_PMD->autotuner[aut_idx]->Block_num[%d] is -42\n", loc);
 #endif
 		//long long prev_DevCache_sz = 0;
 		//if (current_SAB[loc] != NULL) prev_DevCache_sz = (long long)
 		//	current_SAB[loc]->BlockSize * current_SAB[loc]->BlockNum;
 #ifdef BUFFER_REUSE_ENABLE
 		if(current_SAB[loc] == NULL) current_SAB[loc] = 
-			new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
-		else if (current_SAB[loc]->BlockSize != local_PMD->autotuner->Block_sz 
-			|| current_SAB[loc]->BlockNum < local_PMD->autotuner->Block_num[loc]){
-			error("PARALiADgemm: PARALiA 3.0 should not enter this\n");
+			new Buffer(loc, local_PMD->autotuner[aut_idx]->Block_num[loc], local_PMD->autotuner[aut_idx]->Block_sz);
+		else if (current_SAB[loc]->BlockSize != local_PMD->autotuner[aut_idx]->Block_sz 
+			|| current_SAB[loc]->BlockNum < local_PMD->autotuner[aut_idx]->Block_num[loc]){
+			error("PARALiADgemm:ManageCachesDgemm -> PARALiA 3.0 should not enter this\n");
 #ifdef DEBUG
 			fprintf(stderr, "PARALiADgemm: Previous Cache smaller than requested:\
-			current_SAB[%d]->BlockSize=%lld vs local_PMD->autotuner->Block_sz = %lld,\
-			current_SAB[%d]->BlockNum=%d vs local_PMD->autotuner->Block_num[loc] = %d\n",
-			loc, current_SAB[loc]->BlockSize, local_PMD->autotuner->Block_sz,
-			loc, current_SAB[loc]->BlockNum, local_PMD->autotuner->Block_num[loc]);
+			current_SAB[%d]->BlockSize=%lld vs local_PMD->autotuner[aut_idx]->Block_sz = %lld,\
+			current_SAB[%d]->BlockNum=%d vs local_PMD->autotuner[aut_idx]->Block_num[loc] = %d\n",
+			loc, current_SAB[loc]->BlockSize, local_PMD->autotuner[aut_idx]->Block_sz,
+			loc, current_SAB[loc]->BlockNum, local_PMD->autotuner[aut_idx]->Block_num[loc]);
 #endif
 			delete current_SAB[loc];
-			current_SAB[loc] = new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
+			current_SAB[loc] = new Buffer(loc, local_PMD->autotuner[aut_idx]->Block_num[loc], local_PMD->autotuner[aut_idx]->Block_sz);
 		}
 #else
 		if(current_SAB[loc]!= NULL) 
 			error("PARALiADgemm: current_SAB[%d] was not NULL with reuse disabled\n", loc);
-		current_SAB[loc] = new Buffer(loc, local_PMD->autotuner->Block_num[loc], local_PMD->autotuner->Block_sz);
+		current_SAB[loc] = new Buffer(loc, local_PMD->autotuner[aut_idx]->Block_num[loc], local_PMD->autotuner[aut_idx]->Block_sz);
 #endif
 	}
 	for (int i = 0; i < CHL_MEMLOCS; i++) local_PMD->SAB[i] = current_SAB[i];
 	return;
 }
 
-void CreateTasksDgemm(PMD_p local_PMD){
+void CreateTasksDgemm(PMD_p local_PMD, int aut_idx){
 
 #ifdef DEBUG
 	fprintf(stderr, "|-----> CreateTasksDgemm(%p,%ld,%ld)\n",
-		local_PMD, local_PMD->autotuner->T, local_PMD->autotuner->comp_task_num);
+		local_PMD, local_PMD->autotuner[aut_idx]->T, local_PMD->autotuner[aut_idx]->comp_task_num);
 	fprintf(stderr,"MgridSz = %d, NgridSz = %d, KgridSz = %d\n",
 		local_PMD->decom[0]->GridSz1, local_PMD->decom[1]->GridSz2, local_PMD->decom[0]->GridSz2);
 	fprintf(stderr,"Mlast = %d, Nlast = %d, Klast = %d\n",
@@ -77,7 +77,7 @@ void CreateTasksDgemm(PMD_p local_PMD){
 			C_tile->W_op_name = "MM_FP64";
 			C_tile->W_op_params = (void**) malloc(C_tile->W_op_num*sizeof(void*));
 			long int comp_task_idx = mi*local_PMD->decom[1]->GridSz2*local_PMD->decom[0]->GridSz2 + ni*local_PMD->decom[0]->GridSz2;
-			C_tile->W_op_dev_id = local_PMD->autotuner->comp_task_unit_list[comp_task_idx];
+			C_tile->W_op_dev_id = local_PMD->autotuner[aut_idx]->comp_task_unit_list[comp_task_idx];
 			C_tile->Block_reuses[C_tile->W_op_dev_id] = C_tile->W_op_num;
 			if ((C_tile->WRP == WR_LAZY || C_tile->WRP == W_REDUCE) && C_tile->W_init_loc == C_tile->W_op_dev_id) C_tile->set_WRP(WR);
 			C_tile->W_op_complete = new Event();
@@ -204,11 +204,11 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 			reuse_problem_flag = 0;
 			if(initial_dgemm->TransB != TransB)
 				reuse_problem_flag = 0;
-			if(PMD_cache[cache_entries]->autotuner->M != M)
+			if(PMD_cache[cache_entries]->autotuner[PMD_cache[cache_entries]->autotuner_best_idx]->M != M)
 				reuse_problem_flag = 0;
-			if(PMD_cache[cache_entries]->autotuner->N != N)
+			if(PMD_cache[cache_entries]->autotuner[PMD_cache[cache_entries]->autotuner_best_idx]->N != N)
 				reuse_problem_flag = 0;
-			if(PMD_cache[cache_entries]->autotuner->K != K)
+			if(PMD_cache[cache_entries]->autotuner[PMD_cache[cache_entries]->autotuner_best_idx]->K != K)
 				reuse_problem_flag = 0;
 			if(PMD_cache[cache_entries]->decom[0] && PMD_cache[cache_entries]->decom[0]->loc != CHLGetPtrLoc(A))
 				reuse_problem_flag = 0;
@@ -261,6 +261,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	long int T; 
 	int remaining_tasks = 0;
 
+	int curr_autotuner_ctr = 0;
 	if(!reuse_problem_flag){
 		local_PMD->problem_name = "MM_FP64";
 		local_PMD->decom_num = 3;
@@ -272,24 +273,38 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->decom[1]->prepareAsync();
 		local_PMD->decom[2]->prepareAsync();
 
-		local_PMD->autotuner = new ATC();
-		if (predef_controller_dgemm && local_PMD->autotuner->diff_intialized_params_ATC(predef_controller_dgemm))
-			local_PMD->autotuner->mimic_ATC(predef_controller_dgemm);
-		autotune_timer = local_PMD->autotuner->autotune_problem(local_PMD->problem_name, CHLGetPtrLoc(A), 
+		local_PMD->autotuner_ctr = 1;
+		curr_autotuner_ctr = local_PMD->autotuner_best_idx = 0; 
+		local_PMD->autotuner[curr_autotuner_ctr] = new ATC();
+		if (predef_controller_dgemm && local_PMD->autotuner[curr_autotuner_ctr]->diff_intialized_params_ATC(predef_controller_dgemm))
+			local_PMD->autotuner[curr_autotuner_ctr]->mimic_ATC(predef_controller_dgemm);
+		autotune_timer = local_PMD->autotuner[curr_autotuner_ctr]->autotune_problem(local_PMD->problem_name, CHLGetPtrLoc(A), 
 		CHLGetPtrLoc(B), CHLGetPtrLoc(C), 
 		CHLGetPtrLoc(C), M, N, K, sizeof(double));
+		if(predef_controller_dgemm && predef_controller_dgemm->T > 0)
+			/// Cannot tune tile repetitively if its user-defined
+			local_PMD->autotuner_ctr = REP_TILE;
+		for(int idx = local_PMD->autotuner_ctr; idx < REP_TILE; idx++){
+			local_PMD->autotuner[idx] = new ATC();
+			if (predef_controller_dgemm && local_PMD->autotuner[idx]->diff_intialized_params_ATC(predef_controller_dgemm)) 
+				local_PMD->autotuner[idx]->mimic_ATC(predef_controller_dgemm);
+			local_PMD->autotuner[idx]->T = local_PMD->autotuner[curr_autotuner_ctr]->T_best_candidates[idx];
+			local_PMD->autotuner[idx]->autotune_problem(local_PMD->problem_name, CHLGetPtrLoc(A), 
+			CHLGetPtrLoc(B), CHLGetPtrLoc(C), 
+			CHLGetPtrLoc(C), M, N, K, sizeof(double));
+		}
 
 		for(int d=0; d < CHL_MEMLOCS; d++) CHLEnableLinks(d, CHL_MEMLOCS);
 
-		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) local_PMD->autotuner->select_algo();
+		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_AUTO")) local_PMD->autotuner[curr_autotuner_ctr]->select_algo();
 #ifdef TEST
 		cpu_timer = csecond() - cpu_timer;
 		fprintf(stderr, "Preparing decomposers -> t_prep = %lf ms\n", cpu_timer*1000);
 		cpu_timer = csecond();
 #endif
 		for (int i = 0; i < CHL_MEMLOCS; i++) current_SAB[i] = NULL;
-		ManageCachesDgemm(local_PMD);
-		T = local_PMD->autotuner->T;
+		ManageCachesDgemm(local_PMD, 0);
+		T = local_PMD->autotuner[curr_autotuner_ctr]->T;
 		local_PMD->decom[0]->InitTileMap(T, T, local_PMD->SAB, RONLY);
 		local_PMD->decom[1]->InitTileMap(T, T, local_PMD->SAB, RONLY);
 		WR_properties C_tile_prop; 
@@ -303,18 +318,45 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		fprintf(stderr, "Decomposing data to tiles -> t_tile = %lf ms\n", cpu_timer*1000);
 		cpu_timer = csecond();
 #endif
-		CreateTasksDgemm(local_PMD);
-		remaining_tasks = local_PMD->autotuner->task_num;
+		CreateTasksDgemm(local_PMD, 0);
+		remaining_tasks = local_PMD->autotuner[curr_autotuner_ctr]->task_num;
 	}
-	else{
+	else if(local_PMD->autotuner_ctr <= REP_TILE){
+		curr_autotuner_ctr = local_PMD->autotuner_ctr++;
+		if(curr_autotuner_ctr == REP_TILE) curr_autotuner_ctr =  local_PMD->autotuner_best_idx;
+		local_PMD->decom[0]->MatrixReset((void*) A, ldA);
+		local_PMD->decom[1]->MatrixReset((void*) B, ldB);
+		local_PMD->decom[2]->MatrixReset((void*) C, ldC);
+		for (int i = 0; i < CHL_MEMLOCS; i++) current_SAB[i] = NULL;
+		ManageCachesDgemm(local_PMD, curr_autotuner_ctr);
+		T = local_PMD->autotuner[curr_autotuner_ctr]->T;
+
+		local_PMD->decom[0]->InitTileMap(T, T, local_PMD->SAB, RONLY);
+		local_PMD->decom[1]->InitTileMap(T, T, local_PMD->SAB, RONLY);
+		WR_properties C_tile_prop; 
+		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR")) C_tile_prop = WR;
+		else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY")) C_tile_prop = WR_LAZY;
+		//else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_prop = W_REDUCE;
+		else error("PARALiADgemm: Unsupported OUTPUT_ALGO_MODE = %s\n", OUTPUT_ALGO_MODE);
+		local_PMD->decom[2]->InitTileMap(T, T, local_PMD->SAB, C_tile_prop);
+#ifdef TEST
+		cpu_timer = csecond() - cpu_timer;
+		fprintf(stderr, "Decomposing data to tiles -> t_tile = %lf ms\n", cpu_timer*1000);
+		cpu_timer = csecond();
+#endif
+		CreateTasksDgemm(local_PMD, curr_autotuner_ctr);
+		remaining_tasks = local_PMD->autotuner[curr_autotuner_ctr]->task_num;
+	}
+	else if(local_PMD->autotuner_ctr > REP_TILE){
+		curr_autotuner_ctr = local_PMD->autotuner_best_idx;
 		int buffer_freed = 0; 
 		for (int i = 0; i < CHL_MEMLOCS; i++){
 			current_SAB[i] = local_PMD->SAB[i];
-			if(is_in_list (i, local_PMD->autotuner->active_memlocs, 
-			local_PMD->autotuner->active_memloc_num)) buffer_freed = 1; 
+			if(is_in_list (i, local_PMD->autotuner[curr_autotuner_ctr]->active_memlocs, 
+			local_PMD->autotuner[curr_autotuner_ctr]->active_memloc_num)) buffer_freed = 1; 
 		}
-		if(buffer_freed) ManageCachesDgemm(local_PMD);
-		T = local_PMD->autotuner->T;
+		if(buffer_freed) ManageCachesDgemm(local_PMD, curr_autotuner_ctr);
+		T = local_PMD->autotuner[curr_autotuner_ctr]->T;
 		local_PMD->decom[0]->Reset((void*) A, T, T, ldA, local_PMD->SAB);
 		local_PMD->decom[1]->Reset((void*) B, T, T, ldB, local_PMD->SAB);
 		local_PMD->decom[2]->Reset((void*) C, T, T, ldC, local_PMD->SAB);
@@ -324,9 +366,10 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		cpu_timer = csecond();
 #endif
 		UpdateTasksDgemm(local_PMD);
-		remaining_tasks = local_PMD->autotuner->task_num;
+		remaining_tasks = local_PMD->autotuner[curr_autotuner_ctr]->task_num;
 	}
-	conserve_memory_curr = local_PMD->autotuner->conserve_memory; 
+	else error("PARALiADgemm: Should not reach here - local_PMD->autotuner_ctr = %d\n", local_PMD->autotuner_ctr);
+	conserve_memory_curr = local_PMD->autotuner[curr_autotuner_ctr]->conserve_memory; 
 
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
@@ -342,16 +385,16 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	cpu_timer = csecond();
 #endif
 
-	RMInitResources(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
-	//RMInitWS(local_PMD->autotuner->active_unit_id_list, local_PMD->autotuner->active_unit_num);
+	RMInitResources(local_PMD->autotuner[curr_autotuner_ctr]->active_unit_id_list, local_PMD->autotuner[curr_autotuner_ctr]->active_unit_num);
+	//RMInitWS(local_PMD->autotuner[curr_autotuner_ctr]->active_unit_id_list, local_PMD->autotuner[curr_autotuner_ctr]->active_unit_num);
 #ifdef TEST
 	cpu_timer = csecond() - cpu_timer;
 	fprintf(stderr, "Queue/Handle init: t_resource = %lf ms\n", cpu_timer*1000);
 	cpu_timer = csecond();
-	double run_timer = cpu_timer; 
 #endif
+	double run_timer = csecond();
 	while (remaining_tasks){
-		Ttask_p curr = local_PMD->autotuner->task_list[local_PMD->autotuner->task_num - remaining_tasks];
+		Ttask_p curr = local_PMD->autotuner[curr_autotuner_ctr]->task_list[local_PMD->autotuner[curr_autotuner_ctr]->task_num - remaining_tasks];
 		Tile2D_p target_tile = local_PMD->decom[curr->DecomIdx]->getTile(curr->TileIdx, curr->TileIdy);
 		if (curr->type == FETCH) target_tile->fetch(curr->predef_route);
 		else if (curr->type == COMPUTE)target_tile->run_operation(curr->op_id, curr->predef_route);
@@ -376,18 +419,23 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 //#endif
 	local_PMD->decom[2]->SyncTileMap();
 	CHLSyncCheckErr();
+	run_timer = csecond() - run_timer;
+	if(local_PMD->best_t > run_timer){
+		local_PMD->autotuner_best_idx = curr_autotuner_ctr;
+		local_PMD->best_t = run_timer;
+	}
 #ifdef TEST
-	cpu_timer = csecond() - run_timer;
+	cpu_timer = run_timer;
 	fprintf(stderr, "Synced result -> t_exec_full = %lf ms\n", cpu_timer*1000);
-	fprintf(stderr, "t_predicted for T=%zu was %.2lf ms : %lf percentile error\n", T, local_PMD->autotuner->pred_t*1000,
-	(local_PMD->autotuner->pred_t==0)? 0.0: (local_PMD->autotuner->pred_t - cpu_timer )/local_PMD->autotuner->pred_t*100);
+	fprintf(stderr, "t_predicted for T=%zu was %.2lf ms : %lf percentile error\n", T, local_PMD->autotuner[curr_autotuner_ctr]->pred_t*1000,
+	(local_PMD->autotuner[curr_autotuner_ctr]->pred_t==0)? 0.0: (local_PMD->autotuner[curr_autotuner_ctr]->pred_t - cpu_timer )/local_PMD->autotuner[curr_autotuner_ctr]->pred_t*100);
 	cpu_timer = csecond();
 #endif
 #ifdef PDEBUG
 	fprintf(stderr, "PARALiADgemm(): completed for PMD_cache_entries = %d\n", PMD_cache_entries);
 #endif
 #ifdef STEST
-	STEST_print_SK(thread_dev_data, gemm_entry_ts, local_PMD->autotuner->active_unit_num);
+	STEST_print_SK(thread_dev_data, gemm_entry_ts, local_PMD->autotuner[curr_autotuner_ctr]->active_unit_num);
 #endif
 
 #ifdef TTEST
@@ -461,7 +509,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 	predef_controller_dgemm = NULL;
 	// Better not return our global to the user, he can accidentally do stuff to it.
 	ATC_p result = new ATC();
-	result->mimic_ATC(local_PMD->autotuner);
+	result->mimic_ATC(local_PMD->autotuner[curr_autotuner_ctr]);
 	return result;
 }
 

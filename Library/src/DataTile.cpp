@@ -77,10 +77,12 @@ Tile2D::Tile2D(void *in_addr, int in_dim1, int in_dim2,
 
 Tile2D::~Tile2D()
 {
-  delete W_op_complete; 
-  delete W_ready; 
-  Tile2D_num--;
-  if(!Tile2D_num) warning("Tile2D::~Tile2D destructor incomplete, TBC\n");
+	delete W_op_complete; 
+	delete W_ready; 
+	delete W_wb_complete;
+	//for (int iloc = 0; iloc < CHL_MEMLOCS; iloc++)
+	//		if (iloc == W_init_loc) if(StoreBlock[iloc]) StoreBlock[iloc]->reset(true);
+	Tile2D_num--;
 }
 
 void Tile2D::reset(void* new_adrr, int new_init_chunk, Buffer_p* init_loc_cache_p){

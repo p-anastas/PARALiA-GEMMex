@@ -22,6 +22,8 @@ const char* TASK_ORDER = TASK_ORDER_IN;
 const char* FETCH_ROUTING = FETCH_ROUTING_IN;
 const char* WB_ROUTING = WB_ROUTING_IN;
 const char* PREDICT_OPTIMIZE_TARGET = PREDICT_OPTIMIZE_TARGET_IN;
+int REP_TILE = std::min(REP_TILE_IN, 10);
+
 
 double csecond(void) {
   struct timespec tms;

@@ -109,7 +109,9 @@ add_definitions(-DREDUCE_WORKERS_PERDEV=8)
 add_definitions(-DAPPLY_TILE_SL_TO_WORKLOAD_SPLIT)
 ## The number of different top "REP_TILE" tile sizes that will be tested.
 ## Only fruitful for repetitive GEMMs on the same configuration (and with reps >> REP_TILE)
-add_definitions(-DREP_TILE=5)
+## The maximum allowed value for this is 10 (any higher will be set to 10 instead)
+set(REP_TILE 5)
+
 ## TODO: For future work could autotune conditions.
 ## Conditions (with decreasing priority): 
 ## 1: NO-Imbalance: Spliting creates subkernels that can be distributed equally to devices without WR-sharing
@@ -297,6 +299,8 @@ add_definitions(-DTASK_ORDER_IN="${TASK_ORDER}")
 add_definitions(-DFETCH_ROUTING_IN="${FETCH_ROUTING}")
 add_definitions(-DWB_ROUTING_IN="${WB_ROUTING}")
 add_definitions(-DPREDICT_OPTIMIZE_TARGET_IN="${PREDICT_OPTIMIZE_TARGET}")
+add_definitions(-DREP_TILE_IN=${REP_TILE})
+
 
 ###########################################################################################
 #-----------------------------------CUDA definitions--------------------------------------#

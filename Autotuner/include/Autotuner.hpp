@@ -66,6 +66,7 @@ typedef class ATC{
 
 //----------------------------------Tunable parameters--------------------------------------
 		long int T;
+		long int T_best_candidates[10];
 		int active_unit_num; /// The number of units that will be used in the involving operation.
 		int* active_unit_id_list;	/// The list of ids of said units.
 		double* active_unit_score; /// The 'score' of each said units relative to the total task completion.

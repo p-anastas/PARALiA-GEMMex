@@ -62,6 +62,20 @@ void Decom2D::Reset(void* new_adrs, int new_T1, int new_T2, long new_chunk_size,
    #endif
 }
 
+void Decom2D::MatrixReset(void* new_adrs, long new_chunk_size){
+#ifdef DEBUG
+	fprintf(stderr, "|-----> Decom2D::MatrixReset(ptr = %p, loc = %d)\n", new_adrs, init_loc_cache_p, loc);
+#endif
+	adrs = new_adrs;
+	ldim = new_chunk_size; 
+	for (long int itt1 = 0; itt1 < GridSz1; itt1++)
+		for (long int itt2 = 0 ; itt2 < GridSz2; itt2++)
+			delete Tile_map[itt1*GridSz2 + itt2];
+#ifdef DEBUG
+	fprintf(stderr, "<-----|\n");
+#endif
+}
+
 void Decomposer::InitTileMap(int T1, int T2, Buffer_p* init_loc_cache_p, WR_properties prop){
     error("Must never be called for parent Decomposer class\n");
     return;

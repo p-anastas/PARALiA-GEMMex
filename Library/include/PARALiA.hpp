@@ -11,10 +11,13 @@
 #include "DataCaching.hpp"
 #include "Resource_manager.hpp"
 #include <cuda_fp16.h>
+#include <cfloat>
 
 typedef class ProblemMetadata{
 public:	
-	ATC_p autotuner;
+	ATC_p autotuner[10];
+	int autotuner_ctr, autotuner_best_idx;
+	double best_t = DBL_MAX;
 	const char* problem_name;
 	void* problem_wrap; 
 	int decom_num;

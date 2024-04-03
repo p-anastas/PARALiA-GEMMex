@@ -35,6 +35,7 @@ extern const char* TASK_ORDER;
 extern const char* FETCH_ROUTING;
 extern const char* WB_ROUTING;
 extern const char* PREDICT_OPTIMIZE_TARGET;
+extern int REP_TILE;
 
 /// Signal handler for errors
 #include <execinfo.h>
