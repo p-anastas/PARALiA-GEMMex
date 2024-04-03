@@ -78,7 +78,7 @@ int main(const int argc, const char *argv[]) {
 
 	CHLMemcpy(C_buf, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
 
-	for(int it = 0; it < REP_TILE; it++){
+	for(int it = 0; it < REP_TILE*2; it++){
 		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	}

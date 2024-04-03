@@ -273,7 +273,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->decom[1]->prepareAsync();
 		local_PMD->decom[2]->prepareAsync();
 
-		local_PMD->autotuner_ctr = 0;
+		local_PMD->autotuner_ctr = 1;
 		curr_autotuner_ctr = local_PMD->autotuner_best_idx = 0; 
 		local_PMD->autotuner[curr_autotuner_ctr] = new ATC();
 		if (predef_controller_dgemm && local_PMD->autotuner[curr_autotuner_ctr]->diff_intialized_params_ATC(predef_controller_dgemm))
@@ -321,8 +321,8 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		CreateTasksDgemm(local_PMD, 0);
 		remaining_tasks = local_PMD->autotuner[curr_autotuner_ctr]->task_num;
 	}
-	else if(REP_TILE!= 1 && local_PMD->autotuner_ctr <= REP_TILE){
-		curr_autotuner_ctr = local_PMD->autotuner_ctr++;
+	else if(REP_TILE!= 1 && local_PMD->autotuner_ctr <= REP_TILE*2 && local_PMD->autotuner_ctr%2 == 0){
+		curr_autotuner_ctr = local_PMD->autotuner_ctr/2;
 		if(curr_autotuner_ctr == REP_TILE) curr_autotuner_ctr =  local_PMD->autotuner_best_idx;
 		local_PMD->decom[0]->MatrixReset((void*) A, ldA);
 		local_PMD->decom[1]->MatrixReset((void*) B, ldB);
@@ -333,7 +333,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 
 		local_PMD->decom[0]->InitTileMap(T, T, local_PMD->SAB, RONLY);
 		local_PMD->decom[1]->InitTileMap(T, T, local_PMD->SAB, RONLY);
-		WR_properties C_tile_prop; 
+		WR_properties C_tile_prop;
 		if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR")) C_tile_prop = WR;
 		else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WR_LAZY")) C_tile_prop = WR_LAZY;
 		//else if (!strcmp(OUTPUT_ALGO_MODE, "ALGO_WREDUCE")) C_tile_prop = W_REDUCE;
@@ -346,9 +346,14 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 #endif
 		CreateTasksDgemm(local_PMD, curr_autotuner_ctr);
 		remaining_tasks = local_PMD->autotuner[curr_autotuner_ctr]->task_num;
+		local_PMD->autotuner_ctr++;
 	}
-	else if(REP_TILE == 1 || local_PMD->autotuner_ctr > REP_TILE){
-		curr_autotuner_ctr = local_PMD->autotuner_best_idx;
+	else if(REP_TILE == 1 || local_PMD->autotuner_ctr > REP_TILE*2 || local_PMD->autotuner_ctr%2 == 1){
+		if(local_PMD->autotuner_ctr <= REP_TILE*2){
+			curr_autotuner_ctr = local_PMD->autotuner_ctr/2;
+			local_PMD->autotuner_ctr++;
+		}
+		else curr_autotuner_ctr = local_PMD->autotuner_best_idx;
 		int buffer_freed = 0; 
 		for (int i = 0; i < CHL_MEMLOCS; i++){
 			current_SAB[i] = local_PMD->SAB[i];
