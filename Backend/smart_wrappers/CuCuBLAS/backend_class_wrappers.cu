@@ -177,7 +177,11 @@ void CommandQueue::record_event(Event_p Wevent)
 #endif
 	Wevent->dev_id = dev_id; 
 	CHLSelectDevice(dev_id);
+#ifdef TTEST
 	cudaError_t err = cudaEventCreate(( cudaEvent_t*) Wevent->event_backend_ptr);
+#else 
+	cudaError_t err = cudaEventCreateWithFlags(( cudaEvent_t*) Wevent->event_backend_ptr, cudaEventDisableTiming);
+#endif
 #ifndef PRODUCTION
 	massert(cudaSuccess == err, "[dev_id=%3d] CommandQueue(%d)::record_event(%d,dev_id = %d)- cudaEventCreate - %s\n",  
 		id, dev_id, Wevent->id, Wevent->dev_id, cudaGetErrorString(err));

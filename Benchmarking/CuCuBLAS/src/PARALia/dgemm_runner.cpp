@@ -78,11 +78,6 @@ int main(const int argc, const char *argv[]) {
 
 	CHLMemcpy(C_buf, C,  M * N *sizeof(double), CHL_MEMLOCS -1, C_loc);
 
-	for(int it = 0; it < REP_TILE*2; it++){
-		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
-	}
-	CHLSyncCheckErr();
 	// Call for Validate start
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
@@ -125,8 +120,7 @@ int main(const int argc, const char *argv[]) {
 
 	double first_over_t = cpu_timer;
 
-	int warmup_bench_it = 10;
-	if ( M >= 20000 && N >= 20000 && K >= 20000) warmup_bench_it = 2;
+	int warmup_bench_it = REP_TILE*2 + 1;
 	for(int it = 0; it < warmup_bench_it; it++){
 		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);

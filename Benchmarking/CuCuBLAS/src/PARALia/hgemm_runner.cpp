@@ -126,8 +126,7 @@ int main(const int argc, const char *argv[]) {
 
 	double first_over_t = cpu_timer;
 
-	int warmup_bench_it = 10;
-	if ( M >= 20000 && N >= 20000 && K >= 20000) warmup_bench_it = 2;
+	int warmup_bench_it = REP_TILE*2 + 1;
 	for(int it = 0; it < warmup_bench_it; it++){
 		if (predef_control_values!= NULL) return_values = PARALiAHgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
 		else return_values = PARALiAHgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
