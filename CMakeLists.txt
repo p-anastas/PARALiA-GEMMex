@@ -261,7 +261,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 #add_definitions(-DUDDEBUG)
 
 #Run in testing mode : details about models, decisions and time spend in operations.
-add_definitions(-DTEST)
+#add_definitions(-DTEST)
 
 #Run in Subkernel testing mode : details about time spend in subkernel operations.
 #add_definitions(-DSTEST)
