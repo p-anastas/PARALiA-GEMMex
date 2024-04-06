@@ -80,13 +80,13 @@ int main(const int argc, const char *argv[]) {
 
 	// Call for Validate start
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemmLarge(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
 	CHLMemcpy(C, C_buf,  M * N *sizeof(double), C_loc, CHL_MEMLOCS -1);
 
 	// Call for Validate reuse
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemmLarge(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
 	for (int i = 0; i< CHL_MEMLOCS; i++) PARALiADevCacheFree(i);
 
@@ -108,7 +108,7 @@ int main(const int argc, const char *argv[]) {
 
 	cpu_timer = csecond();
 	if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-	else return_values = PARALiADgemmLarge(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+	else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 
@@ -123,7 +123,7 @@ int main(const int argc, const char *argv[]) {
 	int warmup_bench_it = REP_TILE*2 + 1;
 	for(int it = 0; it < warmup_bench_it; it++){
 		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-		else return_values = PARALiADgemmLarge(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 	}
 	CHLSyncCheckErr();
 
@@ -135,7 +135,7 @@ int main(const int argc, const char *argv[]) {
 	for(int it = 0; it < bench_it; it++){
 		cpu_timer = csecond();
 		if (predef_control_values!= NULL) return_values = PARALiADgemmControled(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC, predef_control_values);
-		else return_values = PARALiADgemmLarge(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
+		else return_values = PARALiADgemm(TransA, TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C , ldC);
 		CHLSyncCheckErr();
 		cpu_timer = csecond() - cpu_timer;
 		StoreLogLvl3(filename, return_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc, cpu_timer, return_values->pred_t, return_values->pred_J);
