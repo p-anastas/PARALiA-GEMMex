@@ -529,3 +529,49 @@ ATC_p PARALiADgemmControled(char TransA,  char TransB, long int M, long int N, l
 	predef_controller_dgemm = predef_controller;
 	return PARALiADgemm(TransA, TransB,  M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC);
 }
+
+/// A modification of PARALiADgemm but with given parameters (mainly for performance/debug purposes)
+ATC_p PARALiADgemmLarge(char TransA,  char TransB, long int M, long int N, long int K, double alpha, double* A, long int ldA,
+		double* B, long int ldB, double beta, double* C, long int ldC){
+	long ex_tile = 40960;
+	if(M > ex_tile && N > ex_tile && K > ex_tile){ // Run large decom version to fit in GPU mems
+		long Grid_M = M/ex_tile, Grid_N = N/ex_tile, Grid_K = K/ex_tile;
+		int Grid_M_div = M%ex_tile, Grid_N_div = N%ex_tile, Grid_K_div = K%ex_tile;
+		// TODO: Padding instead of resize so all data fit in buffer without complex mechanism.
+		// Can degrade performance for small div sizes.
+		if (Grid_M_div > 0) Grid_M++;
+		else Grid_M_div = ex_tile;
+		if (Grid_N_div > 0) Grid_N++;
+		else Grid_N_div = ex_tile;
+		if (Grid_K_div > 0) Grid_K++;
+		else Grid_K_div = ex_tile;
+		ATC_p temp;
+		int curr_chunk_M, curr_chunk_N, curr_chunk_K;
+		for (long int itt1 = 0; itt1 < Grid_M; itt1++){
+    		if ( itt1 == Grid_M - 1) curr_chunk_M = Grid_M_div;
+    		else  curr_chunk_M = ex_tile;
+			for (long int itt2 = 0 ; itt2 < Grid_N; itt2++){
+      			if ( itt2 == Grid_N - 1) curr_chunk_N = Grid_N_div;
+				else  curr_chunk_N = ex_tile;
+				for (long int itt3 = 0 ; itt3 < Grid_K; itt3++){
+      				if ( itt3 == Grid_K - 1) curr_chunk_K = Grid_K_div;
+					else  curr_chunk_K = ex_tile;
+					double beta_ck;
+					if(!itt3) beta_ck = beta;
+					else beta_ck = 1.0; 
+					double* addr_chunk_A, *addr_chunk_B, *addr_chunk_C;
+					if (TransA == 'N') addr_chunk_A = ((double*)A) + ((long)(itt1*ex_tile + itt3*ex_tile*ldA)); 
+					else addr_chunk_A = ((double*)A) + ((long)(itt1*ldA*ex_tile + itt3*ex_tile)); 
+					if (TransB == 'N') addr_chunk_B = ((double*)B) + ((long)(itt3*ex_tile + itt2*ex_tile*ldB)); 
+					else  addr_chunk_B = ((double*)B) + ((long)(itt3*ldB*ex_tile + itt2*ex_tile)); 
+					addr_chunk_C = ((double*)C) + ((long)(itt1*ex_tile + itt2*ex_tile*ldC)); 
+					temp = PARALiADgemm(TransA, TransB,  curr_chunk_M, curr_chunk_N, curr_chunk_K, alpha, 
+						addr_chunk_A, ldA, addr_chunk_B, ldB, beta_ck, addr_chunk_C, ldC);
+					CHLSyncCheckErr();
+				}
+			}
+		}
+		return temp;
+	}
+	else return PARALiADgemm(TransA, TransB,  M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC);
+}

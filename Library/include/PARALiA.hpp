@@ -38,6 +38,10 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 ATC_p PARALiADgemmControled(char TransA,  char TransB, long int M, long int N, long int K,
 	double alpha, double* A, long int ldA, double* B, long int ldB, double beta, double* C, long int ldC, ATC_p predef_control_values);
 
+/// A PARALiA wrapper for Large matrices
+ATC_p PARALiADgemmLarge(char TransA,  char TransB, long int M, long int N, long int K,
+	double alpha, double* A, long int ldA, double* B, long int ldB, double beta, double* C, long int ldC);
+
 /// The PARALiA Dgemm implementation.
 ATC_p PARALiASgemm(char TransA,  char TransB, long int M, long int N, long int K,
 	float alpha, float* A, long int ldA, float* B, long int ldB, float beta, float* C, long int ldC);
