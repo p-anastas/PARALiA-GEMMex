@@ -232,7 +232,7 @@ short Dtest_equality(double* C_comp, double* C, long long size) {
 }
 
 inline __half Herror(__half a, __half b) {
-  if (a == ((__half) 0)) return (__half) dabs(a - b);
+  if (a == ((__half) 0.0)) return (__half) dabs(a - b);
   return (__half) dabs(a - b)/a;
 }
 
@@ -252,7 +252,7 @@ short Htest_equality(__half* C_comp, __half* C, long long size) {
   __half eps = 1e-2;
   failed = Hvec_diff(C_comp, C, size, eps);
   while (eps > (__half) FLT_MIN && !failed && acc < 30) {
-    eps *= 0.1;
+    eps *= (__half) 0.1;
     acc++;
     failed = Hvec_diff(C_comp, C, size, eps);
   }
