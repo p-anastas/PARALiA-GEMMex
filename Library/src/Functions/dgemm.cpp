@@ -283,7 +283,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		CHLGetPtrLoc(C), M, N, K, sizeof(double));
 		if(predef_controller_dgemm && predef_controller_dgemm->T > 0)
 			/// Cannot tune tile repetitively if its user-defined
-			local_PMD->autotuner_ctr = REP_TILE*2 + 1;
+			local_PMD->autotuner_ctr = REP_TILE*2 + 2;
 		for(int idx = local_PMD->autotuner_ctr; idx < REP_TILE; idx++){
 			local_PMD->autotuner[idx] = new ATC();
 			if (predef_controller_dgemm && local_PMD->autotuner[idx]->diff_intialized_params_ATC(predef_controller_dgemm)) 
@@ -349,7 +349,7 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 		local_PMD->autotuner_ctr++;
 	}
 	else if(REP_TILE == 1 || local_PMD->autotuner_ctr > REP_TILE*2 || local_PMD->autotuner_ctr%2 == 1){
-		if(local_PMD->autotuner_ctr <= REP_TILE*2){
+		if(REP_TILE != 1 && local_PMD->autotuner_ctr <= REP_TILE*2){
 			curr_autotuner_ctr = local_PMD->autotuner_ctr/2;
 			local_PMD->autotuner_ctr++;
 		}

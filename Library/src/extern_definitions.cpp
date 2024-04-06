@@ -17,11 +17,13 @@ int reduce_queue_ctr[64];
 int reduce_loc; 
 
 void ProblemMetadata::print(){
-    fprintf(stderr,"ProblemMetadata::print():\n------------------------------------\nAutotuner->\n"); 
-    for(int itter = 0; itter < REP_TILE; itter++){
-        fprintf(stderr,"%d: ", itter); 
-        autotuner[itter]->print();
-    }
+    fprintf(stderr,"ProblemMetadata::print():\n------------------------------------\nAutotuner->\n");
+    if(autotuner_ctr != REP_TILE*2 + 2)
+        for(int itter = 0; itter < REP_TILE; itter++){
+            fprintf(stderr,"%d: ", itter); 
+            autotuner[itter]->print();
+        }
+    else autotuner[0]->print();
     fprintf(stderr,"problem_name: %s\n", problem_name); 
     fprintf(stderr,"problem_wrap: %p\n", problem_wrap); 
     fprintf(stderr,"Decomposers (%d)\n", decom_num); 
