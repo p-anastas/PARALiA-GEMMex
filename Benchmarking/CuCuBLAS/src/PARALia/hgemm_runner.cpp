@@ -10,6 +10,8 @@
 
 #include "backend_wrappers.hpp"
 
+#define CBLASXT_MAX_SAFE_TILE 8192
+
 int main(const int argc, const char *argv[]) {
 	char TransA, TransB;
   	double alpha_in, beta_in;
@@ -17,7 +19,7 @@ int main(const int argc, const char *argv[]) {
 	int A_loc, B_loc, C_loc, C_out_loc;
 	ATC_p predef_control_values = NULL, return_values = NULL;
 	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha_in, &beta_in, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
-  	__half alpha = alpha_in, beta = beta_in;
+  	__half alpha = (__half) alpha_in, beta = (__half) beta_in;
 
 	char *filename = (char *) malloc(1024* sizeof(char));
 	if (predef_control_values!= NULL){
@@ -54,9 +56,9 @@ int main(const int argc, const char *argv[]) {
 	A = (__half*) CHLMalloc(M * K*sizeof(__half), A_loc, 0);
 	B = (__half*) CHLMalloc(N * K*sizeof(__half), B_loc, 0);
 	C = (__half*) CHLMalloc(M * N*sizeof(__half), C_loc, 1);
-	if(A_loc == CHL_WORKERS) CHLTouche(A, M*K, sizeof(__half));
- 	if(B_loc == CHL_WORKERS) CHLTouche(B, N*K, sizeof(__half));
-	if(C_loc == CHL_WORKERS) CHLTouche(C, M*N, sizeof(__half));
+	if(A_loc == -2 || A_loc == CHL_WORKERS) CHLTouche(A, M*K, sizeof(__half));
+ 	if(B_loc == -2 || B_loc == CHL_WORKERS) CHLTouche(B, N*K, sizeof(__half));
+	if(C_loc == -2 || C_loc == CHL_WORKERS) CHLTouche(C, M*N, sizeof(__half));
 	CHLSyncCheckErr();
 	cpu_timer  = csecond() - cpu_timer;
 	fprintf(stderr, "Done: Alloc time:\t%lf ms\n\n",  cpu_timer  * 1000);
@@ -70,15 +72,6 @@ int main(const int argc, const char *argv[]) {
 	fprintf(stderr, "done.\nInit time:\t%lf ms\n\n",  cpu_timer  * 1000);
 
 #ifdef RUNVALIDATION
-	long int max_size_supported_gpu = ((long int)20)*1024*1024*1024;
-	long int max_size_in_gpu = ((long int) M)*K*sizeof(__half) +
-		 ((long int) K)*N*sizeof(__half) + ((long int) M)*N*sizeof(__half);
-	if(max_size_in_gpu > max_size_supported_gpu){
-		fprintf(stderr, "Size = %ld GB too large for cuBLASHgemmWrap VALIDATION in 1 GPU (max safe = %ld GB)\n"
-		"Disable validation to run\n" , max_size_in_gpu/(1024*1024*1024), max_size_supported_gpu/(1024*1024*1024));
-		exit(1);
-	}
-
 	__half *C_out, *C_out1, *C_buf;
 	C_out  = (__half*) CHLMalloc(M * N*sizeof(__half), CHL_MEMLOCS-1, 1);
 	C_out1  = (__half*) CHLMalloc(M * N*sizeof(__half), CHL_MEMLOCS-1, 1);
@@ -102,9 +95,11 @@ int main(const int argc, const char *argv[]) {
  	CHLMemcpy(C, C_buf,  M * N *sizeof(__half), C_loc, CHL_MEMLOCS -1);
 
 	// Validate with cuBLASXt (questionable but CPU validation can be slower by at least a factor)
-	cuBLASHgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC, 0);
+	int dev_ids[CHL_WORKERS];
+	for (int i = 0; i < CHL_WORKERS; i++) dev_ids[i] = i;
+	cuBLASXtHgemmWrap(TransA,  TransB, M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC,  (long int) fmin(fmin(fmin(M,N),K)/2,CBLASXT_MAX_SAFE_TILE), 0, CHL_WORKERS, dev_ids);
 	CHLMemcpy(C_out1, C,  M * N *sizeof(__half), CHL_MEMLOCS -1, C_loc);
- 	if(Htest_equality(C_out1, C_out, M * N) < 3) error("Insufficient accuracy for benchmarks\n");
+ 	if(Dtest_equality(C_out1, C_out, M * N) < 9) error("Insufficient accuracy for benchmarks\n");
 
  	CHLMemcpy(C, C_buf,  M * N *sizeof(__half), C_loc, CHL_MEMLOCS -1);
 	CHLFree(C_out, M * N*sizeof(__half), CHL_MEMLOCS-1);
