@@ -523,10 +523,10 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 ATC_p PARALiADgemmControled(char TransA,  char TransB, long int M, long int N, long int K, double alpha, double* A, long int ldA,
 		double* B, long int ldB, double beta, double* C, long int ldC, ATC_p predef_controller){
 	if (predef_controller == NULL){
-		warning("Calling PARALiADgemmControled with empty controller -> falling back to full autotune version \'PARALiADgemm\'\n");
-		return PARALiADgemm(TransA, TransB,  M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC);
+		warning("Calling PARALiADgemmControled with empty controller -> "
+		"falling back to full autotune version \'PARALiADgemm\'\n");
 	}
-	predef_controller_dgemm = predef_controller;
+	else predef_controller_dgemm = predef_controller;
 	return PARALiADgemm(TransA, TransB,  M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC);
 }
 
@@ -534,7 +534,16 @@ ATC_p PARALiADgemmControled(char TransA,  char TransB, long int M, long int N, l
 ATC_p PARALiADgemmLarge(char TransA,  char TransB, long int M, long int N, long int K, double alpha, double* A, long int ldA,
 		double* B, long int ldB, double beta, double* C, long int ldC){
 	long ex_tile = 40960;
+	if(predef_controller_dgemm!=NULL){
+		if(predef_controller_dgemm->active_unit_num == 1) ex_tile = 16384;
+		else if(predef_controller_dgemm->active_unit_num == 2) ex_tile = 32768;
+	}
 	if(M > ex_tile && N > ex_tile && K > ex_tile){ // Run large decom version to fit in GPU mems
+		warning("Running PARALiADgemmLarge version with ex_tile = %ld, still under development\n", ex_tile);
+		ATC_p tile_force_atc = new ATC();
+		if(predef_controller_dgemm) tile_force_atc->mimic_ATC(predef_controller_dgemm);
+		tile_force_atc->T = ex_tile/8;
+		warning("Setting tiling size to %ld\n", tile_force_atc->T);
 		long Grid_M = M/ex_tile, Grid_N = N/ex_tile, Grid_K = K/ex_tile;
 		int Grid_M_div = M%ex_tile, Grid_N_div = N%ex_tile, Grid_K_div = K%ex_tile;
 		// TODO: Padding instead of resize so all data fit in buffer without complex mechanism.
@@ -565,8 +574,8 @@ ATC_p PARALiADgemmLarge(char TransA,  char TransB, long int M, long int N, long 
 					if (TransB == 'N') addr_chunk_B = ((double*)B) + ((long)(itt3*ex_tile + itt2*ex_tile*ldB)); 
 					else  addr_chunk_B = ((double*)B) + ((long)(itt3*ldB*ex_tile + itt2*ex_tile)); 
 					addr_chunk_C = ((double*)C) + ((long)(itt1*ex_tile + itt2*ex_tile*ldC)); 
-					temp = PARALiADgemm(TransA, TransB,  curr_chunk_M, curr_chunk_N, curr_chunk_K, alpha, 
-						addr_chunk_A, ldA, addr_chunk_B, ldB, beta_ck, addr_chunk_C, ldC);
+					temp = PARALiADgemmControled(TransA, TransB,  curr_chunk_M, curr_chunk_N, curr_chunk_K, alpha, 
+						addr_chunk_A, ldA, addr_chunk_B, ldB, beta_ck, addr_chunk_C, ldC, tile_force_atc);
 					CHLSyncCheckErr();
 				}
 			}
@@ -574,4 +583,15 @@ ATC_p PARALiADgemmLarge(char TransA,  char TransB, long int M, long int N, long 
 		return temp;
 	}
 	else return PARALiADgemm(TransA, TransB,  M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC);
+}
+
+/// A modification of PARALiADgemm but with given parameters (mainly for performance/debug purposes)
+ATC_p PARALiADgemmLargeControled(char TransA,  char TransB, long int M, long int N, long int K, double alpha, double* A, long int ldA,
+		double* B, long int ldB, double beta, double* C, long int ldC, ATC_p predef_controller){
+	if (predef_controller == NULL){
+		warning("Calling PARALiADgemmLargeControled with empty controller -> "
+		"falling back to full autotune version \'PARALiADgemmLarge\'\n");
+	}
+	else predef_controller_dgemm = predef_controller;
+	return PARALiADgemmLarge(TransA, TransB,  M, N, K, alpha, A, ldA, B, ldB, beta, C, ldC);
 }

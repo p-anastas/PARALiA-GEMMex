@@ -21,7 +21,7 @@ int main(const int argc, const char *argv[]) {
 	ATC_p predef_control_values = NULL;
 	ParseInputLvl3(argc, argv, &predef_control_values, &TransA, &TransB, &alpha, &beta, &M, &N, &K, &A_loc, &B_loc, &C_loc, &C_out_loc);
 
-	char *filename = (char *) malloc(1024* sizeof(char));
+	char *filename = (char *) malloc(2048* sizeof(char));
 	if (predef_control_values!= NULL){
 		if(predef_control_values->T > 0) {
 			if (predef_control_values->T > M || predef_control_values->T > N || predef_control_values->T > K)
@@ -29,10 +29,10 @@ int main(const int argc, const char *argv[]) {
 			else if (predef_control_values->T > CBLASXT_MAX_SAFE_TILE)
 				error("Given Tin=%ld bigger than CBLASXT_MAX_SAFE_TILE\n", predef_control_values->T);
 		}
-		sprintf(filename, "%s/cuBLASXtDgemmRunner_predefined_vals_%s.log",
+		sprintf(filename, "%s/cuBLASXtDgemmRunner_predefined_vals_%s_strong_scaling_bench.log",
 			TESTLIBDIR, VERSION);
 	}
-	else sprintf(filename, "%s/cuBLASXtDgemmRunner_%s.log", TESTLIBDIR, VERSION);
+	else sprintf(filename, "%s/cuBLASXtDgemmRunner_%s_strong_scaling_bench.log", TESTLIBDIR, VERSION);
 #ifdef CHECKLOG
 	CheckLogLvl3(filename, predef_control_values, TransA, TransB, alpha, beta, M, N, K, A_loc, B_loc, C_loc, C_out_loc);
 #endif
