@@ -7,7 +7,9 @@ module load Boost/1.81.0-GCC-12.2.0
 module load OpenBLAS/0.3.21-GCC-12.2.0
 module load Python/3.10.8-GCCcore-12.2.0
 module load CMake/3.24.3-GCCcore-12.2.0
-source ~/.bashrc
+module load NVHPC/24.1-CUDA-12.4.0
+
+#source ~/.bashrc
 export OMP_PROC_BIND=spread
 #--------------------------------------------------------------Basic----------------------------------------------------------------#
 
@@ -25,7 +27,7 @@ export PARALIA_NUM_DEVICES=8
 export PARALIA_CUDA_ARCH=80
 
 # CHECKME: Define cuda toolkit path. Use "default" to use the default compiler calls without prefix(es)
-export PARALIA_CUDA_TOOLKIT_PREFIX="/usr/local/cuda-12.2"
+export PARALIA_CUDA_TOOLKIT_PREFIX="/usr/local/cuda-12.4"
 
 # CHECKME: Define cuda load command (e.g. should always be '-lcuda', but its not! If you don't know what to do, leave it)
 export PARALIA_CUDA_LOAD_COMMAND='-lcuda'
@@ -34,7 +36,7 @@ export PARALIA_CUDA_LOAD_COMMAND='-lcuda'
 export PARALIA_CXX_PREFIX="default"
 
 # CHECKME: Define path for prebuild openblas. NOTE: OpenBLAS built using the same gcc is adviced.
-export PARALIA_OPENBLAS_PREFIX="/apps/modules/numlib/OpenBLAS/"
+export PARALIA_OPENBLAS_PREFIX="/apps/all/OpenBLAS/0.3.21-GCC-12.2.0"
 
 # CHECKME: Define path for prebuild boost. NOTE: boost built using the same gcc is adviced.
 export PARALIA_BOOST_PREFIX="/apps/all/Boost/1.81.0-GCC-12.2.0"

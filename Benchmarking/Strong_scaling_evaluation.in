@@ -1,0 +1,189 @@
+#!/bin/bash
+echo "Bash version ${BASH_VERSION}..."
+
+machine=@TESTBED_NAME@
+PROJECT_INSTALL_DIR=@CMAKE_INSTALL_PROJECT@
+PROJECT_DIR=@PROJECT_SOURCE_DIR@
+devices=@NUM_DEVICES@
+
+source $PROJECT_DIR/config_${machine}.sh
+LIBSC_TEST_LOG_DIR=$PROJECT_INSTALL_DIR/testLogs
+mkdir -p "${LIBSC_TEST_LOG_DIR}/exec_logs"
+
+memlocs=$(($devices + 2));
+malloc_loc=$devices
+numa_inter_loc=$(($devices + 1));
+
+echo "Devices = $devices, Memlocs = $memlocs (Malloc = $malloc_loc, Numa interleaved = $numa_inter_loc)"
+
+alpha=1.2345
+beta=1.1154
+
+for FUNC in dgemm sgemm
+do
+	perf_log="${LIBSC_TEST_LOG_DIR}/exec_logs/${FUNC}_perf_eval.log"
+	rm $perf_log
+
+	PARALiA_run=$PROJECT_INSTALL_DIR/testing-bin/${FUNC}_runner
+	cuBLASXt_run=$PROJECT_INSTALL_DIR/testing-bin/cuBLASXt_${FUNC}_runner
+	echo "Performing Benchmarks for ${FUNC} evaluation..."
+	## A = Full offload scenario (Initially all data on CPU), B = Partial offload scenario
+	TransA=N
+	TransB=N
+	for reps in in {1..10}
+	do
+		for scenario in "Partial_offload_result_mixed_in" "Partial_offload_in" "Device_only_offload" "Device_only_offload_mixed3" # "Full_offload"
+		do #  "Partial_offload_result" "Partial_offload_mixed" "Device_only_offload_mixed1" "Device_only_offload_mixed3" "Device_only_offload_mixed4"
+			C_loc=$numa_inter_loc
+			echo $scenario
+			if [ "$scenario" = "Full_offload" ];
+			then
+				A_loc=$numa_inter_loc
+				B_loc=$numa_inter_loc
+			elif [ "$scenario" = "Partial_offload_result" ];
+				then
+					A_loc=0
+					B_loc=0
+			elif [ "$scenario" = "Partial_offload_result_mixed_in" ];
+				then
+					A_loc=4
+					B_loc=2
+					C_loc=$numa_inter_loc
+			elif [ "$scenario" = "Partial_offload_in" ];
+				then
+					A_loc=$numa_inter_loc
+					B_loc=$numa_inter_loc
+					C_loc=0
+			elif [ "$scenario" = "Partial_offload_mixed" ];
+				then
+					A_loc=$numa_inter_loc
+					B_loc=0
+					C_loc=5
+			elif [ "$scenario" = "Device_only_offload" ];
+				then
+					A_loc=0
+					B_loc=0
+					C_loc=0
+			elif [ "$scenario" = "Device_only_offload_mixed1" ];
+				then
+					A_loc=0
+					B_loc=1
+					C_loc=2
+			elif [ "$scenario" = "Device_only_offload_mixed2" ];
+				then
+					A_loc=0
+					B_loc=3
+					C_loc=6
+			elif [ "$scenario" = "Device_only_offload_mixed3" ];
+				then
+					A_loc=4
+					B_loc=2
+					C_loc=7
+			elif [ "$scenario" = "Device_only_offload_mixed4" ];
+				then
+					A_loc=1
+					B_loc=6
+					C_loc=7
+			fi
+		# I) Square problems
+			for Sq in 8192 10000 16384 30000 32768
+			do
+				echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				echo "$PARALiA_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$PARALiA_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				echo "$PARALiA_run 2 101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$PARALiA_run 2 101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$PARALiA_run 2 11 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$PARALiA_run 2 11 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				echo "$PARALiA_run 1 1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$PARALiA_run 1 1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+
+				echo "$cuBLASXt_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$cuBLASXt_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				echo "$cuBLASXt_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$cuBLASXt_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				#echo "$cuBLASXt_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$cuBLASXt_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log
+				echo "$cuBLASXt_run 2 101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$cuBLASXt_run 2 101 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				#echo "$cuBLASXt_run 2 11 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				#$cuBLASXt_run 2 11 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+				echo "$cuBLASXt_run 1 1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+				$cuBLASXt_run 1 1 -1 -1 $TransA $TransB $alpha $beta $Sq $Sq $Sq $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+
+			done
+			# III) Non-square Problems
+			for fat in 10000 30000 
+			do
+				# K < M,N
+				for ctr in 5 10; #21 problems
+				do
+					thin=$(($fat/$ctr))
+					echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$PARALiA_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$PARALiA_run 2 101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 2 101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$PARALiA_run 2 11 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$PARALiA_run 2 11 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$PARALiA_run 1 1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 1 1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+
+					echo "$cuBLASXt_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$cuBLASXt_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$cuBLASXt_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$cuBLASXt_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$cuBLASXt_run 2 101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 2 101 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$cuBLASXt_run 2 11 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$cuBLASXt_run 2 11 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$cuBLASXt_run 1 1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 1 1 -1 -1 $TransA $TransB $alpha $beta $fat $fat $thin $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+
+				done
+			done
+			for thin in 1000 3000
+			do
+				# K > M,N
+				for ctr in 5 10; #21 problems
+				do
+					fat=$(($thin*$ctr))
+					echo "$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$PARALiA_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$PARALiA_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$PARALiA_run 2 101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 2 101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$PARALiA_run 2 11 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$PARALiA_run 2 11 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$PARALiA_run 1 1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$PARALiA_run 1 1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+
+					echo "$cuBLASXt_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 8 11111111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$cuBLASXt_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 4 1010101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$cuBLASXt_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$cuBLASXt_run 4 1111 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$cuBLASXt_run 2 101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 2 101 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					#echo "$cuBLASXt_run 2 11 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					#$cuBLASXt_run 2 11 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+					echo "$cuBLASXt_run 1 1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc &>> $perf_log"
+					$cuBLASXt_run 1 1 -1 -1 $TransA $TransB $alpha $beta $thin $thin $fat $A_loc $B_loc $C_loc $C_loc  &>> $perf_log
+
+				done
+			done
+		done
+	done
+done
