@@ -70,11 +70,11 @@ int main(const int argc, const char *argv[]) {
 	if (log_result_flag) {
 		filename = (char *) malloc(1024 * sizeof(char));
 		for (int dev_idx = 0; dev_idx < CHL_WORKERS; dev_idx++){
-			sprintf(filename, "%s/Database/H2D_chl_microbench_devNum-%d_ver-%s.log", DEPLOYDB, dev_idx+1, VERSION);
+			sprintf(filename, "%s/Database/H2D_chl_microbench_devNum-%d_ver-%s.log", SYSDB, dev_idx+1, VERSION);
 			benchmarks_exist += check_benchmark(filename);
-			sprintf(filename, "%s/Database/D2H_chl_microbench_devNum-%d_ver-%s.log", DEPLOYDB, dev_idx+1, VERSION);
+			sprintf(filename, "%s/Database/D2H_chl_microbench_devNum-%d_ver-%s.log", SYSDB, dev_idx+1, VERSION);
 			benchmarks_exist += check_benchmark(filename);
-			sprintf(filename, "%s/Database/HbidD_chl_microbench_devNum-%d_ver-%s.log", DEPLOYDB, dev_idx+1, VERSION);
+			sprintf(filename, "%s/Database/HbidD_chl_microbench_devNum-%d_ver-%s.log", SYSDB, dev_idx+1, VERSION);
 			benchmarks_exist += check_benchmark(filename);
 		}
 		if (benchmarks_exist == 3*(CHL_WORKERS)){
@@ -180,7 +180,7 @@ int main(const int argc, const char *argv[]) {
 			case_idx, wk_idx + 1, printlist<int>(active_unit_id_list, active_unit_num), mem_loc, mem_name(mem_loc), bw_per_devnum_total[wk_idx][case_idx]);
 		}
 		//if(log_result_flag){
-		//	sprintf(filename, "%s/Database/H2D_chl_microbench_devNum-%d_ver-%s.log", DEPLOYDB, wk_idx+1, VERSION);
+		//	sprintf(filename, "%s/Database/H2D_chl_microbench_devNum-%d_ver-%s.log", SYSDB, wk_idx+1, VERSION);
 		//	log_results(filename, wk_idx + 1, CHL_INPUT_QUEUES_CASE_IDS[wk_idx], bw_per_devnum_total[wk_idx], MAX_WORKER_CONFIG);
 		//}
 		fprintf(stderr,"\n------------------------------------------------------------------------------------------------------------------------------------------------------\n");
@@ -248,7 +248,7 @@ int main(const int argc, const char *argv[]) {
 				rev_bw_per_devnum[idx][idx1][1], rev_bw_per_devnum[idx][idx1][2]);
 		}
 		if(log_result_flag){
-			sprintf(filename, "%s/Database/D2H_chl_microbench_devNum-%d_ver-%s.log", DEPLOYDB, idx+1, VERSION);
+			sprintf(filename, "%s/Database/D2H_chl_microbench_devNum-%d_ver-%s.log", SYSDB, idx+1, VERSION);
 			log_results(filename, idx + 1, rev_id_per_devnum[rev_active_unit_num-1], rev_bw_per_devnum[rev_active_unit_num-1], rev_case_id_ctr[rev_active_unit_num-1]); 
 		}
 		fprintf(stderr,"\n------------------------------------------------------------------------------------------------------------------------------------------------------\n");
@@ -328,7 +328,7 @@ int main(const int argc, const char *argv[]) {
 
 		}
 		if(log_result_flag){
-			sprintf(filename, "%s/Database/HbidD_chl_microbench_devNum-%d_ver-%s.log", DEPLOYDB, idx+1, VERSION);
+			sprintf(filename, "%s/Database/HbidD_chl_microbench_devNum-%d_ver-%s.log", SYSDB, idx+1, VERSION);
 			log_results_bid(filename, idx + 1, bid_id_per_devnum[active_unit_num-1], bid_rev_id_per_devnum[active_unit_num-1], 
 			bid_simu_bw_per_devnum[active_unit_num-1], bid_bw_per_devnum[active_unit_num-1], bid_rev_bw_per_devnum[active_unit_num-1], bid_case_id_ctr[active_unit_num-1]); 
 		}

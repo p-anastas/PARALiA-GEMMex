@@ -47,7 +47,7 @@ int main(const int argc, const char *argv[]) {
 	if(log_results){
 		filename = (char *) malloc(1024 * sizeof(char));
     	sprintf(filename, "%s/Database/microbenchmarks/bw_bench_bidirectional_grid_2D_%d_%d_%d_%d.log", 
-			DEPLOYDB, host_loc, worker_case_id, h_case_id, h_rev_case_id);
+			SYSDB, host_loc, worker_case_id, h_case_id, h_rev_case_id);
 		fp = fopen(filename, "r");
     	if(fp){
 			warning("bw_bench_bidirectional_grid_2D: filename %s exists, quiting\n", filename);

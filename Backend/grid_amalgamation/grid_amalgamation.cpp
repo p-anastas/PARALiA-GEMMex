@@ -249,7 +249,7 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
     if (case_id < 1 || rev_case_id < 1 || !is_subset(case_id, active_nodes_id) || !is_subset(rev_case_id, active_nodes_id)) 
         error("Grid_amalgamation::load_edges(%d, %d): Incorrect input arguments for active_nodes_id = %d\n", case_id, rev_case_id, active_nodes_id); 
     char *filename = (char *) malloc(1024 * sizeof(char));
-    sprintf(filename, "%s/Database/chl_bw_grid_%d_%d.log", DEPLOYDB, case_id, rev_case_id);
+    sprintf(filename, "%s/chl_bw_grid_%d_%d.log", SYSDB, case_id, rev_case_id);
     FILE* fp = fopen(filename, "r");
     if(!fp){
 #ifdef PDEBUG
@@ -313,7 +313,7 @@ int Grid_amalgamation::load_edges(int case_id, int rev_case_id){
 /// Also check file layout in case microbenchmarks messed or some file has been edited by hand incorrectly
 void Grid_amalgamation::load_nodes(){
     char *filename = (char *) malloc(1024 * sizeof(char));
-    sprintf(filename, "%s/Database/chl_worker_grid_%d.log", DEPLOYDB, (int) std::pow(2, CHL_WORKERS) - 1);
+    sprintf(filename, "%s/chl_worker_grid_%d.log", SYSDB, (int) std::pow(2, CHL_WORKERS) - 1);
     FILE* fp = fopen(filename, "r");
     if(!fp) error("Grid_amalgamation::load_nodes(): File %s not found\n", filename);
     for (int it = 0; it < 100; it++) fscanf(fp, "=");

@@ -36,7 +36,7 @@ int main(const int argc, const char *argv[]) {
 	FILE* fp;
 	if(log_results){
 		filename = (char *) malloc(1024 * sizeof(char));
-    	sprintf(filename, "%s/Database/microbenchmarks/bw_bench_scatter_2D_%d_%d.log", DEPLOYDB, loc_src, dest_locs_binary);
+    	sprintf(filename, "%s/Database/microbenchmarks/bw_bench_scatter_2D_%d_%d.log", SYSDB, loc_src, dest_locs_binary);
 		fp = fopen(filename, "r");
     	if(fp){
 			warning("bw_bench_scatter_2D: filename %s exists, quiting\n", filename);

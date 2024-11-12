@@ -19,12 +19,15 @@ set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
 message("PARALiA-GEMMex - TESTBED_NAME: " ${TESTBED_NAME})
 add_definitions(-DTESTBED="${TESTBED_NAME}")
 
-## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
+add_definitions(-DSYSDB="${CMAKE_CURRENT_SOURCE_DIR}/Deployment_files/${TESTBED_NAME}")
+message("PARALiA-GEMMex - SYSDB: " ${CMAKE_CURRENT_SOURCE_DIR}/Deployment_files/${TESTBED_NAME})
+
+## Define the max GPU memory percentage (%) a problem can use (not accounting for streams and other control structs; e.g. only the problem data).
 set(PROBLEM_GPU_PERCENTAGE 90)
 message("PARALiA-GEMMex - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
 add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 
-## Define the max GPU memory percentage (%) a problem can use ( not accounting for streams and other control structs; e.g. only the problem data ).
+## Define the (max) number of devices PARALiA will utilize during execution. 
 set(NUM_DEVICES $ENV{PARALIA_NUM_DEVICES})
 message("PARALiA-GEMMex - NUM_DEVICES: " ${NUM_DEVICES})
 add_definitions(-DCHL_WORKERS=${NUM_DEVICES})
@@ -348,11 +351,12 @@ message("PARALiA-GEMMex - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 #---------------------------------OpenBLAS definitions------------------------------------#
 ###########################################################################################
 
-set(OPENBLAS_PREFIX $ENV{PARALIA_OPENBLAS_PREFIX})
-
-set (OPENBLAS_INCLUDE_DIRS ${OPENBLAS_PREFIX}/include)
-include_directories(${OPENBLAS_INCLUDE_DIRS})
-message("PARALiA-GEMMex - OPENBLAS_INCLUDE_DIRS: " ${OPENBLAS_INCLUDE_DIRS})
+if(NOT $ENV{PARALIA_OPENBLAS_PREFIX} STREQUAL "default")
+  set(OPENBLAS_PREFIX $ENV{PARALIA_OPENBLAS_PREFIX})
+  set (OPENBLAS_INCLUDE_DIRS ${OPENBLAS_PREFIX}/include)
+  include_directories(${OPENBLAS_INCLUDE_DIRS})
+  message("PARALiA-GEMMex - OPENBLAS_INCLUDE_DIRS: " ${OPENBLAS_INCLUDE_DIRS})
+endif()
 
 set (OPENBLAS_LD ${OPENBLAS_PREFIX}/lib)
 set (OPENBLAS_LINK  "-L${OPENBLAS_LD} -lopenblas -lgomp" )
@@ -384,8 +388,7 @@ set (PARALIA_INSTALL_BIN ${PARALIA_INSTALL}/bin)
 file(MAKE_DIRECTORY ${PARALIA_INSTALL_BIN})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PARALIA_INSTALL_BIN})
 
-add_definitions(-DDEPLOYDB="${PARALIA_INSTALL}")
-message("PARALiA-GEMMex - DEPLOYDB: " ${PARALIA_INSTALL}/Database)
+#These should be removed/rechecked at some point...
 file(MAKE_DIRECTORY ${PARALIA_INSTALL}/Database)
 file(MAKE_DIRECTORY ${PARALIA_INSTALL}/Database/microbenchmarks)
 
