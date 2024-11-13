@@ -26,8 +26,8 @@ configure_file(${AUTOTUNE_DIR_INC}/Autotuner.hpp ${PARALIA_INSTALL_INC}/Autotune
 
 ## i) Automatic micro-benchmarking (Population checked within 95% CI) using boost.
 message("Autotuner - microbenchmarks - Using Boost for microbenchmark statistics")
-if(NOT $ENV{PARALIA_BOOST_PREFIX} STREQUAL "default")
-    set(BOOSTO_PREFIX $ENV{PARALIA_BOOST_PREFIX})
+if(NOT $ENV{PARALIA_GEMMEX_BOOST_PREFIX} STREQUAL "default")
+    set(BOOSTO_PREFIX $ENV{PARALIA_GEMMEX_BOOST_PREFIX})
     set (BOOSTO_INCLUDE_DIRS ${BOOSTO_PREFIX}/include)
     include_directories(${BOOSTO_INCLUDE_DIRS})
     message("Autotuner - microbenchmarks - Included (Boost) DIR: " ${BOOSTO_INCLUDE_DIRS})

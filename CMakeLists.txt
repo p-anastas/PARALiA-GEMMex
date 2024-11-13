@@ -15,10 +15,10 @@ message("PARALiA-GEMMex - PROJECT_VERSION: " ${PROJECT_VERSION})
 add_definitions(-DVERSION="${PROJECT_VERSION}")
 
 ## Define a name for the testbed, to be used for the whole framework setup
-set(TESTBED_NAME $ENV{PARALIA_SYSTEM})
+set(TESTBED_NAME $ENV{PARALIA_GEMMEX_SYSTEM})
 message("PARALiA-GEMMex - TESTBED_NAME: " ${TESTBED_NAME})
 add_definitions(-DTESTBED="${TESTBED_NAME}")
-
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Deployment_files/${TESTBED_NAME})
 add_definitions(-DSYSDB="${CMAKE_CURRENT_SOURCE_DIR}/Deployment_files/${TESTBED_NAME}")
 message("PARALiA-GEMMex - SYSDB: " ${CMAKE_CURRENT_SOURCE_DIR}/Deployment_files/${TESTBED_NAME})
 
@@ -28,13 +28,9 @@ message("PARALiA-GEMMex - PROBLEM_GPU_PERCENTAGE: " ${PROBLEM_GPU_PERCENTAGE})
 add_definitions(-DPROBLEM_GPU_PERCENTAGE=${PROBLEM_GPU_PERCENTAGE})
 
 ## Define the (max) number of devices PARALiA will utilize during execution. 
-set(NUM_DEVICES $ENV{PARALIA_NUM_DEVICES})
+set(NUM_DEVICES $ENV{PARALIA_GEMMEX_NUM_DEVICES})
 message("PARALiA-GEMMex - NUM_DEVICES: " ${NUM_DEVICES})
 add_definitions(-DCHL_WORKERS=${NUM_DEVICES})
-
-## Define the workspace where execution of the library (benchmarks & deployment) will be invoked from (e.g. to avoid Disk quota problems in /home)
-set(CD_LOCATION $ENV{CD_FOLDER})
-message("PARALiA-GEMMex - CD_LOCATION: " ${CD_LOCATION})
 
 ###########################################################################################
 #---------------------------Internal resource reuse options-------------------------------#
@@ -285,8 +281,6 @@ add_definitions(-DDTYPE_NUM=3)
 ## The workspace size that should be assigned to each cublas handle
 ## If set to -1, the default ws will be used instead 
 ## NOTE-FIXME!!! : Currently WS effects the PCIe BW when a cublas kernel is launched. 
-## NOTE-FIXME!!! This has a serious overhead if SKs are launched during selection
-## NOTE-FIXME!!! Use of SUBKERNELS_FIRE_WHEN_READY is advised for mitigating this
 add_definitions(-DWS_SZ=-1)
 
 ###########################################################################################
@@ -309,13 +303,17 @@ add_definitions(-DREP_TILE_IN=${REP_TILE})
 #-----------------------------------CUDA definitions--------------------------------------#
 ###########################################################################################
 
-if(NOT $ENV{PARALIA_CUDA_TOOLKIT_PREFIX} STREQUAL "default")
-  set (CUDA_PREFIX $ENV{PARALIA_CUDA_TOOLKIT_PREFIX})
+if(NOT $ENV{PARALIA_GEMMEX_CUDA_PREFIX} STREQUAL "default")
+  set (CUDA_PREFIX $ENV{PARALIA_GEMMEX_CUDA_PREFIX})
   set (CMAKE_CUDA_COMPILER ${CUDA_PREFIX}/bin/nvcc)
 endif()
 
 if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-  set(CMAKE_CUDA_ARCHITECTURES $ENV{PARALIA_CUDA_ARCH})
+  if($ENV{PARALIA_GEMMEX_CUDA_ARCH} STREQUAL "")
+    message(FATAL_ERROR "PARALiA-GEMMex - CMAKE_CUDA_ARCHITECTURES not found: Please fill PARALIA_GEMMEX_CUDA_ARCH for your system in system_config.sh")
+  else()
+    set(CMAKE_CUDA_ARCHITECTURES $ENV{PARALIA_GEMMEX_CUDA_ARCH})
+  endif()
 endif()
 
 set (CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -w -O3 -Wno-pointer-arith -Wno-unused-result")
@@ -326,7 +324,7 @@ include_directories(${CUDA_INCLUDE_DIRS})
 message("PARALiA-GEMMex - CUDA_INCLUDE_DIRS: " ${CUDA_INCLUDE_DIRS})
 
 set (CUDA_LD ${CUDA_PREFIX}/lib64) # or /lib depending on system
-set (CUDA_LINK "-L${CUDA_LD} -lcudart -lcublas -lcurand $ENV{PARALIA_CUDA_LOAD_COMMAND} -fopenmp")
+set (CUDA_LINK "-L${CUDA_LD} -lcudart -lcublas -lcurand $ENV{PARALIA_GEMMEX_CUDA_LOAD_COMMAND} -fopenmp")
 message("PARALiA-GEMMex - CUDA_LINK: " ${CUDA_LINK} )
 set (INTERNAL_LINK_LIB "${CUDA_LINK} -lrt -ldl -lnuma")
 message("PARALiA-GEMMex - INTERNAL_LINK_LIB: " ${INTERNAL_LINK_LIB})
@@ -335,8 +333,8 @@ message("PARALiA-GEMMex - INTERNAL_LINK_LIB: " ${INTERNAL_LINK_LIB})
 #----------------------------------C/C++ definitions--------------------------------------#
 ###########################################################################################
 
-if(NOT $ENV{PARALIA_CXX_PREFIX} STREQUAL "default")
-  set (CXX_PREFIX $ENV{PARALIA_CXX_PREFIX})
+if(NOT $ENV{PARALIA_GEMMEX_CXX_PREFIX} STREQUAL "default")
+  set (CXX_PREFIX $ENV{PARALIA_GEMMEX_CXX_PREFIX})
   set (CMAKE_CXX_COMPILER ${CXX_PREFIX}/bin/c++)
   set (CMAKE_C_COMPILER ${CXX_PREFIX}/bin/gcc)
 endif()
@@ -351,8 +349,8 @@ message("PARALiA-GEMMex - CMAKE_CXX_FLAGS: " ${CMAKE_CXX_FLAGS})
 #---------------------------------OpenBLAS definitions------------------------------------#
 ###########################################################################################
 
-if(NOT $ENV{PARALIA_OPENBLAS_PREFIX} STREQUAL "default")
-  set(OPENBLAS_PREFIX $ENV{PARALIA_OPENBLAS_PREFIX})
+if(NOT $ENV{PARALIA_GEMMEX_OPENBLAS_PREFIX} STREQUAL "default")
+  set(OPENBLAS_PREFIX $ENV{PARALIA_GEMMEX_OPENBLAS_PREFIX})
   set (OPENBLAS_INCLUDE_DIRS ${OPENBLAS_PREFIX}/include)
   include_directories(${OPENBLAS_INCLUDE_DIRS})
   message("PARALiA-GEMMex - OPENBLAS_INCLUDE_DIRS: " ${OPENBLAS_INCLUDE_DIRS})
@@ -368,8 +366,13 @@ message("PARALiA-GEMMex - OPENBLAS_LINK: " ${OPENBLAS_LINK})
 
 project (PARALiA-GEMMex VERSION ${PROJECT_VERSION} DESCRIPTION "A PARALiA implementation of gemm similar to cublasLt functions, for multi-GPU" LANGUAGES CUDA CXX)
 
-message("PARALiA-GEMMex - Project will be installed under build dir.")
-set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
+if(NOT $ENV{PARALIA_GEMMEX_INSTALL_PREFIX} STREQUAL "default")
+  message("PARALiA-GEMMex - Project will be installed in given dir: $ENV{PARALIA_GEMMEX_INSTALL_PREFIX}")
+  set (CMAKE_INSTALL_PREFIX $ENV{PARALIA_GEMMEX_INSTALL_PREFIX})
+else()
+  message("PARALiA-GEMMex - Project will be installed under build dir.")
+  set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
+endif() 
 
 set (CMAKE_INSTALL_PROJECT ${CMAKE_INSTALL_PREFIX})
 message("PARALiA-GEMMex - CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_PROJECT: " ${CMAKE_INSTALL_PROJECT})
@@ -387,10 +390,6 @@ file(MAKE_DIRECTORY ${PARALIA_INSTALL_INC})
 set (PARALIA_INSTALL_BIN ${PARALIA_INSTALL}/bin)
 file(MAKE_DIRECTORY ${PARALIA_INSTALL_BIN})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PARALIA_INSTALL_BIN})
-
-#These should be removed/rechecked at some point...
-file(MAKE_DIRECTORY ${PARALIA_INSTALL}/Database)
-file(MAKE_DIRECTORY ${PARALIA_INSTALL}/Database/microbenchmarks)
 
 add_definitions(-DSCONFIG_PATH="$ENV{PARALIA_SCONFIG_FILE_PATH}")
 message( "PARALiA-GEMMex - Backend - SCONFIG_PATH: " $ENV{PARALIA_SCONFIG_FILE_PATH})
