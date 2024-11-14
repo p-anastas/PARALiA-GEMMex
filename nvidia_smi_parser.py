@@ -1,5 +1,14 @@
 import subprocess
 import pandas as pd
+import os
+
+system_name = os.environ.get("PARALIA_GEMMEX_SYSTEM")
+if not system_name:
+    raise SystemExit('PARALIA_GEMMEX_SYSTEM  not defined, fill and run config_system.sh prior to this script!') 
+# Define the path
+system_dir = os.path.join('Deployment_files', system_name)
+# Create the directory
+os.makedirs(system_dir, exist_ok=True)  # exist_ok=True prevents an error if the directory already exists
 
 def nvidia_gpu_gflops(model_string):
     if model_string.startswith('A100'):
@@ -64,28 +73,34 @@ def nvidia_smi_parser():
 parsed_smi = nvidia_smi_parser()
 print(parsed_smi)
 
-print('====================================================================================================')
-chl_workers = len(parsed_smi)
-print('CHL_WORKERS = %d\n' %(chl_workers))
+with open(system_dir + '/chl_worker_grid_15.log', "w") as f:
+    print('====================================================================================================', file=f)
+    
+    chl_workers = len(parsed_smi)
+    print('CHL_WORKERS = %d\n' % chl_workers, file=f)
 
-chl_dtypes = len(parsed_smi['gpu_model_flops'][0][0])
-print('WORKER_GOPS = %d' %(chl_dtypes))
+    chl_dtypes = len(parsed_smi['gpu_model_flops'][0][0])
+    print('WORKER_GOPS = %d' % chl_dtypes, file=f)
 
-for i in range(0,chl_dtypes):
-    name = parsed_smi['gpu_model_flops'][0][0][i]
-    print ('%s :' %name, end='')
-    for j in range(0,chl_workers):
-        if name != parsed_smi['gpu_model_flops'][j][0][i]:
-            raise SystemExit('Parsing bug, %s != %s' %(name, parsed_smi['gpu_model_flops'][j][0][i]))
-        ops = parsed_smi['gpu_model_flops'][j][1][i]
-        print (' %d' %ops, end='')
-    print()
-print('\nWORKER_POWER:\nWATTS:', end='')
-for j in range(0,chl_workers):
-    wats = parsed_smi['max_power_w'][j]
-    print (' %d' %wats, end='')
-print('\n\n====================================================================================================')
+    for i in range(chl_dtypes):
+        name = parsed_smi['gpu_model_flops'][0][0][i]
+        print('%s :' % name, end='', file=f)
+        
+        for j in range(chl_workers):
+            if name != parsed_smi['gpu_model_flops'][j][0][i]:
+                raise SystemExit('Parsing bug, %s != %s' % (name, parsed_smi['gpu_model_flops'][j][0][i]))
+            
+            ops = parsed_smi['gpu_model_flops'][j][1][i]
+            print(' %d' % ops, end='', file=f)
+        print(file=f)
 
+    print('\nWORKER_POWER:\nWATTS:', end='', file=f)
+    for j in range(chl_workers):
+        wats = parsed_smi['max_power_w'][j]
+        print(' %d' % wats, end='', file=f)
+    print('\n\n====================================================================================================', file=f)
+
+subprocess.run(['cat', '%s/chl_worker_grid_15.log' %(system_dir)])
 
 def load_nvidia_topo_matrix():
     # Run the nvidia-smi topo --matrix command and capture the output
