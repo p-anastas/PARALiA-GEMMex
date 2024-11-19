@@ -1,0 +1,22 @@
+nvbandwidth Version: v0.6
+Built from Git version: v0.6
+
+CUDA Runtime Version: 12040
+CUDA Driver Version: 12040
+Driver Version: 550.54.15
+
+Device 0: NVIDIA A100-SXM4-40GB (00000000:03:00)
+Device 1: NVIDIA A100-SXM4-40GB (00000000:44:00)
+Device 2: NVIDIA A100-SXM4-40GB (00000000:84:00)
+Device 3: NVIDIA A100-SXM4-40GB (00000000:c4:00)
+
+Running host_to_device_bidirectional_memcpy_ce.
+memcpy CE CPU(row) <-> GPU(column) bandwidth (GB/s)
+           0         1         2         3
+ 0     12.36     20.78      9.34      9.55
+
+SUM host_to_device_bidirectional_memcpy_ce 52.03
+
+NOTE: The reported results may not reflect the full capabilities of the platform.
+Performance can vary with software drivers, hardware clocks, and system topology.
+
