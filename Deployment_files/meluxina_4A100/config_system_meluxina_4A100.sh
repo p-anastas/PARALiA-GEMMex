@@ -11,6 +11,7 @@
 
 # 1. A CUDA compiler (Tested 10.X,11.X,12.X) or an SDK that contains one
 module load CUDA
+module load numactl
 
 # 2. Boost
 module load Boost/1.82.0-GCC-12.3.0
@@ -24,10 +25,7 @@ module load CMake/3.26.3-GCCcore-12.3.0
 # 5. Python (this is not required for running the library, but it is for plotters and deployment helper scripts)
 module load Python/3.11.3-GCCcore-12.3.0
 
-# 6. Additional modules for your HPC for libs/C compiler etc. Might not need anything.
-module load numactl
-
-# 7. Process/OMP/GPU binding commands or configurations for efficient execution on each HPC system.
+# 6. Process/OMP/GPU binding commands or configurations for efficient execution on each HPC system.
 source ~/.bashrc
 export OMP_PROC_BIND=spread
 #--------------------------------------------------------------Basic----------------------------------------------------------------#

@@ -1,0 +1,43 @@
+nvbandwidth Version: v0.6
+Built from Git version: v0.6
+
+CUDA Runtime Version: 12060
+CUDA Driver Version: 12060
+Driver Version: 560.35.03
+
+Device 0: NVIDIA A100-SXM4-40GB (00000000:03:00)
+Device 1: NVIDIA A100-SXM4-40GB (00000000:44:00)
+Device 2: NVIDIA A100-SXM4-40GB (00000000:84:00)
+Device 3: NVIDIA A100-SXM4-40GB (00000000:c4:00)
+
+Running device_to_device_bidirectional_memcpy_write_ce.
+memcpy CE GPU(row) <-> GPU(column) Write1 bandwidth (GB/s)
+           0         1         2         3
+ 0       N/A     92.68     92.80     92.75
+ 1     92.80       N/A     92.83     92.72
+ 2     92.83     92.83       N/A     92.73
+ 3     92.81     92.83     92.85       N/A
+
+SUM device_to_device_bidirectional_memcpy_write_ce_write1 1113.46
+
+memcpy CE GPU(row) <-> GPU(column) Write2 bandwidth (GB/s)
+           0         1         2         3
+ 0       N/A     92.81     92.84     92.88
+ 1     92.67       N/A     92.72     92.73
+ 2     92.89     92.86       N/A     92.89
+ 3     92.88     92.88     92.87       N/A
+
+SUM device_to_device_bidirectional_memcpy_write_ce_write2 1113.93
+
+memcpy CE GPU(row) <-> GPU(column) Total bandwidth (GB/s)
+           0         1         2         3
+ 0       N/A    185.49    185.65    185.63
+ 1    185.46       N/A    185.54    185.46
+ 2    185.72    185.69       N/A    185.62
+ 3    185.70    185.70    185.72       N/A
+
+SUM device_to_device_bidirectional_memcpy_write_ce_total 2227.38
+
+NOTE: The reported results may not reflect the full capabilities of the platform.
+Performance can vary with software drivers, hardware clocks, and system topology.
+

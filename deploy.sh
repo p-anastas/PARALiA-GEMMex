@@ -39,6 +39,7 @@ numactl --interleave=all  ${NVBW_BUILD}/nvbandwidth --disableAffinity -t device_
 numactl --interleave=all  ${NVBW_BUILD}/nvbandwidth --disableAffinity -t device_to_host_bidirectional_memcpy_ce  > ${NVBW_BENCH_DIR}/device_to_host_bidirectional_memcpy_ce_inter.log
 
 # 5) Parse nvbandwidth logs to PARALiA-GEMMex Grid_amalgamation layout.
+pip3 install --user pandas
 python3 ${PARALIA_GEMMEX_ROOT}/nvidia_topo_parse.py
 
 # 6) Run PARALiA tests to confirm successfull installation & Grid_amalgamation layout. 
