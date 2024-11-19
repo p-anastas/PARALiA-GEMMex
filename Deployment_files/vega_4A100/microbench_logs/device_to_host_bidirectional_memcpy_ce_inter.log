@@ -13,9 +13,9 @@ Device 3: NVIDIA A100-SXM4-40GB (00000000:c4:00)
 Running device_to_host_bidirectional_memcpy_ce.
 memcpy CE CPU(row) <-> GPU(column) bandwidth (GB/s)
            0         1         2         3
- 0     21.62     24.30     18.82     18.45
+ 0     16.08     16.21     16.15     15.96
 
-SUM device_to_host_bidirectional_memcpy_ce 83.19
+SUM device_to_host_bidirectional_memcpy_ce 64.40
 
 NOTE: The reported results may not reflect the full capabilities of the platform.
 Performance can vary with software drivers, hardware clocks, and system topology.

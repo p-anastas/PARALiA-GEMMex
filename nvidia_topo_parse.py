@@ -231,11 +231,11 @@ colonize_list2_in_list_of_lists(nvbandwidth_data,nvbandwidth_data_h2d_inter[0])
 colonize_list2_in_list_of_lists(nvbandwidth_data_bid,nvbandwidth_data_h2d_bid_inter[0])
 
 # Print to verify
-for row in nvbandwidth_data:
-    print(row)
+#for row in nvbandwidth_data:
+#    print(row)
 
-for row in nvbandwidth_data_bid:
-    print(row)
+#for row in nvbandwidth_data_bid:
+#    print(row)
 
 chl_memlocs = chl_workers + 2
 with open('%s/chl_bw_grid_%d_%d.log' %(system_dir, dev_case_id, dev_case_id), 'w') as f:
@@ -258,6 +258,8 @@ with open('%s/chl_bw_grid_%d_%d.log' %(system_dir, dev_case_id, dev_case_id), 'w
 
     print("", file=f)
     print("====================================================================================================", file=f)
+
+subprocess.run(['cat', '%s/chl_bw_grid_%d_%d.log' %(system_dir, dev_case_id, dev_case_id)])
 
 ### Note: These are not used currently
 def load_nvidia_topo_matrix():

@@ -246,17 +246,17 @@ double ATC::autotune_problem(const  char* problem_name_in, int A_loc_in, int B_l
 	int autotune_eval_devices = 0;
 	if (active_unit_num > 0){
 		if (active_unit_id_list){
-//#ifdef PDEBUG
+#ifdef PDEBUG
 		fprintf(stderr,  "Running on %d devices with dev_ids=[ ", active_unit_num);
 		for (int i =0; i < active_unit_num; i++) fprintf(stderr, "%d ", active_unit_id_list[i]);
 		fprintf(stderr, "]\n");
-//#endif
+#endif
 		}
 		else{
 			autotune_eval_devices = 1;
-//#ifdef PDEBUG
+#ifdef PDEBUG
 		fprintf(stderr,  "Running on %d devices with tunable dev_ids\n", active_unit_num);
-//#endif
+#endif
 		}
 	}
 	else{
@@ -405,6 +405,7 @@ double ATC::autotune_problem(const  char* problem_name_in, int A_loc_in, int B_l
 	optimize_tasks();
 
 	cpu_timer = csecond() - cpu_timer;
+#ifndef PRODUCTION
 	if(T!=-1){
 		if (T_imbalance_sl > 0) 
 			warning("ATC::optimize_tile -> T = %ld: C1 (NO-imbalance) was not satisfied, estimated sl = %lf\n", 
@@ -436,6 +437,7 @@ double ATC::autotune_problem(const  char* problem_name_in, int A_loc_in, int B_l
 		T_aggregate_sl, pred_t*1000, pred_J/1000, PDP_i, EDP_i,
 		pred_t_pesimistic*1000, pred_J_pesimistic/1000, PDP_i_pesimistic, EDP_i_pesimistic);
 	fprintf(stderr, "\n====================================\n");
+#endif
 #ifdef DEBUG
 	fprintf(stderr,  "<-----|\n");
 #endif

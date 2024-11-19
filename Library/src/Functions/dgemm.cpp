@@ -226,7 +226,9 @@ ATC_p PARALiADgemm(char TransA,  char TransB, long int M, long int N, long int K
 			fprintf(stderr, "No previous problem metadata cache entry found, starting...\n");
 #endif
 			if (PMD_cache_entries == PROBLEM_MD_CACHE){
+#ifndef PRODUCTION
 				warning("PARALiADgemm - problem cache full, removing first entry\n");
+#endif
 				delete PMD_cache[0];
 				local_PMD = PMD_cache[0] = new ProblemMetadata();
 			}

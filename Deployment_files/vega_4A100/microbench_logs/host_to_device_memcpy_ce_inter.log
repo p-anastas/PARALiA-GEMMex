@@ -10,15 +10,12 @@ Device 1: NVIDIA A100-SXM4-40GB (00000000:44:00)
 Device 2: NVIDIA A100-SXM4-40GB (00000000:84:00)
 Device 3: NVIDIA A100-SXM4-40GB (00000000:c4:00)
 
-Running device_to_device_memcpy_write_ce.
-memcpy CE GPU(row) <- GPU(column) bandwidth (GB/s)
+Running host_to_device_memcpy_ce.
+memcpy CE CPU(row) -> GPU(column) bandwidth (GB/s)
            0         1         2         3
- 0       N/A     93.28     93.26     93.33
- 1     93.25       N/A     93.28     93.28
- 2     93.25     93.37       N/A     93.21
- 3     93.39     93.29     93.47       N/A
+ 0     26.28     26.29     26.27     26.28
 
-SUM device_to_device_memcpy_write_ce 1119.66
+SUM host_to_device_memcpy_ce 105.12
 
 NOTE: The reported results may not reflect the full capabilities of the platform.
 Performance can vary with software drivers, hardware clocks, and system topology.

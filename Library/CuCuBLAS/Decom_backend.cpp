@@ -35,11 +35,13 @@ void Decomposer::prepareAsync(){
 	if(loc >= CHL_WORKERS) // && cudaErrorInvalidValue==cudaPointerGetAttributes(&attributes, adrs)) 
 		pin_internally = 1;
 	if (pin_internally){
+#ifndef PRODUCTION
 		fprintf(stderr, "Pinning Matrix  %d\n", pin_internally);
 		cudaError_t err;
 		err = cudaHostRegister(adrs, get_mem_size(),cudaHostRegisterPortable);
 		if(cudaSuccess != err) fprintf(stderr, "cudaHostRegister returned %s\n", cudaGetErrorString(err));
 		//massert(cudaSuccess == err, "Decomposer::prepareAsync failed to pin memory with error %s\n", cudaGetErrorString(err));
+#endif
 		cudaGetLastError();
 	}
 }

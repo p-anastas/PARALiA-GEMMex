@@ -230,7 +230,7 @@ add_definitions(-DPERPER_LIMIT=0.0)
 ###########################################################################################
 
 #Run in production mode, where checking of correctness for all functions is disabled
-#add_definitions(-DPRODUCTION)
+add_definitions(-DPRODUCTION)
 
 #Run in debug mode, which includes detailed function calls and info for error-checking
 #add_definitions(-DDEBUG)
@@ -366,14 +366,8 @@ message("PARALiA-GEMMex - OPENBLAS_LINK: " ${OPENBLAS_LINK})
 
 project (PARALiA-GEMMex VERSION ${PROJECT_VERSION} DESCRIPTION "A PARALiA implementation of gemm similar to cublasLt functions, for multi-GPU" LANGUAGES CUDA CXX)
 
-if(NOT $ENV{PARALIA_GEMMEX_INSTALL_PREFIX} STREQUAL "default")
-  message("PARALiA-GEMMex - Project will be installed in given dir: $ENV{PARALIA_GEMMEX_INSTALL_PREFIX}")
-  set (CMAKE_INSTALL_PREFIX $ENV{PARALIA_GEMMEX_INSTALL_PREFIX})
-else()
-  message("PARALiA-GEMMex - Project will be installed under build dir.")
-  set (CMAKE_INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR}/${TESTBED_NAME}-install)
-endif() 
-
+message("PARALiA-GEMMex - Project will be installed in dir: $ENV{PARALIA_GEMMEX_INSTALL_PREFIX}")
+set (CMAKE_INSTALL_PREFIX $ENV{PARALIA_GEMMEX_INSTALL_PREFIX})
 set (CMAKE_INSTALL_PROJECT ${CMAKE_INSTALL_PREFIX})
 message("PARALiA-GEMMex - CMAKE_INSTALL_PREFIX, CMAKE_INSTALL_PROJECT: " ${CMAKE_INSTALL_PROJECT})
 
@@ -390,9 +384,6 @@ file(MAKE_DIRECTORY ${PARALIA_INSTALL_INC})
 set (PARALIA_INSTALL_BIN ${PARALIA_INSTALL}/bin)
 file(MAKE_DIRECTORY ${PARALIA_INSTALL_BIN})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PARALIA_INSTALL_BIN})
-
-add_definitions(-DSCONFIG_PATH="$ENV{PARALIA_SCONFIG_FILE_PATH}")
-message( "PARALiA-GEMMex - Backend - SCONFIG_PATH: " $ENV{PARALIA_SCONFIG_FILE_PATH})
 
 message( "------------------------------------------------------------------------------------------------")
 ADD_SUBDIRECTORY (Backend)

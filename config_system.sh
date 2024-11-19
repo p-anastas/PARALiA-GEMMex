@@ -32,8 +32,11 @@ export OMP_PROC_BIND=spread
 # TODO: A desired name for the testbed to be used for your build-dirs and logfiles.
 export PARALIA_GEMMEX_SYSTEM="vega_4A100"
 
-# TODO: Define the directory the project will be installed in. 'default' = buildir/${PARALIA_GEMMEX_SYSTEM}-install
-export PARALIA_GEMMEX_INSTALL_PREFIX="default"
+# TODO: Change this if you run deploy from another dir
+export PARALIA_GEMMEX_ROOT=$(pwd)
+
+# TODO: Define the directory the project will be installed in. 'default' = ${PARALIA_GEMMEX_SYSTEM}-build/${PARALIA_GEMMEX_SYSTEM}-install
+export PARALIA_GEMMEX_INSTALL_PREFIX=${PARALIA_GEMMEX_ROOT}/${PARALIA_GEMMEX_SYSTEM}-build/${PARALIA_GEMMEX_SYSTEM}-install
 
 # TODO: Define cuda architecture (Tesla K40 = 35, GTX 1060/70 = 61) P100 = 60, V100 = 70, A100 = 80
 export PARALIA_GEMMEX_CUDA_ARCH=80
